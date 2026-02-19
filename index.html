@@ -1,154 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <title>Murad Hasan Tamim | Portfolio</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
-            color: #333;
-        }
-
-        header {
-            background: #0d6efd;
-            color: white;
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 36px;
-        }
-
-        header p {
-            margin-top: 10px;
-            font-size: 18px;
-        }
-
-        section {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        h2 {
-            border-bottom: 2px solid #0d6efd;
-            padding-bottom: 5px;
-        }
-
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .info-table td {
-            padding: 8px 5px;
-        }
-
-        .info-table td:first-child {
-            font-weight: bold;
-            width: 180px;
-        }
-
-        a {
-            color: #0d6efd;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            background: #222;
-            color: white;
-            margin-top: 40px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mhtamim136 - Profile</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
-
 <body>
+  <div class="card">
 
-<header>
-    <h1>Murad Hasan Tamim</h1>
-    <p>Computer Science & Engineering Student | Web Developer</p>
-</header>
+    <!-- Top buttons: Share (left) & Theme toggle (right) -->
+    <div class="top-bar">
+      <button class="icon-btn" id="shareBtn" title="Share">
+        <i class="fa-solid fa-share-nodes"></i>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">
+        <i class="fa-solid fa-sun"></i>
+      </button>
+    </div>
 
-<section>
-    <h2>About Me</h2>
-    <p>
-        I am a Computer Science and Engineering student passionate about
-        web development, software engineering, and problem solving.
-        I enjoy building structured, clean, and practical projects.
-    </p>
-</section>
+    <!-- Profile -->
+    <div class="profile">
+      <img src="your-photo.jpg" alt="Mhtamim" class="avatar" />
+      <h1 class="name">Mhtamim</h1>
+      <p class="username">@mhtamim136</p>
+      <p class="bio"><!-- Place ur bio here e.g. Full Stack Developer --></p>
+    </div>
 
-<section>
-    <h2>Personal Information</h2>
-    <table class="info-table">
-        <tr>
-            <td>Full Name</td>
-            <td>Murad Hasan Tamim</td>
-        </tr>
-        <tr>
-            <td>University</td>
-            <td>American International University-Bangladesh (AIUB)</td>
-        </tr>
-        <tr>
-            <td>Department</td>
-            <td>BSc in Computer Science & Engineering</td>
-        </tr>
-        <tr>
-            <td>Blood Group</td>
-            <td>O+</td>
-        </tr>
-        <tr>
-            <td>Location</td>
-            <td>Dhaka, Bangladesh</td>
-        </tr>
-    </table>
-</section>
+    <!-- Buttons -->
+    <div class="links">
+      <a href="#" class="link-btn">
+        <i class="fa-brands fa-github"></i> Visit my GitHub Profile
+      </a>
+      <a href="#" class="link-btn">
+        <i class="fa-regular fa-heart"></i> Sponsor me on GitHub
+      </a>
+      <a href="#" class="link-btn">
+        <i class="fa-regular fa-envelope"></i> Hire me for Freelancing
+      </a>
+      <a href="#" class="link-btn">
+        <i class="fa-brands fa-youtube"></i> Subscribe my YouTube Channel
+      </a>
+      <a href="#" class="link-btn">
+        <i class="fa-regular fa-bookmark"></i> Here's something I've Worked on
+      </a>
+    </div>
 
-<section>
-    <h2>Projects</h2>
-    <ul>
-        <li>IT Firm Management System (Java GUI)</li>
-        <li>Blood Donation Management System</li>
-        <li>Personal Profile Website</li>
-    </ul>
-</section>
+    <!-- Social Icons -->
+    <div class="socials">
+      <a href="#" title="Website"><i class="fa-solid fa-globe"></i></a>
+      <a href="#" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      <a href="#" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+      <a href="#" title="X / Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+      <a href="#" title="Discord"><i class="fa-brands fa-discord"></i></a>
+      <a href="#" title="GitHub"><i class="fa-brands fa-github"></i></a>
+    </div>
 
-<section>
-    <h2>Contact</h2>
-    <table class="info-table">
-        <tr>
-            <td>Email</td>
-            <td>mhtamim136@gmail.com</td>
-        </tr>
-        <tr>
-            <td>GitHub</td>
-            <td>
-                <a href="https://github.com/mhtamim136" target="_blank" rel="noopener noreferrer">
-                    github.com/mhtamim136
-                </a>
-            </td>
-        </tr>
-    </table>
-</section>
+  </div>
 
-<footer>
-    © 2026 Murad Hasan Tamim | All Rights Reserved
-</footer>
-
+  <script src="script.js"></script>
 </body>
 </html>
