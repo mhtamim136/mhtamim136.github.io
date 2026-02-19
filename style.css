@@ -204,4 +204,53 @@ body {
   font-weight:600;
 }
 
+/* =========================
+   SOCIAL ICON STYLING
+========================= */
+
+.socials {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.socials a {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1e293b;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+/* Hover lift effect */
+/* .socials a:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+} */
+
+/* Click press effect */
+.socials a:active {
+  transform: scale(0.92);
+}
+
+/* Brand Colors */
+
+.socials a:nth-child(1):hover { background: #1877f2; }   /* Facebook */
+.socials a:nth-child(2):hover { background: #e1306c; }   /* Instagram */
+.socials a:nth-child(3):hover { background: #000000; }   /* X */
+.socials a:nth-child(4):hover { background: #5865f2; }   /* Discord */
+.socials a:nth-child(5):hover { background: #333; }      /* GitHub */
+
+.socials a:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px rgba(88, 101, 242, 0.5);
+}
+
+
 
