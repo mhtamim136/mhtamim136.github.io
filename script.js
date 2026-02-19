@@ -2,8 +2,8 @@
 const themeBtn = document.getElementById('themeBtn');
 const html = document.documentElement;
 
-// Load saved theme
-const savedTheme = localStorage.getItem('theme') || 'dark';
+// Load saved theme - default is LIGHT
+const savedTheme = localStorage.getItem('theme') || 'light';
 html.setAttribute('data-theme', savedTheme);
 updateThemeIcon(savedTheme);
 
