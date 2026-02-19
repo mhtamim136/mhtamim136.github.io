@@ -169,3 +169,39 @@ body {
     padding: 20px 18px 28px;
   }
 }
+
+.skills{
+    margin-top:8px;
+}
+
+.skills span{
+    display:inline-block;
+    background:#1e293b;
+
+    color:#fff;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+    margin:4px;
+    font-weight:500;
+    transition: all 0.25s ease;
+
+}
+
+.skills span:hover{
+    background:#6366f1;
+    transform:translateY(-2px);
+    
+}
+.skills{
+    margin-top:10px;
+}
+.open-badge{
+  font-size:11px;
+  letter-spacing:0.5px;
+  margin-top:6px;
+  color:#22c55e;
+  font-weight:600;
+}
+
+
