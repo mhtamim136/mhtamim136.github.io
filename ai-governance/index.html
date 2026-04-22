@@ -60,17 +60,15 @@
             <section id="overview" class="mb-10">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Country Overview</h2>
                 
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 gap-2">
                     <h3 class="text-2xl font-bold text-slate-800" id="totalScoreDisplay">Total Score: 7/15</h3>
-                    <p class="text-xs text-gray-500 mt-2">
-Scores are based on qualitative analysis of national AI policies using the DCAG Framework.
-</p>
                     <div class="flex gap-3 text-xs md:text-sm font-medium">
                         <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-1 shadow-sm"></span> Low (1)</span>
                         <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-1 shadow-sm"></span> Medium (2)</span>
                         <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-1 shadow-sm"></span> High (3)</span>
                     </div>
                 </div>
+                <p class="text-xs text-gray-500 italic mb-4">Scores are based on Systematic Literature Review (SLR) and qualitative analysis of national AI policy documents using the DCAG Framework.</p>
 
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6" id="scoreCardsContainer">
                     </div>
@@ -158,8 +156,8 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
 
             <footer class="mt-12 pt-6 border-t border-gray-200 text-center pb-8">
                 <p class="font-bold text-gray-700">Governing Intelligence: AI Governance Readiness Dashboard</p>
-                <p class="text-sm text-gray-500 mt-1">Academic Project – AIUB &copy; 2026</p>
-                <p class="text-xs text-gray-400 mt-2">Based on the Developing Country AI Governance (DCAG) Framework</p>
+                <p class="text-sm text-gray-500 mt-1">Academic Project – AIUB &copy; 2026 <span class="mx-2">|</span> Based on DCAG Framework (2026 Research Study)</p>
+                <p class="text-xs text-gray-400 mt-3 italic">Disclaimer: This dashboard uses qualitative scoring and does not represent official government ratings.</p>
             </footer>
 
         </main>
@@ -175,7 +173,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
         ];
         
         let currentCountry = "Bangladesh";
-        let currentDimension = "institutional";
+        let currentDimension = "policy";
 
         const globalCountries = [
             { name: "Bangladesh", score: 7, level: "Early-stage" },
@@ -203,7 +201,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
                             { label: "Legal Liability Regime", status: "Absent", desc: "No AI-specific liability" },
                             { label: "Enforcement Mechanisms", status: "Absent", desc: "No penalties defined" }
                         ],
-                        explanation: "The Draft National AI Policy (2026-2030) signals strong strategic intent aligned with SDGs, but lacks an explicit risk classification system and enforceable legal liability."
+                        explanation: "The Draft National AI Policy 2026–2030 signals strong strategic intent aligned with SDGs, but lacks an explicit risk classification system and enforceable legal liability."
                     },
                     "institutional": {
                         indicators: [
@@ -220,7 +218,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
                             { label: "Algorithmic Audits", status: "Absent", desc: "No technical auditing tools" },
                             { label: "Incident Reporting", status: "Absent", desc: "No formal harm reporting" }
                         ],
-                        explanation: "Risk management remains largely conceptual. Without standardized audit protocols or incident reporting frameworks, public sector AI deployments operate with unchecked latent risks."
+                        explanation: "Risk management remains largely conceptual. Without standardized audit protocols or incident reporting frameworks, public sector AI deployments operate with unchecked latent risks. Absence of formal risk classification for high-risk AI systems remains a major governance gap."
                     },
                     "technical": {
                         indicators: [
@@ -258,7 +256,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
                             { label: "Legal Liability Regime", status: "Partial", desc: "Addressed via broader IT laws" },
                             { label: "Enforcement Mechanisms", status: "Partial", desc: "Sector-dependent execution" }
                         ],
-                        explanation: "India possesses a highly developed strategic vision led by NITI Aayog, focusing on 'AI for All'. However, legal liability remains distributed across broader IT and data protection regulations rather than a singular AI law."
+                        explanation: "India possesses a highly developed strategic vision led by the NITI Aayog AI Strategy, focusing on 'AI for All'. However, legal liability remains distributed across broader IT and data protection regulations rather than a singular AI law."
                     },
                     "institutional": {
                         indicators: [
@@ -275,7 +273,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
                             { label: "Algorithmic Audits", status: "Partial", desc: "Encouraged but rarely mandated" },
                             { label: "Incident Reporting", status: "Partial", desc: "Handled by CERT-In" }
                         ],
-                        explanation: "Risk management is evolving. While frameworks exist for cybersecurity incidents, specific protocols for evaluating systemic algorithmic risks in public sector deployments remain unevenly applied."
+                        explanation: "Risk management is evolving. While frameworks exist for cybersecurity incidents, specific protocols for evaluating systemic algorithmic risks in public sector deployments remain unevenly applied. Absence of formal risk classification for high-risk AI systems remains a major governance gap."
                     },
                     "technical": {
                         indicators: [
@@ -385,7 +383,7 @@ Scores are based on qualitative analysis of national AI policies using the DCAG 
                             { label: "Algorithmic Audits", status: "Absent", desc: "No auditing infrastructure" },
                             { label: "Incident Reporting", status: "Absent", desc: "No mechanisms for AI harms" }
                         ],
-                        explanation: "Systematic risk management practices are largely absent. Public and private AI deployments occur without mandatory algorithmic impact assessments or established technical auditing protocols."
+                        explanation: "Systematic risk management practices are largely absent. Public and private AI deployments occur without mandatory algorithmic impact assessments. Absence of formal risk classification for high-risk AI systems remains a major governance gap."
                     },
                     "technical": {
                         indicators: [
