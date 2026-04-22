@@ -8,47 +8,47 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         .sidebar-transition { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased overflow-x-hidden">
 
-    <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center fixed w-full z-20">
+    <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center fixed w-full z-30 shadow-md">
         <h1 class="text-lg font-bold">DCAG Dashboard</h1>
         <button id="mobileMenuBtn" class="focus:outline-none"><i class="fas fa-bars text-2xl"></i></button>
     </div>
 
     <div class="flex h-screen pt-14 md:pt-0">
         
-        <aside id="sidebar" class="bg-slate-900 text-white w-64 flex-shrink-0 fixed h-full z-10 sidebar-transition -translate-x-full md:translate-x-0 md:static">
+        <aside id="sidebar" class="bg-slate-900 text-white w-64 flex-shrink-0 fixed h-full z-20 sidebar-transition -translate-x-full md:translate-x-0 md:static">
             <div class="p-6">
                 <h2 class="text-2xl font-bold mb-2 border-b border-slate-700 pb-4">DCAG Framework</h2>
-                <p class="text-slate-400 text-sm mb-6">AI Governance Readiness</p>
+                <p class="text-slate-400 text-sm mb-6" title="Developing Country AI Governance">AI Governance Readiness</p>
                 <nav class="space-y-2">
-                    <a href="#overview" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-chart-pie mr-2"></i> Overview</a>
-                    <a href="#dimensions" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-layer-group mr-2"></i> Dimensions</a>
-                    <a href="#comparative" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-balance-scale mr-2"></i> Comparative</a>
-                    <a href="#recommendations" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-lightbulb mr-2"></i> Recommendations</a>
+                    <a href="#overview" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-chart-pie w-5 mr-2"></i> Overview</a>
+                    <a href="#dimensions" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-layer-group w-5 mr-2"></i> Dimensions</a>
+                    <a href="#comparative" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-balance-scale w-5 mr-2"></i> Comparative</a>
+                    <a href="#recommendations" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-slate-800 hover:text-white"><i class="fas fa-lightbulb w-5 mr-2"></i> Recommendations</a>
                 </nav>
             </div>
         </aside>
 
-        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-8 w-full">
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-8 w-full relative">
             
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 mt-2 md:mt-0">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Country Dashboard</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Country Dashboard</h1>
                     <p class="text-sm text-gray-500 mt-1">Analyzing AI governance capacity in the Global South</p>
                 </div>
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 flex items-center">
-                    <label for="countrySelector" class="font-semibold text-gray-700 mr-3 ml-2"><i class="fas fa-globe mr-1"></i> Select Country:</label>
-                    <select id="countrySelector" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 cursor-pointer outline-none">
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 flex items-center w-full md:w-auto">
+                    <label for="countrySelector" class="font-semibold text-gray-700 mr-3 ml-2 whitespace-nowrap"><i class="fas fa-globe mr-1"></i> Select Country:</label>
+                    <select id="countrySelector" class="w-full md:w-auto bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 cursor-pointer outline-none">
                         <option value="Bangladesh" selected>Bangladesh</option>
                         <option value="India">India</option>
                         <option value="Brazil">Brazil</option>
@@ -60,47 +60,60 @@
             <section id="overview" class="mb-10">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Country Overview</h2>
                 
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
                     <h3 class="text-2xl font-bold text-slate-800" id="totalScoreDisplay">Total Score: 7/15</h3>
+                    <p class="text-xs text-gray-500 mt-2">
+Scores are based on qualitative analysis of national AI policies using the DCAG Framework.
+</p>
                     <div class="flex gap-3 text-xs md:text-sm font-medium">
-                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-1"></span> Low (1)</span>
-                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-1"></span> Medium (2)</span>
-                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-1"></span> High (3)</span>
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-1 shadow-sm"></span> Low (1)</span>
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-1 shadow-sm"></span> Medium (2)</span>
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-1 shadow-sm"></span> High (3)</span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" id="scoreCardsContainer">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6" id="scoreCardsContainer">
                     </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 col-span-1 md:col-span-1 flex flex-col justify-center items-center">
-                        <canvas id="radarChart" style="max-height: 300px;"></canvas>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-2 md:p-4 rounded-xl shadow-sm border border-gray-100 col-span-1 lg:col-span-1 flex flex-col justify-center items-center overflow-hidden">
+                        <div class="w-full relative" style="height: 280px;">
+                            <canvas id="radarChart"></canvas>
+                        </div>
                     </div>
                     
-                    <div class="col-span-1 md:col-span-2 flex flex-col gap-4">
-                        <div class="bg-blue-50 border-l-4 border-blue-500 p-5 rounded-r-xl shadow-sm">
-                            <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-info-circle mr-1"></i> Key Insight</h4>
-                            <p id="insightText" class="text-blue-900"></p>
+                    <div class="col-span-1 lg:col-span-2 flex flex-col gap-4">
+                        <div class="bg-blue-50 border-l-4 border-blue-600 p-5 rounded-r-xl shadow-sm transition-all hover:shadow-md">
+                            <h4 class="font-bold text-blue-900 mb-2"><i class="fas fa-microscope mr-1 text-blue-600"></i> Analytical Insight</h4>
+                            <p id="insightText" class="text-blue-800 leading-relaxed font-medium"></p>
                         </div>
-                        <div class="bg-slate-100 border border-slate-200 p-5 rounded-xl shadow-sm h-full">
-                            <h4 class="font-bold text-slate-700 mb-2"><i class="fas fa-search-chart mr-1"></i> Score Interpretation</h4>
-                            <p id="interpretationText" class="text-slate-600"></p>
+                        <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm h-full transition-all hover:shadow-md">
+                            <h4 class="font-bold text-slate-800 mb-2"><i class="fas fa-chart-line mr-1 text-slate-500"></i> Score Interpretation</h4>
+                            <p id="interpretationText" class="text-slate-600 leading-relaxed"></p>
                         </div>
                     </div>
                 </div>
             </section>
 
             <section id="dimensions" class="mb-10">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Institutional Capacity Deep-Dive</h2>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <ul class="space-y-4" id="indicatorsList">
-                                </ul>
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Dimension Deep-Dive</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="flex overflow-x-auto border-b border-gray-200 bg-gray-50" id="dimensionTabs">
                         </div>
-                        <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 flex flex-col justify-center">
-                            <h4 class="font-bold text-gray-700 mb-2"><i class="fas fa-comment-dots text-gray-400 mr-2"></i> Analysis</h4>
-                            <p id="dimensionExplanation" class="text-gray-600 italic"></p>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center" id="activeDimensionTitle">
+                                    <i class="fas fa-list-ul mr-2 text-gray-400"></i> Key Indicators
+                                </h3>
+                                <ul class="space-y-4" id="indicatorsList">
+                                    </ul>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 h-full">
+                                <h4 class="font-bold text-slate-800 mb-3"><i class="fas fa-align-left text-slate-400 mr-2"></i> Dimension Analysis</h4>
+                                <p id="dimensionExplanation" class="text-slate-600 leading-relaxed text-sm md:text-base"></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -109,50 +122,31 @@
             <section id="comparative" class="mb-10">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Comparative Analysis (Global South)</h2>
                 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                        <div>
-                            <canvas id="barChart" style="max-height: 250px;"></canvas>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                        <div class="w-full relative" style="height: 250px;">
+                            <canvas id="barChart"></canvas>
                         </div>
-                        <div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left text-gray-500">
-                                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 rounded-t-lg">
-                                        <tr>
-                                            <th class="px-4 py-3 rounded-tl-lg">Country</th>
-                                            <th class="px-4 py-3 text-center">Total Score</th>
-                                            <th class="px-4 py-3 rounded-tr-lg">Readiness Level</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr class="bg-white border-b">
-                                            <td class="px-4 py-3 font-medium text-gray-900">Bangladesh</td>
-                                            <td class="px-4 py-3 text-center"><span class="bg-yellow-100 text-yellow-800 py-1 px-2 rounded font-bold">7/15</span></td>
-                                            <td class="px-4 py-3 text-yellow-600">Early-stage</td>
-                                        </tr>
-                                        <tr class="bg-white border-b bg-gray-50">
-                                            <td class="px-4 py-3 font-medium text-gray-900">Nigeria</td>
-                                            <td class="px-4 py-3 text-center"><span class="bg-yellow-100 text-yellow-800 py-1 px-2 rounded font-bold">7/15</span></td>
-                                            <td class="px-4 py-3 text-yellow-600">Early-stage</td>
-                                        </tr>
-                                        <tr class="bg-white border-b">
-                                            <td class="px-4 py-3 font-medium text-gray-900">India</td>
-                                            <td class="px-4 py-3 text-center"><span class="bg-green-100 text-green-800 py-1 px-2 rounded font-bold">12/15</span></td>
-                                            <td class="px-4 py-3 text-green-600">Developing</td>
-                                        </tr>
-                                        <tr class="bg-white">
-                                            <td class="px-4 py-3 font-medium text-gray-900 rounded-bl-lg">Brazil</td>
-                                            <td class="px-4 py-3 text-center"><span class="bg-green-100 text-green-800 py-1 px-2 rounded font-bold">12/15</span></td>
-                                            <td class="px-4 py-3 text-green-600 rounded-br-lg">Developing</td>
-                                        </tr>
+                        <div class="overflow-x-auto w-full">
+                            <table class="w-full text-sm text-left text-gray-600 border-collapse">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th class="px-4 py-3 rounded-tl-lg font-semibold">Country</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Total Score</th>
+                                        <th class="px-4 py-3 rounded-tr-lg font-semibold">Readiness Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparativeTableBody">
                                     </tbody>
-                                </table>
-                            </div>
+                            </table>
                         </div>
                     </div>
                 </div>
-                <div class="bg-purple-50 text-purple-900 p-4 rounded-lg border border-purple-100 font-medium">
-                    <i class="fas fa-lightbulb text-purple-500 mr-2"></i> <span id="comparativeInsight">India and Brazil outperform Bangladesh due to stronger policy implementation and technical infrastructure.</span>
+                <div class="bg-purple-50 text-purple-900 p-4 md:p-5 rounded-lg border border-purple-200 shadow-sm">
+                    <div class="flex items-start">
+                        <i class="fas fa-lightbulb text-purple-600 mt-1 mr-3 text-lg"></i> 
+                        <p id="comparativeInsight" class="font-medium leading-relaxed text-sm md:text-base"></p>
+                    </div>
                 </div>
             </section>
 
@@ -162,132 +156,343 @@
                     </div>
             </section>
 
-            <footer class="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-500 pb-8">
-                <p>AI Governance Dashboard – Academic Project &copy; 2026</p>
-                <p class="mt-1">Based on the Developing Country AI Governance (DCAG) Framework</p>
+            <footer class="mt-12 pt-6 border-t border-gray-200 text-center pb-8">
+                <p class="font-bold text-gray-700">Governing Intelligence: AI Governance Readiness Dashboard</p>
+                <p class="text-sm text-gray-500 mt-1">Academic Project – AIUB &copy; 2026</p>
+                <p class="text-xs text-gray-400 mt-2">Based on the Developing Country AI Governance (DCAG) Framework</p>
             </footer>
 
         </main>
     </div>
 
     <script>
-        // --- 1. Data Definitions based on the DCAG Framework Research ---
-        const dimensions = ["Policy & Legal", "Institutional", "Risk Management", "Technical Infrastructure", "Ethics & Inclusion"];
+        const dimensionsDef = [
+            { id: "policy", name: "Policy & Legal", icon: "fa-gavel", desc: "Foundation of laws, liability, and enforcement mechanisms" },
+            { id: "institutional", name: "Institutional", icon: "fa-university", desc: "Dedicated regulators, skilled workforce, and budget" },
+            { id: "risk", name: "Risk Management", icon: "fa-shield-alt", desc: "Audit protocols, incident reporting, and risk assessment" },
+            { id: "technical", name: "Technical Infrastructure", icon: "fa-server", desc: "Data ecosystems, compute capacity, and interoperability" },
+            { id: "ethics", name: "Ethics & Inclusion", icon: "fa-users", desc: "Bias mitigation, transparency, and inclusive participation" }
+        ];
         
+        let currentCountry = "Bangladesh";
+        let currentDimension = "institutional";
+
+        const globalCountries = [
+            { name: "Bangladesh", score: 7, level: "Early-stage" },
+            { name: "Nigeria", score: 7, level: "Early-stage" },
+            { name: "India", score: 12, level: "Developing" },
+            { name: "Brazil", score: 12, level: "Developing" }
+        ];
+
         const countryData = {
             "Bangladesh": {
-                scores: [2, 1, 1, 1, 2],
-                total: 7,
-                insight: "Bangladesh shows moderate policy readiness but lacks strong institutional and technical capacity.",
-                interpretation: "A score of 7/15 indicates early-stage AI governance with significant implementation gaps between ambition and enforcement.",
-                indicators: [
-                    { label: "AI Regulatory Body", status: "Absent", icon: "fa-university" },
-                    { label: "Inter-agency Coordination", status: "Absent", icon: "fa-network-wired" },
-                    { label: "Skilled Workforce", status: "Partial", icon: "fa-users-cog" },
-                    { label: "Budget Allocation", status: "Absent", icon: "fa-coins" }
-                ],
-                explanation: "Institutional capacity remains weak due to the lack of a dedicated regulatory authority and limited inter-agency coordination to manage digital transformation.",
-                comparativeInsight: "India and Brazil outperform Bangladesh due to stronger policy implementation, technical infrastructure, and existing institutional capacity.",
+                scores: { "policy": 2, "institutional": 1, "risk": 1, "technical": 1, "ethics": 2 },
+                insight: "Bangladesh demonstrates nascent policy formulation but requires substantial institutional scaffolding and technical capacity for operationalization.",
+                interpretation: "A score of 7/15 reflects significant implementation gaps, categorizing the governance architecture at an early-stage readiness level.",
+                comparativeInsight: "India and Brazil significantly outperform Bangladesh due to established legal frameworks and superior technical infrastructure scaling.",
                 recommendations: [
-                    { priority: "High Priority", title: "Establish AI Regulatory Authority", reason: "Without a regulatory body, enforcement and accountability are not possible.", color: "red" },
-                    { priority: "Medium", title: "Develop Risk Classification Framework", reason: "Helps identify and manage high-risk AI systems proactively.", color: "yellow" },
-                    { priority: "Medium", title: "Invest in AI Infrastructure", reason: "Technical capacity and compute ecosystems are essential for sovereign AI governance.", color: "yellow" },
-                    { priority: "Future", title: "Strengthen AI Ethics Implementation", reason: "Ensures fairness, transparency, and inclusion beyond aspirational guidelines.", color: "green" }
-                ]
+                    { priority: "High Priority", title: "Establish Regulatory Authority", reason: "Without an apex body, decentralized enforcement remains structurally unfeasible.", color: "red" },
+                    { priority: "Medium", title: "Develop Risk Classification", reason: "Proactive identification of high-risk AI deployments ensures targeted oversight.", color: "yellow" },
+                    { priority: "Medium", title: "Invest in Sovereign Compute", reason: "Technical infrastructure is a prerequisite for sovereign algorithmic governance.", color: "yellow" },
+                    { priority: "Future", title: "Operationalize Ethics Policies", reason: "Transition ethical guidelines from normative statements to mandatory compliance.", color: "green" }
+                ],
+                dimensions: {
+                    "policy": {
+                        indicators: [
+                            { label: "National AI Strategy", status: "Partial", desc: "Drafted but pending enactment" },
+                            { label: "Legal Liability Regime", status: "Absent", desc: "No AI-specific liability" },
+                            { label: "Enforcement Mechanisms", status: "Absent", desc: "No penalties defined" }
+                        ],
+                        explanation: "The Draft National AI Policy (2026-2030) signals strong strategic intent aligned with SDGs, but lacks an explicit risk classification system and enforceable legal liability."
+                    },
+                    "institutional": {
+                        indicators: [
+                            { label: "AI Regulatory Body", status: "Absent", desc: "No dedicated agency" },
+                            { label: "Inter-agency Coordination", status: "Absent", desc: "Siloed departmental approaches" },
+                            { label: "Skilled Workforce", status: "Partial", desc: "Developing academic base" },
+                            { label: "Budget Allocation", status: "Absent", desc: "No dedicated AI governance budget" }
+                        ],
+                        explanation: "Institutional capacity represents the most critical gap. The absence of a dedicated regulatory authority severely limits the ability to coordinate inter-agency responses or enforce compliance."
+                    },
+                    "risk": {
+                        indicators: [
+                            { label: "Risk Assessment Protocols", status: "Absent", desc: "No mandatory checks" },
+                            { label: "Algorithmic Audits", status: "Absent", desc: "No technical auditing tools" },
+                            { label: "Incident Reporting", status: "Absent", desc: "No formal harm reporting" }
+                        ],
+                        explanation: "Risk management remains largely conceptual. Without standardized audit protocols or incident reporting frameworks, public sector AI deployments operate with unchecked latent risks."
+                    },
+                    "technical": {
+                        indicators: [
+                            { label: "Data Ecosystems", status: "Partial", desc: "Growing but fragmented" },
+                            { label: "Compute Capacity", status: "Absent", desc: "High reliance on foreign infrastructure" },
+                            { label: "Interoperability Standards", status: "Absent", desc: "Lack of cohesive technical standards" }
+                        ],
+                        explanation: "Technical infrastructure constraints limit digital sovereignty. Heavy reliance on foreign cloud providers restricts local control over critical data ecosystems."
+                    },
+                    "ethics": {
+                        indicators: [
+                            { label: "Bias Mitigation Guidelines", status: "Partial", desc: "Acknowledged in draft policy" },
+                            { label: "Minority Protection", status: "Partial", desc: "General constitutional protections" },
+                            { label: "Transparency Mandates", status: "Absent", desc: "No algorithmic transparency laws" }
+                        ],
+                        explanation: "While normative commitments to fairness and inclusion are documented in strategic drafts, they lack the operational mechanisms required to prevent algorithmic bias in practice."
+                    }
+                }
             },
             "India": {
-                scores: [3, 2, 2, 3, 2],
-                total: 12,
-                insight: "India possesses highly developed technical infrastructure and strong policies, but relies on distributed rather than centralized institutional enforcement.",
-                interpretation: "A score of 12/15 places India in a developing readiness stage, capable of executing complex AI strategies but needing consolidated oversight.",
-                indicators: [
-                    { label: "AI Regulatory Body", status: "Partial", icon: "fa-university" },
-                    { label: "Inter-agency Coordination", status: "Partial", icon: "fa-network-wired" },
-                    { label: "Skilled Workforce", status: "Present", icon: "fa-users-cog" },
-                    { label: "Budget Allocation", status: "Present", icon: "fa-coins" }
-                ],
-                explanation: "Institutional capacity is moderate; while strong tech ministries exist (like MeitY and NITI Aayog), enforcement is fragmented across sectors rather than managed by a single AI authority.",
-                comparativeInsight: "India shares the top tier with Brazil in this sample, leveraging a massive technical workforce to compensate for fragmented regulatory institutions.",
+                scores: { "policy": 3, "institutional": 2, "risk": 2, "technical": 3, "ethics": 2 },
+                insight: "India exhibits robust technical infrastructure and advanced policy frameworks, yet relies on decentralized sectoral enforcement mechanisms.",
+                interpretation: "A score of 12/15 places India in a developing readiness stage, capable of executing complex AI strategies with existing digital public infrastructure.",
+                comparativeInsight: "India shares the highest tier within the analyzed cohort, leveraging unparalleled technical capacity to offset fragmented institutional oversight.",
                 recommendations: [
-                    { priority: "High Priority", title: "Centralize AI Oversight", reason: "Unify sectoral guidelines into a cohesive, enforceable national legal framework.", color: "red" },
-                    { priority: "Medium", title: "Standardize Algorithmic Audits", reason: "Transition ethics from voluntary principles to mandatory compliance for public sector AI.", color: "yellow" },
-                    { priority: "Medium", title: "Expand Incident Reporting", reason: "Create clear protocols for identifying and mitigating AI harms at the state level.", color: "yellow" },
-                    { priority: "Future", title: "Export DPI Governance Models", reason: "Share successful Digital Public Infrastructure governance frameworks globally.", color: "green" }
-                ]
+                    { priority: "High Priority", title: "Centralize AI Oversight", reason: "Unify fragmented sectoral guidelines into a cohesive national framework.", color: "red" },
+                    { priority: "Medium", title: "Mandate Algorithmic Audits", reason: "Transition ethics from voluntary principles to strict compliance for public AI.", color: "yellow" },
+                    { priority: "Medium", title: "Standardize Incident Reporting", reason: "Create clear protocols for identifying AI-induced harms at the state level.", color: "yellow" },
+                    { priority: "Future", title: "Export DPI Governance", reason: "Share successful Digital Public Infrastructure governance models globally.", color: "green" }
+                ],
+                dimensions: {
+                    "policy": {
+                        indicators: [
+                            { label: "National AI Strategy", status: "Present", desc: "NITI Aayog framework active" },
+                            { label: "Legal Liability Regime", status: "Partial", desc: "Addressed via broader IT laws" },
+                            { label: "Enforcement Mechanisms", status: "Partial", desc: "Sector-dependent execution" }
+                        ],
+                        explanation: "India possesses a highly developed strategic vision led by NITI Aayog, focusing on 'AI for All'. However, legal liability remains distributed across broader IT and data protection regulations rather than a singular AI law."
+                    },
+                    "institutional": {
+                        indicators: [
+                            { label: "AI Regulatory Body", status: "Partial", desc: "Distributed among ministries" },
+                            { label: "Inter-agency Coordination", status: "Partial", desc: "Improving via MeitY" },
+                            { label: "Skilled Workforce", status: "Present", desc: "Massive technical talent pool" },
+                            { label: "Budget Allocation", status: "Present", desc: "Significant national funding" }
+                        ],
+                        explanation: "Institutional capacity is moderate-to-high. Strong technological ministries exist, but governance is decentralized, relying on sectoral regulators rather than an apex AI authority."
+                    },
+                    "risk": {
+                        indicators: [
+                            { label: "Risk Assessment Protocols", status: "Partial", desc: "Sector-specific guidelines exist" },
+                            { label: "Algorithmic Audits", status: "Partial", desc: "Encouraged but rarely mandated" },
+                            { label: "Incident Reporting", status: "Partial", desc: "Handled by CERT-In" }
+                        ],
+                        explanation: "Risk management is evolving. While frameworks exist for cybersecurity incidents, specific protocols for evaluating systemic algorithmic risks in public sector deployments remain unevenly applied."
+                    },
+                    "technical": {
+                        indicators: [
+                            { label: "Data Ecosystems", status: "Present", desc: "Advanced Digital Public Infrastructure" },
+                            { label: "Compute Capacity", status: "Present", desc: "Scaling sovereign AI compute missions" },
+                            { label: "Interoperability Standards", status: "Present", desc: "High baseline interoperability" }
+                        ],
+                        explanation: "India's technical foundation is its strongest asset. The mature Digital Public Infrastructure (DPI) provides an unparalleled ecosystem for deploying and governing AI at population scale."
+                    },
+                    "ethics": {
+                        indicators: [
+                            { label: "Bias Mitigation Guidelines", status: "Present", desc: "Included in national guidelines" },
+                            { label: "Minority Protection", status: "Partial", desc: "Complex demographic challenges" },
+                            { label: "Transparency Mandates", status: "Partial", desc: "Sector-dependent" }
+                        ],
+                        explanation: "Ethical guidelines are well-documented, focusing heavily on fairness and trust. However, enforcing these principles across diverse linguistic and socio-economic demographics poses ongoing practical challenges."
+                    }
+                }
             },
             "Brazil": {
-                scores: [3, 2, 2, 3, 2],
-                total: 12,
-                insight: "Brazil shows high legal preparedness (PL 2338/2023) and technical capability, though full institutional operationalization is pending.",
-                interpretation: "A score of 12/15 indicates a robust foundational environment prepared to implement risk-based AI governance once legislation is fully enacted.",
-                indicators: [
-                    { label: "AI Regulatory Body", status: "Partial", icon: "fa-university" },
-                    { label: "Inter-agency Coordination", status: "Partial", icon: "fa-network-wired" },
-                    { label: "Skilled Workforce", status: "Present", icon: "fa-users-cog" },
-                    { label: "Budget Allocation", status: "Partial", icon: "fa-coins" }
-                ],
-                explanation: "Brazil leverages existing strong data protection authorities (ANPD) which provides a better institutional base than starting from scratch, though AI-specific capacity is still scaling.",
-                comparativeInsight: "Brazil has the most legally mature framework (resembling the EU AI Act's risk tiers) among the four analyzed developing nations.",
+                scores: { "policy": 3, "institutional": 2, "risk": 2, "technical": 3, "ethics": 2 },
+                insight: "Brazil presents high legislative maturity with PL 2338/2023, establishing a strong foundation pending comprehensive institutional implementation.",
+                interpretation: "A score of 12/15 indicates a robust foundational environment prepared to execute risk-based AI governance once pending legislation is formally enacted.",
+                comparativeInsight: "Brazil demonstrates the most legally sophisticated framework among the analyzed nations, closely mirroring the risk-tiered approach of the EU AI Act.",
                 recommendations: [
-                    { priority: "High Priority", title: "Pass & Enact PL 2338/2023", reason: "Formalize the risk-based legal framework currently in legislative process.", color: "red" },
-                    { priority: "Medium", title: "Empower the ANPD for AI", reason: "Ensure the data protection authority has the budget and mandate to govern AI models.", color: "yellow" },
-                    { priority: "Medium", title: "Develop Compute Sovereignty", reason: "Reduce reliance on foreign cloud providers for critical government AI services.", color: "yellow" },
-                    { priority: "Future", title: "Regional LatAm Integration", reason: "Lead South American interoperability for AI governance standards.", color: "green" }
-                ]
+                    { priority: "High Priority", title: "Enact PL 2338/2023", reason: "Formalize the risk-based legal framework currently in the legislative pipeline.", color: "red" },
+                    { priority: "Medium", title: "Empower Data Authorities", reason: "Ensure the ANPD possesses the mandate and budget to govern complex AI models.", color: "yellow" },
+                    { priority: "Medium", title: "Enhance Compute Sovereignty", reason: "Reduce reliance on foreign cloud architecture for critical government services.", color: "yellow" },
+                    { priority: "Future", title: "Drive Regional Integration", reason: "Lead South American interoperability for cross-border AI governance standards.", color: "green" }
+                ],
+                dimensions: {
+                    "policy": {
+                        indicators: [
+                            { label: "National AI Strategy", status: "Present", desc: "EBIA established" },
+                            { label: "Legal Liability Regime", status: "Present", desc: "Defined in PL 2338/2023" },
+                            { label: "Enforcement Mechanisms", status: "Partial", desc: "Pending full legislative passage" }
+                        ],
+                        explanation: "Brazil's policy landscape is highly advanced due to the AI Bill (PL 2338/2023), which introduces a sophisticated, risk-tiered regulatory framework, heavily influenced by international standards."
+                    },
+                    "institutional": {
+                        indicators: [
+                            { label: "AI Regulatory Body", status: "Partial", desc: "Leveraging existing data authority (ANPD)" },
+                            { label: "Inter-agency Coordination", status: "Partial", desc: "Developing cross-ministry links" },
+                            { label: "Skilled Workforce", status: "Present", desc: "Strong regional academic hubs" },
+                            { label: "Budget Allocation", status: "Partial", desc: "Fluctuating federal funding" }
+                        ],
+                        explanation: "Brazil uniquely leverages its established national data protection authority (ANPD) to anchor AI governance, providing a stronger initial institutional base than building a new agency from scratch."
+                    },
+                    "risk": {
+                        indicators: [
+                            { label: "Risk Assessment Protocols", status: "Present", desc: "Core to proposed legislation" },
+                            { label: "Algorithmic Audits", status: "Partial", desc: "Defined for high-risk systems" },
+                            { label: "Incident Reporting", status: "Partial", desc: "Evolving frameworks" }
+                        ],
+                        explanation: "Risk management is formally structured within the impending legislative frameworks, specifically mandating impact assessments for systems categorized as 'high-risk'."
+                    },
+                    "technical": {
+                        indicators: [
+                            { label: "Data Ecosystems", status: "Present", desc: "Sophisticated digital governance" },
+                            { label: "Compute Capacity", status: "Partial", desc: "Growing domestic infrastructure" },
+                            { label: "Interoperability Standards", status: "Present", desc: "Strong e-government standards" }
+                        ],
+                        explanation: "Technical readiness is high, supported by advanced e-government services and strong internet penetration, though domestic compute capacity for large model training requires expansion."
+                    },
+                    "ethics": {
+                        indicators: [
+                            { label: "Bias Mitigation Guidelines", status: "Present", desc: "Integrated into legislative drafts" },
+                            { label: "Minority Protection", status: "Partial", desc: "Addressed via broader civil rights" },
+                            { label: "Transparency Mandates", status: "Present", desc: "Core component of PL 2338" }
+                        ],
+                        explanation: "Ethical considerations, particularly non-discrimination and transparency, are structurally embedded into the proposed legal texts, marking a transition from soft ethics to hard law."
+                    }
+                }
             },
             "Nigeria": {
-                scores: [2, 1, 1, 1, 2],
-                total: 7,
-                insight: "Nigeria has articulated inclusive national AI strategies but lacks the enforceable legal liability and institutional bodies to monitor them.",
-                interpretation: "A score of 7/15 reflects an aspirational stage; policy frameworks exist but physical and institutional infrastructure are severely lacking.",
-                indicators: [
-                    { label: "AI Regulatory Body", status: "Absent", icon: "fa-university" },
-                    { label: "Inter-agency Coordination", status: "Absent", icon: "fa-network-wired" },
-                    { label: "Skilled Workforce", status: "Partial", icon: "fa-users-cog" },
-                    { label: "Budget Allocation", status: "Absent", icon: "fa-coins" }
-                ],
-                explanation: "Despite entities like NITDA pushing digital strategies, dedicated AI governance institutions with enforcement capabilities and operational budgets remain absent.",
-                comparativeInsight: "Nigeria mirrors Bangladesh's profile—high policy ambition but low foundational readiness, requiring focus on the bottom layers of the DCAG framework.",
+                scores: { "policy": 2, "institutional": 1, "risk": 1, "technical": 1, "ethics": 2 },
+                insight: "Nigeria articulates inclusive strategic AI goals, but is critically constrained by the absence of enforceable legal structures and regulatory enforcement bodies.",
+                interpretation: "A score of 7/15 reflects an aspirational governance stage; ambitious policy frameworks exist, but physical and institutional infrastructure are severely lacking.",
+                comparativeInsight: "Nigeria mirrors Bangladesh's structural profile—displaying high policy ambition but low foundational readiness, necessitating focus on fundamental capacity building.",
                 recommendations: [
-                    { priority: "High Priority", title: "Draft AI-Specific Legislation", reason: "Move beyond strategy documents to enforceable legal liability structures.", color: "red" },
-                    { priority: "Medium", title: "Establish an AI Taskforce", reason: "Create an interim body under the Ministry of Communications to guide capacity building.", color: "yellow" },
-                    { priority: "Medium", title: "Bridge the Digital Divide", reason: "Improve basic internet connectivity to ensure AI benefits and protections are inclusive.", color: "yellow" },
-                    { priority: "Future", title: "Implement Pan-African Guidelines", reason: "Align domestic laws with African Union AI governance blueprints.", color: "green" }
-                ]
+                    { priority: "High Priority", title: "Draft AI-Specific Law", reason: "Transition from strategic policy documents to enforceable legal liability structures.", color: "red" },
+                    { priority: "Medium", title: "Establish AI Taskforce", reason: "Create an empowered interim body to guide national capacity building.", color: "yellow" },
+                    { priority: "Medium", title: "Bridge the Digital Divide", reason: "Improve basic connectivity to ensure AI governance protections are inclusive.", color: "yellow" },
+                    { priority: "Future", title: "Align with African Union", reason: "Synchronize domestic laws with pan-African AI governance blueprints.", color: "green" }
+                ],
+                dimensions: {
+                    "policy": {
+                        indicators: [
+                            { label: "National AI Strategy", status: "Present", desc: "National strategy published" },
+                            { label: "Legal Liability Regime", status: "Absent", desc: "Reliant on general cyber laws" },
+                            { label: "Enforcement Mechanisms", status: "Absent", desc: "No AI-specific enforcement" }
+                        ],
+                        explanation: "Nigeria's National AI Strategy highlights a strong commitment to inclusive development. However, these ambitions lack the necessary underpinning of AI-specific legal liability and binding regulatory mechanisms."
+                    },
+                    "institutional": {
+                        indicators: [
+                            { label: "AI Regulatory Body", status: "Absent", desc: "NITDA manages broader IT" },
+                            { label: "Inter-agency Coordination", status: "Absent", desc: "Limited cross-sector cohesion" },
+                            { label: "Skilled Workforce", status: "Partial", desc: "Growing tech ecosystem" },
+                            { label: "Budget Allocation", status: "Absent", desc: "Inconsistent structural funding" }
+                        ],
+                        explanation: "While entities like NITDA drive digital policy, the lack of a specialized, adequately funded AI governance institution results in weak enforcement and oversight capabilities."
+                    },
+                    "risk": {
+                        indicators: [
+                            { label: "Risk Assessment Protocols", status: "Absent", desc: "No formalized AI risk standards" },
+                            { label: "Algorithmic Audits", status: "Absent", desc: "No auditing infrastructure" },
+                            { label: "Incident Reporting", status: "Absent", desc: "No mechanisms for AI harms" }
+                        ],
+                        explanation: "Systematic risk management practices are largely absent. Public and private AI deployments occur without mandatory algorithmic impact assessments or established technical auditing protocols."
+                    },
+                    "technical": {
+                        indicators: [
+                            { label: "Data Ecosystems", status: "Partial", desc: "Emerging startup ecosystem" },
+                            { label: "Compute Capacity", status: "Absent", desc: "Severe compute and power constraints" },
+                            { label: "Interoperability Standards", status: "Absent", desc: "Fragmented infrastructure" }
+                        ],
+                        explanation: "Technical infrastructure faces significant foundational challenges, including broader power grid reliability and internet penetration gaps, which hinder scalable sovereign AI deployment."
+                    },
+                    "ethics": {
+                        indicators: [
+                            { label: "Bias Mitigation Guidelines", status: "Partial", desc: "Referenced in national strategy" },
+                            { label: "Minority Protection", status: "Partial", desc: "General protections apply" },
+                            { label: "Transparency Mandates", status: "Absent", desc: "No specific algorithmic transparency" }
+                        ],
+                        explanation: "Ethical guidelines emphasize inclusive participation and localized data sets. However, translating these normative goals into technical requirements for AI developers remains unrealized."
+                    }
+                }
             }
         };
 
-        // --- 2. State & Chart Instances ---
         let radarChartInstance = null;
         let barChartInstance = null;
         
-        // Colors for scores
         const getColorClass = (val, type) => {
             if (val === 3 || val === "Present") return type === 'bg' ? 'bg-green-100' : (type === 'text' ? 'text-green-700' : 'bg-green-500');
             if (val === 2 || val === "Partial") return type === 'bg' ? 'bg-yellow-100' : (type === 'text' ? 'text-yellow-700' : 'bg-yellow-400');
             return type === 'bg' ? 'bg-red-100' : (type === 'text' ? 'text-red-700' : 'bg-red-500');
         };
 
-        // --- 3. DOM Update Functions ---
+        function renderDimensionTabs() {
+            const tabsHtml = dimensionsDef.map(dim => `
+                <button onclick="switchDimension('${dim.id}')" 
+                    class="dimension-tab whitespace-nowrap py-4 px-6 text-sm font-semibold border-b-2 transition-colors duration-200 outline-none
+                    ${currentDimension === dim.id ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+                    title="${dim.desc}">
+                    <i class="fas ${dim.icon} mr-2 ${currentDimension === dim.id ? 'text-blue-600' : 'text-gray-400'}"></i>${dim.name}
+                </button>
+            `).join('');
+            document.getElementById('dimensionTabs').innerHTML = tabsHtml;
+        }
+
+        function switchDimension(dimId) {
+            currentDimension = dimId;
+            renderDimensionTabs();
+            updateDimensionView(currentCountry);
+        }
+
+        function updateDimensionView(countryName) {
+            const dimData = countryData[countryName].dimensions[currentDimension];
+            const def = dimensionsDef.find(d => d.id === currentDimension);
+            
+            document.getElementById('activeDimensionTitle').innerHTML = `<i class="fas ${def.icon} mr-2 text-blue-500"></i> ${def.name} Indicators`;
+            
+            const indicatorsHtml = dimData.indicators.map(ind => `
+                <li class="border border-gray-100 rounded-lg p-3 bg-white shadow-sm flex flex-col md:flex-row md:justify-between md:items-center gap-2 group transition-all hover:border-blue-200" title="${ind.desc}">
+                    <div>
+                        <span class="text-gray-800 font-semibold block">${ind.label}</span>
+                        <span class="text-xs text-gray-500">${ind.desc}</span>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-center w-24 flex-shrink-0 ${getColorClass(ind.status, 'bg')} ${getColorClass(ind.status, 'text')}">${ind.status}</span>
+                </li>
+            `).join('');
+            document.getElementById('indicatorsList').innerHTML = indicatorsHtml;
+            document.getElementById('dimensionExplanation').innerText = dimData.explanation;
+        }
+
+        function renderComparativeTable(selectedCountry) {
+            const tbodyHtml = globalCountries.map(country => {
+                const isSelected = country.name === selectedCountry;
+                const rowClass = isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white border-b hover:bg-gray-50';
+                const scoreColor = country.score > 10 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                const levelColor = country.score > 10 ? 'text-green-600' : 'text-yellow-600';
+                
+                return `
+                <tr class="${rowClass} transition-colors">
+                    <td class="px-4 py-3 font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}">${country.name} ${isSelected ? '<span class="ml-2 text-xs text-blue-600 font-bold">(Selected)</span>' : ''}</td>
+                    <td class="px-4 py-3 text-center"><span class="${scoreColor} py-1 px-2 rounded font-bold">${country.score}/15</span></td>
+                    <td class="px-4 py-3 font-medium ${levelColor}">${country.level}</td>
+                </tr>`;
+            }).join('');
+            document.getElementById('comparativeTableBody').innerHTML = tbodyHtml;
+        }
+
         function updateDashboard(countryName) {
+            currentCountry = countryName;
             const data = countryData[countryName];
             
-            // Update Text Elements
-            document.getElementById('totalScoreDisplay').innerHTML = `Total Score: <span class="${getColorClass(Math.round(data.total/5), 'text')}">${data.total}/15</span>`;
+            // Overview Texts
+            document.getElementById('totalScoreDisplay').innerHTML = `Total Score: <span class="${getColorClass(Math.round(data.total), 'text')}">${Object.values(data.scores).reduce((a,b)=>a+b,0)}/15</span>`;
             document.getElementById('insightText').innerText = data.insight;
             document.getElementById('interpretationText').innerText = data.interpretation;
-            document.getElementById('dimensionExplanation').innerText = `"${data.explanation}"`;
             document.getElementById('comparativeInsight').innerText = data.comparativeInsight;
 
-            // Update Score Cards
-            const cardsHtml = dimensions.map((dim, i) => {
-                const score = data.scores[i];
+            // Score Cards
+            const scoreArray = [data.scores.policy, data.scores.institutional, data.scores.risk, data.scores.technical, data.scores.ethics];
+            const cardsHtml = dimensionsDef.map((dim, i) => {
+                const score = scoreArray[i];
                 return `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col justify-between">
-                    <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">${dim}</span>
-                    <div class="flex flex-col items-center">
-                        <span class="text-2xl font-bold text-gray-800">${score}/3</span>
-                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div class="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col justify-between transition-transform hover:-translate-y-1" title="${dim.desc}">
+                    <span class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 flex flex-col items-center gap-1">
+                        <i class="fas ${dim.icon} text-gray-400 text-sm md:text-base"></i>
+                        <span class="truncate w-full leading-tight">${dim.name}</span>
+                    </span>
+                    <div class="flex flex-col items-center mt-auto">
+                        <span class="text-xl md:text-2xl font-bold text-gray-800">${score}/3</span>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden">
                             <div class="${getColorClass(score, 'fill')} h-1.5 rounded-full" style="width: ${(score/3)*100}%"></div>
                         </div>
                     </div>
@@ -295,48 +500,40 @@
             }).join('');
             document.getElementById('scoreCardsContainer').innerHTML = cardsHtml;
 
-            // Update Indicators
-            const indicatorsHtml = data.indicators.map(ind => `
-                <li class="flex justify-between items-center border-b border-gray-100 pb-2">
-                    <span class="text-gray-700 font-medium"><i class="fas ${ind.icon} w-6 text-gray-400"></i> ${ind.label}</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getColorClass(ind.status, 'bg')} ${getColorClass(ind.status, 'text')}">${ind.status}</span>
-                </li>
-            `).join('');
-            document.getElementById('indicatorsList').innerHTML = indicatorsHtml;
+            // Update Sections
+            renderDimensionTabs();
+            updateDimensionView(countryName);
+            renderComparativeTable(countryName);
 
-            // Update Recommendations
+            // Recommendations
             const priorityColors = {
-                "red": "border-red-400 bg-red-50 text-red-800",
-                "yellow": "border-yellow-400 bg-yellow-50 text-yellow-800",
-                "green": "border-green-400 bg-green-50 text-green-800"
+                "red": "border-red-400 bg-red-50 text-red-800 border-t-4",
+                "yellow": "border-yellow-400 bg-yellow-50 text-yellow-800 border-t-4",
+                "green": "border-green-400 bg-green-50 text-green-800 border-t-4"
             };
             const recsHtml = data.recommendations.map(rec => `
-                <div class="border-t-4 p-4 rounded-b-lg shadow-sm bg-white ${priorityColors[rec.color].split(' ')[0]}">
-                    <span class="text-xs font-bold uppercase tracking-wider mb-1 block ${priorityColors[rec.color].split(' ')[2]}">${rec.priority}</span>
-                    <h4 class="font-bold text-gray-800 mb-2">${rec.title}</h4>
-                    <p class="text-sm text-gray-600">${rec.reason}</p>
+                <div class="p-4 md:p-5 rounded-b-lg shadow-sm bg-white ${priorityColors[rec.color]} transition-transform hover:-translate-y-1">
+                    <span class="text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1 block ${priorityColors[rec.color].split(' ')[2]} opacity-80">${rec.priority}</span>
+                    <h4 class="font-bold text-gray-900 mb-2 leading-tight">${rec.title}</h4>
+                    <p class="text-sm text-gray-700 leading-relaxed">${rec.reason}</p>
                 </div>
             `).join('');
             document.getElementById('recommendationsContainer').innerHTML = recsHtml;
 
-            // Update Charts
-            updateCharts(countryName, data.scores);
+            updateCharts(countryName, scoreArray);
         }
 
-        // --- 4. Chart Initialization & Updates ---
         function updateCharts(countryName, scores) {
-            // Radar Chart
             const radarCtx = document.getElementById('radarChart').getContext('2d');
-            
-            // Set dynamic color based on country total for radar
             const total = scores.reduce((a, b) => a + b, 0);
-            const rgb = total > 10 ? '34, 197, 94' : '234, 179, 8'; // green vs yellow
+            const rgb = total > 10 ? '34, 197, 94' : '234, 179, 8'; 
+            const isMobile = window.innerWidth < 768;
 
             if (radarChartInstance) radarChartInstance.destroy();
             radarChartInstance = new Chart(radarCtx, {
                 type: 'radar',
                 data: {
-                    labels: dimensions,
+                    labels: dimensionsDef.map(d => d.name),
                     datasets: [{
                         label: `${countryName} Readiness`,
                         data: scores,
@@ -352,26 +549,29 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: isMobile ? 5 : 15 },
                     scales: {
                         r: {
-                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            angleLines: { color: 'rgba(0, 0, 0, 0.05)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
                             suggestedMin: 0,
                             suggestedMax: 3,
-                            ticks: { stepSize: 1, backdropColor: 'transparent' }
+                            ticks: { stepSize: 1, backdropColor: 'transparent', display: !isMobile },
+                            pointLabels: { 
+                                font: { size: isMobile ? 9 : 11, family: "'Inter', sans-serif", weight: '600' },
+                                color: '#475569'
+                            }
                         }
                     },
-                    plugins: { legend: { display: false } }
+                    plugins: { legend: { display: false }, tooltip: { enabled: true } }
                 }
             });
 
-            // Bar Chart (Comparative - Static dataset highlighting selected)
             const barCtx = document.getElementById('barChart').getContext('2d');
             const countries = ["Bangladesh", "Nigeria", "India", "Brazil"];
             const totals = [7, 7, 12, 12];
             
-            // Highlight active country
-            const bgColors = countries.map(c => c === countryName ? 'rgba(59, 130, 246, 0.8)' : 'rgba(203, 213, 225, 0.6)');
+            const bgColors = countries.map(c => c === countryName ? 'rgba(59, 130, 246, 0.85)' : 'rgba(203, 213, 225, 0.5)');
             const borderColors = countries.map(c => c === countryName ? 'rgb(37, 99, 235)' : 'rgb(148, 163, 184)');
 
             if (barChartInstance) barChartInstance.destroy();
@@ -380,7 +580,7 @@
                 data: {
                     labels: countries,
                     datasets: [{
-                        label: 'Total DCAG Score',
+                        label: 'DCAG Score',
                         data: totals,
                         backgroundColor: bgColors,
                         borderColor: borderColors,
@@ -392,37 +592,56 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, max: 15 }
+                        y: { 
+                            beginAtZero: true, 
+                            max: 15,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: { grid: { display: false } }
                     },
                     plugins: { legend: { display: false } }
                 }
             });
         }
 
-        // --- 5. Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Initial render
             updateDashboard("Bangladesh");
 
-            // Dropdown listener
             document.getElementById('countrySelector').addEventListener('change', (e) => {
                 updateDashboard(e.target.value);
             });
 
-            // Mobile menu toggle
             const mobileBtn = document.getElementById('mobileMenuBtn');
             const sidebar = document.getElementById('sidebar');
-            mobileBtn.addEventListener('click', () => {
+            const overlay = document.getElementById('sidebarOverlay');
+
+            const toggleSidebar = () => {
                 sidebar.classList.toggle('-translate-x-full');
-            });
+                overlay.classList.toggle('hidden');
+            };
+
+            mobileBtn.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
             
-            // Close mobile sidebar when clicking a link
             document.querySelectorAll('#sidebar a').forEach(link => {
                 link.addEventListener('click', () => {
                     if(window.innerWidth < 768) {
                         sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
                     }
                 });
+            });
+
+            window.addEventListener('resize', () => {
+                if (radarChartInstance && barChartInstance) {
+                    updateCharts(currentCountry, [
+                        countryData[currentCountry].scores.policy,
+                        countryData[currentCountry].scores.institutional,
+                        countryData[currentCountry].scores.risk,
+                        countryData[currentCountry].scores.technical,
+                        countryData[currentCountry].scores.ethics
+                    ]);
+                }
             });
         });
     </script>
