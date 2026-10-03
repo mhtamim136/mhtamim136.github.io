@@ -1,0 +1,233 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens ─────────────────────────────────────────────────
+   RGB channels — enable Tailwind's  bg-accent/20  opacity syntax.
+   Every colour in the UI flows from these variables.
+   ---------------------------------------------------------------- */
+:root {
+  /* Surfaces */
+  --surface: 10 14 19;
+  --surface-elevated: 15 20 27;
+
+  /* Accent */
+  --accent: 34 211 238;
+
+  /* Text hierarchy (brightest → dimmest) */
+  --heading: 248 250 252;
+  --body: 226 232 240;
+  --subtle: 203 213 225;
+  --muted: 148 163 184;
+  --muted-dim: 100 116 139;
+
+  /* Glass overlay tint — white in dark, dark in light */
+  --glass: 255 255 255;
+
+  /* Pre-composed card surface */
+  --card-bg: rgb(255 255 255 / 0.03);
+  --card-border: rgb(255 255 255 / 0.08);
+
+  /* Shadows */
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgb(var(--accent) / 0.2),
+    0 0 24px rgb(var(--accent) / 0.08);
+  --shadow-accent: 0 0 20px rgb(var(--accent) / 0.15);
+  --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.22);
+
+  /* Background decoration */
+  --grid-color: rgb(var(--accent) / 0.03);
+  --radial-glow: rgb(var(--accent) / 0.12);
+
+  /* Hero name gradient stops */
+  --gradient-via: #67e8f9;
+  --gradient-to: #6ee7b7;
+}
+
+/* ─── Light theme ───────────────────────────────────────────────── */
+[data-theme="light"] {
+  --surface: 245 247 250;
+  --surface-elevated: 255 255 255;
+  --accent: 14 116 144;          /* cyan-700 — passes WCAG AA on light bg */
+
+  --heading: 15 23 42;
+  --body: 30 41 59;
+  --subtle: 51 65 85;
+  --muted: 71 85 105;
+  --muted-dim: 100 116 139;
+
+  --glass: 15 23 42;
+
+  --card-bg: rgb(255 255 255 / 0.72);
+  --card-border: rgb(15 23 42 / 0.07);
+
+  --shadow-glass: 0 4px 24px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-glass-hover: 0 8px 32px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgb(var(--accent) / 0.15);
+  --shadow-accent: 0 0 20px rgb(var(--accent) / 0.08);
+  --shadow-float: 0 4px 20px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.06);
+
+  --grid-color: rgb(var(--accent) / 0.035);
+  --radial-glow: rgb(var(--accent) / 0.05);
+
+  --gradient-via: #0d9488;
+  --gradient-to: #059669;
+}
+
+/* ─── Base layer ────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface font-sans text-body antialiased;
+    transition: background-color 0.4s ease, color 0.3s ease;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.25);
+    color: rgb(var(--heading));
+  }
+}
+
+/* ─── Utility layer ─────────────────────────────────────────────── */
+@layer utilities {
+  /* Themed card surface — uses pre-composed vars for per-theme tuning */
+  .bg-card {
+    background: var(--card-bg);
+  }
+  .border-card {
+    border-color: var(--card-border);
+  }
+
+  /* Gradient text for the hero name */
+  .text-gradient {
+    background: linear-gradient(
+      to right,
+      rgb(var(--accent)),
+      var(--gradient-via),
+      var(--gradient-to)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Background grid */
+  .bg-grid-pattern {
+    background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  }
+
+  /* Radial glow from top of page */
+  .bg-radial-glow {
+    background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      var(--radial-glow),
+      transparent
+    );
+  }
+
+  /* Thin gradient divider between sections */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--accent) / 0.15) 20%,
+      rgb(var(--accent) / 0.15) 80%,
+      transparent
+    );
+  }
+}
+
+/* ─── Blob float animation ──────────────────────────────────────── */
+@keyframes blob-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -25px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.95);
+  }
+}
+
+/* Section scroll offset for fixed nav */
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* ─── View Transitions — circular theme reveal ──────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-new(root) {
+  animation-name: theme-reveal;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  z-index: -1;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0% at var(--toggle-x, 90%) var(--toggle-y, 5%));
+  }
+  to {
+    clip-path: circle(150% at var(--toggle-x, 90%) var(--toggle-y, 5%));
+  }
+}
+
+/* ─── Reduced motion ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--muted-dim) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--muted-dim) / 0.5);
+}

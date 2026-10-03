@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO -->
+    <meta name="description" content="Murad Hasan Tamim — Software Developer specialising in Java, C#, React and full-stack web applications. CSE student at AIUB, Dhaka." />
+    <meta property="og:title" content="Murad Hasan Tamim | Software Developer" />
+    <meta property="og:description" content="Software Developer & CSE student building web and desktop applications with clean UI, strong logic, and problem-solving focus." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mhtamim136.github.io" />
+    <meta name="twitter:card" content="summary" />
+
+    <!-- Theme-colour per system preference -->
+    <meta name="theme-color" content="#0a0e13" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+
+    <!--
+      Inline theme init — runs synchronously before first paint
+      so the user never sees a flash of the wrong theme.
+    -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia('(prefers-color-scheme: light)').matches
+            ? 'light'
+            : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+
+    <!-- Fonts: Plus Jakarta Sans (headings) + Inter (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Murad Hasan Tamim | Software Developer</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
