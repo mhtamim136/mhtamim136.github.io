@@ -137,7 +137,7 @@ services: [
     { id: 'skills', label: 'Skills', icon: 'code' },
     { id: 'projects', label: 'Projects', icon: 'folder' },
     { id: 'experience', label: 'Experience', icon: 'timeline' },
-    { id: 'services', label: 'Services', icon: 'layers' },
+    { id: 'services', label: 'What I Build', icon: 'layers' },
     { id: 'contact', label: 'Contact', icon: 'mail' },
   ],
 };

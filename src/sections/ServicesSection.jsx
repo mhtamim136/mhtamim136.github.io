@@ -10,8 +10,8 @@ export function ServicesSection() {
   return (
     <SectionWrapper
       id="services"
-      title="Services"
-      subtitle="How I can help on small teams, coursework, and portfolio-grade products."
+      title="What I Build"
+      subtitle="Things I build — from interfaces to databases."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         {services.map((s, idx) => (
