@@ -1,4 +1,6 @@
 import { Suspense, lazy, useMemo } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { portfolio } from './data/portfolio';
 import { Navbar } from './components/Navbar';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -108,6 +110,10 @@ export default function App() {
       </footer>
 
       <ScrollToTop />
+
+      {/* Vercel Analytics (visitors) + Speed Insights (Core Web Vitals) */}
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
