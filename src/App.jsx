@@ -7,6 +7,7 @@ import { Navbar } from './components/Navbar';
 import { ScrollToTop } from './components/ScrollToTop';
 import { ScrollProgress } from './components/ScrollProgress';
 import { BackgroundBlobs } from './components/BackgroundBlobs';
+import { Spotlight } from './components/Spotlight';
 import { HeroSection } from './sections/HeroSection';
 import { useActiveSection } from './hooks/useActiveSection';
 import { useTheme } from './hooks/useTheme';
@@ -60,6 +61,10 @@ export default function App() {
         aria-hidden
       />
       <BackgroundBlobs />
+
+      {/* Cursor spotlight — soft light following the pointer (fine
+          pointers only, disabled under reduced motion). */}
+      <Spotlight />
 
       {/* Scroll progress bar */}
       <ScrollProgress />

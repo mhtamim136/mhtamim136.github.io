@@ -8,7 +8,16 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
  * and is purely decorative — it has no effect on mobile
  * (hover doesn't fire on touch devices).
  */
-export function Card({ className = '', children, highlight = false, ...motionProps }) {
+export function Card({
+  className = '',
+  children,
+  highlight = false,
+  /* Opt-in per-card spotlight (project cards only): a soft radial
+     light that follows the pointer inside the card. Other cards
+     (Skills, Services, Experience) never get it. */
+  spotlight = false,
+  ...motionProps
+}) {
   const ref = useRef(null);
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
@@ -27,10 +36,18 @@ export function Card({ className = '', children, highlight = false, ...motionPro
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      mouseX.set((e.clientX - rect.left) / rect.width);
-      mouseY.set((e.clientY - rect.top) / rect.height);
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      mouseX.set(x);
+      mouseY.set(y);
+      /* Spotlight position for the ::before radial gradient.
+         Style writes only — no layout work. */
+      if (spotlight) {
+        el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        el.style.setProperty('--my', `${e.clientY - rect.top}px`);
+      }
     },
-    [mouseX, mouseY],
+    [mouseX, mouseY, spotlight],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -39,7 +56,7 @@ export function Card({ className = '', children, highlight = false, ...motionPro
   }, [mouseX, mouseY]);
 
   const base =
-    'rounded-xl border border-card bg-card shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ease-out sm:rounded-2xl';
+    'relative rounded-xl border border-card bg-card shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ease-out sm:rounded-2xl';
   const glow = highlight
     ? 'ring-1 ring-accent/25 shadow-accent-glow'
     : /* Border steps up one notch on hover (white 8% → 12% dark,
@@ -50,7 +67,7 @@ export function Card({ className = '', children, highlight = false, ...motionPro
   return (
     <motion.div
       ref={ref}
-      className={`${base} ${glow} ${className}`}
+      className={`${base} ${glow} ${spotlight ? 'card-spotlight' : ''} ${className}`}
       style={{ rotateX, rotateY, transformPerspective: 800 }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

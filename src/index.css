@@ -65,6 +65,12 @@
   --hero-glow: rgb(var(--accent) / 0.1);
   --projects-glow: rgb(110 231 183 / 0.08);
 
+  /* Cursor spotlight — soft page-level light + per-card glow.
+     Kept faint on purpose: the accent should read as light in
+     the room, not as a coloured lamp. */
+  --spotlight: rgb(var(--accent) / 0.12);
+  --card-spotlight: rgb(var(--accent) / 0.12);
+
   /* Decorative blob opacity — per theme so the light mode, where
      the page is already bright, gets a touch more presence. */
   --blob-1: 0.035;
@@ -129,6 +135,12 @@
 
   --hero-glow: rgb(var(--accent) / 0.06);
   --projects-glow: rgb(5 150 105 / 0.06);
+
+  /* Light mode: the page is already bright, so both glows need a
+     deeper cyan and a touch more strength to read at all — still a
+     clean cool tint, never grey, or it looks like dirt on the card. */
+  --spotlight: rgb(var(--accent) / 0.16);
+  --card-spotlight: rgb(var(--accent) / 0.14);
 
   --blob-1: 0.06;
   --blob-2: 0.05;
@@ -231,6 +243,62 @@
       var(--projects-glow),
       transparent 70%
     );
+  }
+
+  /* Cursor spotlight — one fixed soft light following the pointer.
+     Positioned by JS (transform only); fades in on first move and
+     out when the pointer leaves the window. z-index 1 sits above
+     the page background and section glows but below the navbar
+     (z-50), progress bar and scroll-to-top button. */
+  .spotlight {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 600px;
+    height: 600px;
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    background: radial-gradient(circle, var(--spotlight) 0%, transparent 70%);
+    transition: opacity 0.4s ease;
+    will-change: transform;
+  }
+
+  /* Project-card spotlight — a soft radial light that follows the
+     pointer inside the hovered card only. --mx/--my are set from JS
+     (Card's mousemove handler) and default to the centre, so a
+     keyboard-focused card still gets a calm glow. Opacity is gated
+     on :hover / :focus-within and only on fine pointers; touch
+     devices never see it, and reduced-motion users never see it. */
+  .card-spotlight {
+    --mx: 50%;
+    --my: 50%;
+  }
+  .card-spotlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      320px circle at var(--mx) var(--my),
+      var(--card-spotlight),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-spotlight:hover::before,
+    .card-spotlight:focus-within::before {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-spotlight::before {
+      display: none;
+    }
   }
 
   /* Thin gradient divider between sections */

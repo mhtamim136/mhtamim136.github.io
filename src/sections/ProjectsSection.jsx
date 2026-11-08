@@ -323,6 +323,7 @@ export function ProjectsSection() {
                   layout
                 >
                   <Card
+                    spotlight
                     className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
                     whileHover={{ y: -6, scale: 1 }}
                     transition={{ duration: 0.3 }}
