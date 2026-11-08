@@ -747,13 +747,16 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                 ))}
               </div>
 
-              {/* Expand / collapse — directly under Featured, so the
-                  control never moves. Collapsed: only "Show N more
-                  projects". Expanded: "Show N more projects" AND
-                  "Show less" side by side. All shown: only
-                  "Show less". The remaining count is in the label,
-                  so the user always knows how much is left. */}
-              {moreRepos.length > 0 && (
+              {/* Expand entry point — directly under Featured, but ONLY
+                  while collapsed: no grid exists yet, so under
+                  Featured is the only sensible place. Collapsed:
+                  only "Show N more projects". Once expanded the
+                  pager lives BELOW the grid (see the pagination
+                  block after the grid): a control that reveals
+                  content below must sit at the end of that content,
+                  not at its start, or every next click costs a
+                  scroll-up → click → scroll-down. */}
+              {moreRepos.length > 0 && !expanded && (
                 <div className="mt-10 text-center">
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {remaining > 0 && (
@@ -911,12 +914,19 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             </div>
           )}
 
-          {/* Pagination below the grid — FILTERED state, and the ALL
-              state when there is no Featured block (the old
-              behaviour: first 4 + pager). In ALL with Featured the
-              controls live under Featured instead, so this block
-              stays out of the way there. */}
-          {filtered.length > INITIAL_COUNT && (isFiltered || featuredRepos.length === 0) && (
+          {/* Pagination below the grid — FILTERED state, the ALL
+              state when there is no Featured block (first 4 +
+              pager), AND the ALL state with Featured once expanded.
+              Collapsed ALL-with-Featured keeps its entry point
+              under Featured (no grid exists yet), but once the grid
+              exists the pager belongs at its end: in ALL-expanded
+              `filtered` is the More repos and `visible.length`
+              equals `visibleCount`, so the "Showing X of Y" line
+              below is already correct there. The `|| expanded`
+              on the count gate keeps "Show less" reachable in the
+              edge case of <= 4 More repos (otherwise expanding
+              would strand the user with no way back). */}
+          {(filtered.length > INITIAL_COUNT || expanded) && (isFiltered || featuredRepos.length === 0 || expanded) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
