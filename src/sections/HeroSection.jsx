@@ -28,7 +28,7 @@ import heroManifest from 'virtual:hero-image-manifest';
  * to the previous design and nothing else changed.
  *
  * Sequence (delays in seconds, spring settles ≈ 0.3s after delay):
- *   location 0.00 · name 0.05/0.12/0.19 · role 0.24 · underline 0.30
+ *   meta labels 0.00 · name 0.05/0.12/0.19 · role 0.24 · underline 0.30
  *   username 0.33 · title 0.38/0.45/0.52/0.59 · bio 0.58
  *   skills 0.64 · CTAs 0.70 → whole hero settled ≈ 1.0s, then still.
  *
@@ -83,14 +83,29 @@ export function HeroSection() {
   /* ── Text column content (shared for both layouts) ── */
   const textContent = (
     <>
+      {/* Meta-label row (Direction C, part 1) — quiet editorial
+          metadata above the name, at most 3 labels, all facts
+          already on the site: location, the approved availability
+          wording, and the folio year. Same `rise` spring at delay
+          0.00 as the old location line it replaces — no competing
+          animation. Small caps, wide tracking, muted accent; no
+          glow, no bright colour, no pills. Each label + its
+          trailing dot is one nowrap unit, so the row wraps cleanly
+          at unit boundaries on mobile and never orphans a dot. */}
       <motion.p
         custom={0}
         variants={rise}
         initial={initial}
         animate="show"
-        className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/65 sm:text-sm"
+        className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-accent/65 sm:text-xs"
       >
-        {portfolio.location}
+        <span className="whitespace-nowrap">
+          {portfolio.location} <span aria-hidden className="text-accent/40">·</span>
+        </span>{' '}
+        <span className="whitespace-nowrap">
+          Open to internships &amp; collaboration <span aria-hidden className="text-accent/40">·</span>
+        </span>{' '}
+        <span className="whitespace-nowrap">Folio 2026</span>
       </motion.p>
 
       {/* Name — blur + rise, word by word. The focus pull IS the
