@@ -66,8 +66,9 @@ The primary deployment is on [Vercel](https://mhtamim136.vercel.app) (GitHub Pag
 | `RESEND_API_KEY` | Resend API key for `/api/contact` (sends the contact-form email) | Vercel dashboard (Production) |
 | `VITE_WEB3FORMS_KEY` | Web3Forms key — contact-form fallback (also needed at build time) | Vercel dashboard (Production) |
 | `CONTACT_TO_EMAIL` | (Optional) Where contact-form emails go — defaults to `mhtamim136@gmail.com` when unset | Vercel dashboard (Production) |
+| `CONTACT_FROM_EMAIL` | (Optional) Sender address for `/api/contact` — defaults to Resend's `onboarding@resend.dev` when unset | Vercel dashboard (Production) |
 
-> **Note**: changing an environment variable only applies to new deployments — redeploy after adding or changing one. The contact API sends from Resend's `onboarding@resend.dev` address, which only delivers to the Resend signup email; a verified sending domain is optional, not required, for this single-recipient form.
+> **Note**: changing an environment variable only applies to new deployments — redeploy after adding or changing one. The contact API sends from Resend's `onboarding@resend.dev` address, which only delivers to the Resend signup email; a verified sending domain is optional, not required, for this single-recipient form. If `CONTACT_TO_EMAIL` is ever changed to an address other than the Resend signup email, set `CONTACT_FROM_EMAIL` to a verified-domain sender — the onboarding address cannot deliver to other recipients.
 
 ## Profile Image
 

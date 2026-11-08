@@ -126,7 +126,7 @@ export default async function handler(req, res) {
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: 'Portfolio Contact <onboarding@resend.dev>',
+      from: process.env.CONTACT_FROM_EMAIL || 'Portfolio Contact <onboarding@resend.dev>',
       to: process.env.CONTACT_TO_EMAIL || 'mhtamim136@gmail.com',
       replyTo: email,
       subject: `Portfolio contact: ${name}`,
