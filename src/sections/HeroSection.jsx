@@ -6,6 +6,7 @@ import { Magnetic } from '../components/Magnetic';
 import { Tag } from '../components/Tag';
 import { Avatar } from '../components/Avatar';
 import { RoleLine } from '../components/RoleLine';
+import { MaskedWords } from '../components/MaskedWords';
 import { NavIcon } from '../components/icons/NavIcons';
 import { externalLinkProps } from '../utils/links';
 import { useProfileImage } from '../hooks/useProfileImage';
@@ -25,6 +26,15 @@ export function HeroSection() {
   const profileImage = useProfileImage();
   const hasImage = Boolean(heroManifest || profileImage);
 
+  /* ── Masked word reveal (#5) — name (3 words) then title
+      (4 words) as one continuous stagger. The last name word
+      keeps its gradient; the title words are plain. ── */
+  const nameWords = name.split(' ').map((t, i, arr) => ({
+    text: t,
+    className: i === arr.length - 1 ? 'text-gradient' : undefined,
+  }));
+  const titleWords = title.split(' ').map((t) => ({ text: t }));
+
   /* ── Text column content (shared for both layouts) ── */
   const textContent = (
     <>
@@ -38,25 +48,13 @@ export function HeroSection() {
         {portfolio.location}
       </motion.p>
 
-      <motion.h1
-        custom={1}
-        variants={item}
-        initial="hidden"
-        animate="show"
-        className="font-display text-4xl font-bold tracking-tight text-heading sm:text-5xl lg:text-6xl"
-      >
-        {(() => {
-          const parts = name.split(' ');
-          const last = parts.pop();
-          const rest = parts.join(' ');
-          return (
-            <>
-              {rest && `${rest} `}
-              <span className="text-gradient">{last}</span>
-            </>
-          );
-        })()}
-      </motion.h1>
+      {/* Name — masked word-by-word reveal. Plain h1 (no opacity
+          fade): the reveal itself is the entrance, transform-only,
+          and under reduced motion the words render in their final
+          state instantly via <MotionConfig reducedMotion="user">. */}
+      <h1 className="font-display text-4xl font-bold tracking-tight text-heading sm:text-5xl lg:text-6xl">
+        <MaskedWords words={nameWords} baseDelay={0.05} />
+      </h1>
 
       {/* Rotating role line — min-h keeps the swap from moving the
           layout below it. Placed under the name, before the username. */}
@@ -80,15 +78,12 @@ export function HeroSection() {
         {username}
       </motion.p>
 
-      <motion.p
-        custom={3}
-        variants={item}
-        initial="hidden"
-        animate="show"
-        className={`mt-4 text-lg font-semibold text-body sm:text-xl ${hasImage ? '' : 'mx-auto max-w-xl'}`}
-      >
-        {title}
-      </motion.p>
+      {/* Title — masked word-by-word reveal, continuing the same
+          stagger as the name (baseDelay 0.23). RoleLine above is
+          untouched. */}
+      <p className={`mt-4 text-lg font-semibold text-body sm:text-xl ${hasImage ? '' : 'mx-auto max-w-xl'}`}>
+        <MaskedWords words={titleWords} baseDelay={0.23} />
+      </p>
 
       <motion.p
         custom={4}
