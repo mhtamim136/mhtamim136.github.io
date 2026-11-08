@@ -1,0 +1,35 @@
+# PR build check: proves a pull request builds before it can merge.
+# Runs ONLY on pull requests to main (or manual dispatch) — it never
+# deploys anything and cannot affect the live site (Vercel) or the
+# GitHub Pages fallback deploy (deploy.yml handles that).
+name: PR build check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_WEB3FORMS_KEY: ${{ secrets.VITE_WEB3FORMS_KEY }}
