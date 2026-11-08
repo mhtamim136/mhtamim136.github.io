@@ -11,7 +11,7 @@ export const portfolio = {
     'I am Murad Hasan Tamim, a CSE student at AIUB focused on building practical software solutions. I develop applications using Java, C#, and web technologies, with an emphasis on clean UI design and problem solving.',
   location: 'Dhaka, Bangladesh',
   institution: 'American International University-Bangladesh',
-  pronouns: 'he/him',
+  currentlyLearning: ['Machine Learning', 'Deep Learning', 'Computer Vision', 'Data Mining & Warehousing', '.NET'],
   resumeLink: '/Resume/Resume-MHTamim.pdf',
   githubProfile: 'https://github.com/mhtamim136',
 

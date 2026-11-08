@@ -4,7 +4,7 @@ import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 
 export function AboutSection() {
-  const { about, institution, pronouns } = portfolio;
+  const { about, institution, currentlyLearning } = portfolio;
 
   return (
     <SectionWrapper
@@ -26,8 +26,8 @@ export function AboutSection() {
               <dd className="mt-1 text-sm text-body">{institution}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-dim">Pronouns</dt>
-              <dd className="mt-1 text-sm text-body">{pronouns}</dd>
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted-dim">Currently Learning</dt>
+              <dd className="mt-1 text-sm text-body">{currentlyLearning.join(' · ')}</dd>
             </div>
           </dl>
         </Card>
