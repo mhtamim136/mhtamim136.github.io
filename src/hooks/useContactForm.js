@@ -2,9 +2,24 @@ import { useState, useCallback } from 'react';
 
 const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
 
+/* Hostname where no serverless function exists — the form must go
+   straight to Web3Forms and never attempt /api/contact. */
+const GITHUB_PAGES_HOST = 'mhtamim136.github.io';
+
 /**
  * Manages contact form state: field values, validation,
- * submission via Web3Forms, and success/error feedback.
+ * submission, and success/error feedback.
+ *
+ * Submission chain:
+ * - On GitHub Pages (mhtamim136.github.io): Web3Forms directly
+ *   (existing behaviour — /api/contact is never attempted there,
+ *   because no function exists on a static host).
+ * - Everywhere else (Vercel, localhost): POST JSON to the
+ *   serverless function `/api/contact` (Resend) first. On ANY
+ *   failure — function error, Resend error (including its 100/day
+ *   free limit), network error — fall back to Web3Forms, so a
+ *   message is never silently lost.
+ * Web3Forms (VITE_WEB3FORMS_KEY) stays as the fallback everywhere.
  */
 export function useContactForm() {
   const [fields, setFields] = useState({ name: '', email: '', message: '' });
@@ -64,7 +79,17 @@ export function useContactForm() {
       e.preventDefault();
       if (!validate()) return;
 
-      if (!accessKey) {
+      /* Capture the form data synchronously — the fallback below
+         runs after an await, when the form may have changed. */
+      const formEl = e.target;
+      const formData = new FormData(formEl);
+
+      const isGitHubPages = window.location.hostname === GITHUB_PAGES_HOST;
+
+      /* On GitHub Pages the Web3Forms key is required (same as
+         before); elsewhere the function is tried first, so a
+         missing key only matters if the fallback is reached. */
+      if (isGitHubPages && !accessKey) {
         setStatus('error');
         setServerMsg('Contact form is not configured. Please set VITE_WEB3FORMS_KEY.');
         return;
@@ -72,31 +97,73 @@ export function useContactForm() {
 
       setStatus('sending');
 
-      try {
-        const formData = new FormData(e.target);
-        formData.append('access_key', accessKey);
+      /* ── Web3Forms path — unchanged from before. Used directly
+         on GitHub Pages, and as the fallback everywhere else. ── */
+      const submitViaWeb3Forms = async () => {
+        if (!accessKey) {
+          setStatus('error');
+          setServerMsg('Contact form is not configured. Please set VITE_WEB3FORMS_KEY.');
+          return;
+        }
 
-        const res = await fetch(WEB3FORMS_URL, {
+        try {
+          formData.append('access_key', accessKey);
+
+          const res = await fetch(WEB3FORMS_URL, {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            setStatus('success');
+            setServerMsg(data.message || 'Message sent successfully!');
+            setFields({ name: '', email: '', message: '' });
+          } else {
+            setStatus('error');
+            setServerMsg(data.message || 'Something went wrong. Please try again.');
+          }
+        } catch {
+          setStatus('error');
+          setServerMsg('Network error. Please check your connection and try again.');
+        }
+      };
+
+      /* GitHub Pages: Web3Forms directly, no function attempt. */
+      if (isGitHubPages) {
+        await submitViaWeb3Forms();
+        return;
+      }
+
+      /* ── Elsewhere: try the Vercel function first. ── */
+      try {
+        const res = await fetch('/api/contact', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: fields.name.trim(),
+            email: fields.email.trim(),
+            message: fields.message.trim(),
+          }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
-        if (data.success) {
+        if (res.ok && data.ok) {
           setStatus('success');
-          setServerMsg(data.message || 'Message sent successfully!');
+          setServerMsg('Message sent successfully!');
           setFields({ name: '', email: '', message: '' });
-        } else {
-          setStatus('error');
-          setServerMsg(data.message || 'Something went wrong. Please try again.');
+          return;
         }
+        /* Any non-OK answer — fall through to Web3Forms. */
       } catch {
-        setStatus('error');
-        setServerMsg('Network error. Please check your connection and try again.');
+        /* Network error — fall through to Web3Forms. */
       }
+
+      await submitViaWeb3Forms();
     },
-    [validate, accessKey],
+    [validate, accessKey, fields],
   );
 
   /* ── Reset to allow sending another message ── */
