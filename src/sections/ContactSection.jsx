@@ -6,6 +6,7 @@ import { MdEmail } from 'react-icons/md';
 import { Send, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
+import { Magnetic } from '../components/Magnetic';
 import { SocialButton } from '../components/SocialButton';
 import { useContactForm } from '../hooks/useContactForm';
 
@@ -215,26 +216,30 @@ export function ContactSection() {
                   </motion.div>
                 )}
 
-                {/* Submit button */}
-                <motion.button
-                  type="submit"
-                  disabled={status === 'sending'}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
-                >
-                  {status === 'sending' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      Sending…
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" aria-hidden />
-                      Send message
-                    </>
-                  )}
-                </motion.button>
+                {/* Submit button — magnetic. The wrapper keeps the
+                    button's own layout classes: full-width on mobile,
+                    auto width from sm up (see Magnetic.jsx). */}
+                <Magnetic className="w-full sm:inline-block sm:w-auto">
+                  <motion.button
+                    type="submit"
+                    disabled={status === 'sending'}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
+                  >
+                    {status === 'sending' ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        Sending…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" aria-hidden />
+                        Send message
+                      </>
+                    )}
+                  </motion.button>
+                </Magnetic>
               </form>
             )}
           </div>

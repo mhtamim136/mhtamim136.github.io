@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
+import { Magnetic } from '../components/Magnetic';
 import { Tag } from '../components/Tag';
 import { Avatar } from '../components/Avatar';
 import { RoleLine } from '../components/RoleLine';
@@ -120,14 +121,20 @@ export function HeroSection() {
         animate="show"
         className={`mt-10 flex flex-wrap gap-4 ${hasImage ? '' : 'items-center justify-center'}`}
       >
-        <Button href={resumeLink} variant="primary" download>
-          <NavIcon name="document" className="h-4 w-4" />
-          Download resume
-        </Button>
-        <Button {...externalLinkProps(githubProfile)} variant="secondary">
-          <NavIcon name="github" className="h-4 w-4" />
-          View GitHub
-        </Button>
+        {/* Primary CTAs — magnetic (lean toward the pointer, capped
+            so the two buttons can never overlap; see Magnetic.jsx). */}
+        <Magnetic>
+          <Button href={resumeLink} variant="primary" download>
+            <NavIcon name="document" className="h-4 w-4" />
+            Download resume
+          </Button>
+        </Magnetic>
+        <Magnetic>
+          <Button {...externalLinkProps(githubProfile)} variant="secondary">
+            <NavIcon name="github" className="h-4 w-4" />
+            View GitHub
+          </Button>
+        </Magnetic>
       </motion.div>
     </>
   );
