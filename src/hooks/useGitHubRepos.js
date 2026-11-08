@@ -29,9 +29,12 @@ const API_TIMEOUT_MS = 6000;
  * Both sources now also carry `featured` — the first 4 pinned repos
  * (in pin order, excluding the portfolio site itself) — and each
  * featured repo carries a `details` object (see
- * scripts/featuredDetails.mjs). When `featured` is absent or empty
- * (e.g. an older snapshot, or the GraphQL pins query failed), the
- * Projects section degrades gracefully to the all-projects grid.
+ * scripts/featuredDetails.mjs). When `featured` is EMPTY (e.g. an
+ * older snapshot, or the GraphQL pins query failed), the Projects
+ * section degrades gracefully to the all-projects grid. A cached
+ * payload in the OLD shape (a bare repos array, written before
+ * Featured existed) is NOT applied — it is a cache miss and the
+ * hook fetches fresh data, so a stale tab can never hide Featured.
  *
  * Returns { repos, featured, loading, error }.
  */
@@ -44,20 +47,25 @@ export function useGitHubRepos() {
   useEffect(() => {
     const controller = new AbortController();
 
-    /* Normalise a payload ({ repos, featured }) — tolerates the old
-       cache shape (a bare repos array) and missing `featured`. */
+    /* A payload is usable ONLY in the new shape: an object with a
+       non-empty `repos` array AND a `featured` array. The check is
+       on the SHAPE, not on emptiness — a legitimately empty
+       `featured` (e.g. the GraphQL pins query failed) is a valid
+       payload and renders the old grid on purpose.
+       The old code cached a BARE repos array under the same key;
+       tolerating that shape made the new bundle render the old grid
+       for up to 15 minutes (sessionStorage survives reloads), so an
+       old-shape entry is now a cache MISS and the hook fetches fresh
+       data instead. All non-cache callers already normalise
+       `featured` to an array (see loadSnapshot / the function branch
+       below), so this rule changes nothing for them. */
     function applyData(data) {
-      if (Array.isArray(data)) {
-        setRepos(data);
-        setFeatured([]);
-        return true;
-      }
-      if (data && Array.isArray(data.repos) && data.repos.length > 0) {
-        setRepos(data.repos);
-        setFeatured(Array.isArray(data.featured) ? data.featured : []);
-        return true;
-      }
-      return false;
+      if (!data || Array.isArray(data)) return false;
+      if (!Array.isArray(data.repos) || data.repos.length === 0) return false;
+      if (!Array.isArray(data.featured)) return false;
+      setRepos(data.repos);
+      setFeatured(data.featured);
+      return true;
     }
 
     async function fetchRepos() {
