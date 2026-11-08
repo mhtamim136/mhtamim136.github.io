@@ -1,6 +1,7 @@
 import { Suspense, lazy, useMemo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { MotionConfig } from 'framer-motion';
 import { portfolio } from './data/portfolio';
 import { Navbar } from './components/Navbar';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -47,6 +48,7 @@ export default function App() {
   const { isDark, toggle } = useTheme();
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen">
       {/* Background layers */}
       <div
@@ -115,5 +117,6 @@ export default function App() {
       <Analytics />
       <SpeedInsights />
     </div>
+    </MotionConfig>
   );
 }

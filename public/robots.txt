@@ -7,3 +7,5 @@ Allow: /
 # Discovery instead uses the <link rel="ai-catalog"> / <link rel="ard">
 # tags in index.html plus the well-known paths, which is how the ARD
 # spec's primary mechanism works anyway.
+
+Sitemap: https://mhtamim136.vercel.app/sitemap.xml
