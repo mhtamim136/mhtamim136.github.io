@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { MotionConfig } from 'framer-motion';
@@ -10,6 +10,7 @@ import { BackgroundBlobs } from './components/BackgroundBlobs';
 import { Spotlight } from './components/Spotlight';
 import { HeroSection } from './sections/HeroSection';
 import { useActiveSection } from './hooks/useActiveSection';
+import { useGitHubRepos } from './hooks/useGitHubRepos';
 import { useTheme } from './hooks/useTheme';
 
 const AboutSection = lazy(() =>
@@ -47,6 +48,11 @@ export default function App() {
   const sectionIds = useMemo(() => portfolio.nav.map((n) => n.id), []);
   const activeId = useActiveSection(sectionIds);
   const { isDark, toggle } = useTheme();
+  /* One GitHub data call + one filter value, shared by the Skills
+     and Projects sections — the pill counts and the grid read the
+     same data, and the pills and the filter chips always agree. */
+  const { repos, featured, loading, error } = useGitHubRepos();
+  const [projectFilter, setProjectFilter] = useState(null);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -86,12 +92,12 @@ export default function App() {
 
         <Divider />
         <Suspense fallback={<SectionFallback />}>
-          <SkillsSection />
+          <SkillsSection repos={repos} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
         </Suspense>
 
         <Divider />
         <Suspense fallback={<SectionFallback />}>
-          <ProjectsSection />
+          <ProjectsSection repos={repos} featured={featured} loading={loading} error={error} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
         </Suspense>
 
         <Divider />

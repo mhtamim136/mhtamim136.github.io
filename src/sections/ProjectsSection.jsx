@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
@@ -6,18 +6,25 @@ import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
 import { Button } from '../components/Button';
 import { Tag } from '../components/Tag';
-import { useGitHubRepos } from '../hooks/useGitHubRepos';
 import { useRepoLanguages } from '../hooks/useRepoLanguages';
+import { portfolio } from '../data/portfolio';
+import { normalizeKey, getRepoKeys, findSkillByKey } from '../utils/skillProjectCounts';
 import { externalLinkProps } from '../utils/links';
 
-/* Pagination: 4 cards by default (2 rows on desktop), then 4 more
-   per "Show more" click. When 8 or fewer remain, the button becomes
-   "Show all N projects" instead — so after 1–2 clicks the user can
-   jump straight to the full list. Applies to the More Projects grid
-   only; Featured cards are always all shown. */
+/* Pagination — two states, one shared list (`filtered`):
+   - ALL (no filter): Featured first, More collapsed (0 visible).
+     "Show N more projects" reveals 4 more per click; "Show less"
+     appears as soon as the list is expanded and collapses back to
+     Featured only. When every More repo is shown, only "Show less"
+     remains.
+   - FILTERED (a chip or skill pill is active): one flat grid of ALL
+     matching repos (featured + more), first 4, then 4 more per
+     click; "Show less" appears once expanded and goes back to the
+     first 4. Changing the filter resets to the first batch.
+   No "Show all N" jump: every click reveals exactly 4, so the
+   button label always shows the honest remaining count. */
 const INITIAL_COUNT = 4;
 const PAGE_SIZE = 4;
-const SHOW_ALL_THRESHOLD = 8;
 const MAX_PILLS = 4;
 
 /* ── Skeleton loader ──────────────────────────────────────────── */
@@ -332,10 +339,25 @@ function FeaturedProjectCard({ repo, index }) {
 }
 
 /* ── Main component ───────────────────────────────────────────── */
-export function ProjectsSection() {
-  const { repos, featured, loading, error } = useGitHubRepos();
+/* Repos + loading/error come from App (single useGitHubRepos call,
+   shared with the Skills section so the counts and the grid read
+   the same data), as does the filter: a normalized skill/language
+   key, or null for "All". */
+export function ProjectsSection({ repos, featured, loading, error, activeFilter, onFilterChange }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
-  const [activeLanguage, setActiveLanguage] = useState('All');
+
+  /* The filter is shared with the Skills section — one filter
+     state, owned by App. The initial visible count depends on the
+     state: FILTERED starts at the first batch of 4; ALL starts
+     collapsed (0 More) when there is a Featured block, and at the
+     first batch of 4 when there is none (no pins / GraphQL failed —
+     the old behaviour: the full grid, no headings). Reset whenever
+     the filter changes, or when the Featured block appears on load. */
+  useEffect(() => {
+    setVisibleCount(
+      activeFilter || featured.length === 0 ? INITIAL_COUNT : 0,
+    );
+  }, [activeFilter, featured.length]);
 
   /* Featured = the first 4 pinned repos (in pin order), resolved
      against the loaded repos. Everything else is "More Projects" —
@@ -360,25 +382,38 @@ export function ProjectsSection() {
   );
 
   /* Determine the visible slice BEFORE filtering by language,
-     so we know which repos to fetch languages for. (More grid only.) */
-  const visibleSlice = moreRepos.slice(0, visibleCount);
+     so we know which repos to fetch languages for: the cards
+     currently on screen — in ALL state the visible More repos, in
+     FILTERED state the visible matches (featured included). Matching
+     here uses each repo's own data (no langMap override yet) — the
+     hook's job is precisely to supply the override for repos that
+     lack a languages array. */
+  const hookCandidates = useMemo(() => {
+    const list = activeFilter
+      ? repos.filter((r) => getRepoKeys(r).has(activeFilter))
+      : moreRepos;
+    return list.slice(0, visibleCount);
+  }, [repos, moreRepos, activeFilter, visibleCount]);
 
   /* Languages that already ship with the repos (build-time snapshot
      `public/projects.json` carries a `languages` array per repo).
-     For those, no runtime GitHub call is needed at all.
+     For those, no runtime GitHub call is needed at all. Covers ALL
+     repos now (featured included): the flat filtered grid shows
+     featured repos as regular cards, and their languages must match
+     filters without a fetch.
      NOTE: an EMPTY array is also complete — some repos (e.g. BuyTrust)
      have no code language at all (primary: null, languages: []).
      Treating [] as "missing" caused a runtime languages fetch that
      403'd on a rate-limited IP and logged a console error. */
   const staticLangMap = useMemo(() => {
     const map = {};
-    for (const r of moreRepos) {
+    for (const r of repos) {
       if (Array.isArray(r.languages)) {
         map[r.name] = r.languages;
       }
     }
     return map;
-  }, [moreRepos]);
+  }, [repos]);
 
   /* Only fetch languages for visible repos that did NOT come with
      languages (i.e. when the snapshot was missing and the live API
@@ -389,7 +424,7 @@ export function ProjectsSection() {
     loading: langLoading,
     allLangs: fetchedAllLangs,
   } = useRepoLanguages(
-    visibleSlice
+    hookCandidates
       .filter((r) => !Array.isArray(r.languages))
       .map((r) => ({ name: r.name, language: r.language })),
   );
@@ -400,11 +435,13 @@ export function ProjectsSection() {
     [staticLangMap, fetchedLangMap],
   );
 
-  /* Filter chips come from the union of ALL More repos' languages —
+  /* Filter chips come from the union of ALL repos' languages —
      not just the visible slice — so a language that only exists in
      repos 7+ always has a chip (previously chips only covered the
-     first 6). Featured repos are excluded: their languages would
-     filter the More grid to nothing. */
+     first 6). Featured repos are INCLUDED now: the flat filtered
+     grid contains them, so a featured-only language (C++, C#) is a
+     real filter — it shows that featured repo as a regular card —
+     not a dead end. */
   const allLangs = useMemo(() => {
     const set = new Set(fetchedAllLangs);
     for (const langs of Object.values(staticLangMap)) {
@@ -419,20 +456,50 @@ export function ProjectsSection() {
     return ['All', ...allLangs];
   }, [allLangs]);
 
-  /* Filter More repos using the full language list (not just primary) */
-  const filtered = useMemo(() => {
-    if (activeLanguage === 'All') return moreRepos;
-    return moreRepos.filter((r) => {
-      const langs = langMap[r.name];
-      if (langs) return langs.includes(activeLanguage);
-      // Fallback to primary language if not yet loaded
-      return r.language === activeLanguage;
-    });
-  }, [moreRepos, activeLanguage, langMap]);
+  /* The active filter's skill display name, when it came from a
+     skill pill (null for a plain language chip or "All"). */
+  const activeSkillName = useMemo(
+    () => (activeFilter ? findSkillByKey(activeFilter, portfolio.skills) : null),
+    [activeFilter],
+  );
 
-  /* Pagination on the filtered list (More grid only) */
+  /* When the active filter is a framework/tool skill (React,
+     Tailwind, MySQL) there is no language chip for it — show it as
+     an active chip so the filter is always visible here. Clicking
+     it clears the filter, like any active chip. */
+  const activeSkillChip = useMemo(() => {
+    if (!activeFilter || !activeSkillName) return null;
+    const hasChip = languages.some(
+      (lang) => lang !== 'All' && normalizeKey(lang) === activeFilter,
+    );
+    return hasChip ? null : activeSkillName;
+  }, [activeFilter, activeSkillName, languages]);
+
+  /* Filter the full repo list by the shared key: a repo matches
+     when the key appears in its languages OR topics — the same rule
+     the Skills counts use, so a pill's count and the filtered grid
+     always agree. With no filter, the list is the More repos
+     (Featured lives in its own block above). With a filter, the
+     list is EVERY matching repo — featured + more together, in the
+     existing sort order (pushedAt desc) — rendered as regular grid
+     cards, never the rich Featured cards. */
+  const filtered = useMemo(() => {
+    if (!activeFilter) return moreRepos;
+    return repos.filter((r) => getRepoKeys(r, langMap[r.name]).has(activeFilter));
+  }, [repos, moreRepos, activeFilter, langMap]);
+
+  /* One list, one slice, for both states. `initialCount` is the
+     count "Show less" returns to: 0 More (Featured only) in ALL
+     with a Featured block, the first batch of 4 otherwise. */
+  const initialCount = !activeFilter && featuredRepos.length > 0 ? 0 : INITIAL_COUNT;
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visibleCount;
+  const expanded = visibleCount > initialCount;
+
+  /* +4 per click, never past the end. */
+  const handleShowMore = () => {
+    setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
+  };
 
   /* "Show less" removes whole rows below, but the browser keeps the
      same absolute scroll position — which then points at Experience /
@@ -442,7 +509,7 @@ export function ProjectsSection() {
      here stays valid while the exit animation runs. */
   const handleShowLess = () => {
     const el = document.getElementById('projects');
-    setVisibleCount(INITIAL_COUNT);
+    setVisibleCount(initialCount);
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - 96;
     const reduced = window.matchMedia(
@@ -482,10 +549,11 @@ export function ProjectsSection() {
       {/* Content */}
       {!loading && !error && repos.length > 0 && (
         <>
-          {/* Featured Projects — the first 4 pinned repos, in pin
+          {/* ALL state: Featured — the first 4 pinned repos, in pin
               order, with their case-study details. Re-pinning on
-              GitHub updates this block automatically. */}
-          {featuredRepos.length > 0 && (
+              GitHub updates this block automatically. Hidden while a
+              filter is active: the filtered state is one flat list. */}
+          {!activeFilter && featuredRepos.length > 0 && (
             <>
               <h3 className="mb-6 text-lg font-semibold text-heading sm:text-xl">
                 Featured
@@ -495,153 +563,27 @@ export function ProjectsSection() {
                   <FeaturedProjectCard key={repo.id} repo={repo} index={idx} />
                 ))}
               </div>
-            </>
-          )}
 
-          {/* More Projects — the rest, in the existing grid with
-              filters, pagination and skeleton all unchanged. */}
-          {moreRepos.length > 0 && (
-            <>
-              {featuredRepos.length > 0 && (
-                <h3 className="mb-6 mt-14 text-lg font-semibold text-heading sm:text-xl">
-                  More Projects
-                </h3>
-              )}
-
-              {/* Language filter chips */}
-              {languages.length > 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3 }}
-                  className="mb-8 flex flex-wrap gap-2"
-                >
-                  {languages.map((lang) => (
-                    <FilterChip
-                      key={lang}
-                      label={lang}
-                      active={activeLanguage === lang}
-                      onClick={() => {
-                        setActiveLanguage(lang);
-                        setVisibleCount(INITIAL_COUNT);
-                      }}
-                    />
-                  ))}
-                </motion.div>
-              )}
-
-              {/* Project grid */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                <AnimatePresence mode="popLayout">
-                  {visible.map((repo, idx) => (
-                    <motion.div
-                      key={repo.id}
-                      custom={idx}
-                      variants={cardAnim}
-                      initial="hidden"
-                      animate="show"
-                      exit="exit"
-                      layout
-                    >
-                      <Card
-                        spotlight
-                        className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
-                        whileHover={{ y: -6, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        {/* Slideshow — only when the repo has a `Project_Card`
-                            folder (images come from the build-time snapshot).
-                            Without images the card renders exactly as before:
-                            text-only, same layout, no empty image box. */}
-                        {Array.isArray(repo.images) && repo.images.length > 0 && (
-                          <ProjectSlideshow images={repo.images} repoName={repo.name} />
-                        )}
-
-                        {/* Title + language pills */}
-                        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                          <h3 className="text-lg font-semibold text-heading sm:text-xl">
-                            {formatName(repo.name)}
-                          </h3>
-                          <LanguagePills
-                            repoName={repo.name}
-                            fallbackLanguage={repo.language}
-                            langMap={langMap}
-                            loadingSet={langLoading}
-                          />
-                        </div>
-
-                        {/* Description — clamped to 3 lines so cards with a
-                            slideshow stay equal height. No description means
-                            no line at all (never invent one). */}
-                        {repo.description && (
-                          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
-                            {repo.description}
-                          </p>
-                        )}
-
-                        {/* Topics as tags */}
-                        {repo.topics.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {repo.topics.slice(0, 6).map((t) => (
-                              <Tag key={t}>{t}</Tag>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Stats row */}
-                        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-                          {formatUpdated(repo.pushedAt) && (
-                            <span>Updated {formatUpdated(repo.pushedAt)}</span>
-                          )}
-                          {repo.stars > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Star className="h-3.5 w-3.5" aria-hidden />
-                              {repo.stars}
-                            </span>
-                          )}
-                          {repo.forks > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <GitFork className="h-3.5 w-3.5" aria-hidden />
-                              {repo.forks}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                          {repo.homepage && (
-                            <Button
-                              {...externalLinkProps(repo.homepage)}
-                              variant="primary"
-                              className="flex-1 sm:flex-none"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                              Live demo
-                            </Button>
-                          )}
-                          <Button {...externalLinkProps(repo.url)} variant="secondary">
-                            <Github className="h-3.5 w-3.5" aria-hidden />
-                            GitHub
-                          </Button>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-
-              {/* Show more / Show all / Show less */}
-              {filtered.length > INITIAL_COUNT && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="mt-8 text-center"
-                >
+              {/* Expand / collapse — directly under Featured, so the
+                  control never moves. Collapsed: only "Show N more
+                  projects". Expanded: "Show N more projects" AND
+                  "Show less" side by side. All shown: only
+                  "Show less". The remaining count is in the label,
+                  so the user always knows how much is left. */}
+              {moreRepos.length > 0 && (
+                <div className="mt-10 text-center">
                   <div className="flex flex-wrap items-center justify-center gap-3">
-                    {/* Back to the first 4 — only once expanded. */}
-                    {visibleCount > INITIAL_COUNT && (
+                    {remaining > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleShowMore}
+                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                      >
+                        Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
+                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+                      </button>
+                    )}
+                    {expanded && (
                       <button
                         type="button"
                         onClick={handleShowLess}
@@ -651,39 +593,212 @@ export function ProjectsSection() {
                         <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
                       </button>
                     )}
-                    {/* +4 per click; when few remain, jump to the full list. */}
-                    {remaining > 0 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setVisibleCount((c) =>
-                            remaining > SHOW_ALL_THRESHOLD
-                              ? c + PAGE_SIZE
-                              : filtered.length,
-                          )
-                        }
-                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
-                      >
-                        {remaining > SHOW_ALL_THRESHOLD ? (
-                          <>
-                            Show more
-                            <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                          </>
-                        ) : (
-                          <>
-                            Show all {filtered.length} projects
-                            <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                          </>
-                        )}
-                      </button>
-                    )}
                   </div>
-                  <p className="mt-3 text-xs text-muted-dim">
-                    Showing {visible.length} of {filtered.length} projects
-                  </p>
-                </motion.div>
+                  {expanded && moreRepos.length > INITIAL_COUNT && (
+                    <p className="mt-3 text-xs text-muted-dim">
+                      Showing {visibleCount} of {moreRepos.length} projects
+                    </p>
+                  )}
+                </div>
               )}
             </>
+          )}
+
+          {/* Language filter chips (plus the active skill chip when
+              the filter is a framework/tool skill with no language
+              chip of its own). One row, both states: under the
+              button row in ALL, at the top (where Featured was) in
+              FILTERED. */}
+          {(languages.length > 2 || activeSkillChip) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3 }}
+              className={`mb-8 flex flex-wrap gap-2${!activeFilter && featuredRepos.length > 0 ? ' mt-10' : ''}`}
+            >
+              {languages.map((lang) => {
+                const key = lang === 'All' ? null : normalizeKey(lang);
+                return (
+                  <FilterChip
+                    key={lang}
+                    label={lang}
+                    active={activeFilter === key}
+                    onClick={() => onFilterChange(key)}
+                  />
+                );
+              })}
+              {activeSkillChip && (
+                <FilterChip
+                  label={activeSkillChip}
+                  active
+                  onClick={() => onFilterChange(null)}
+                />
+              )}
+            </motion.div>
+          )}
+
+          {/* "More Projects" heading — only once the More grid is
+              expanded (never while collapsed, never while filtered). */}
+          {!activeFilter && featuredRepos.length > 0 && expanded && (
+            <h3 className="mb-6 mt-14 text-lg font-semibold text-heading sm:text-xl">
+              More Projects
+            </h3>
+          )}
+
+          {/* The grid — one render for both states. ALL: the More
+              repos (empty while collapsed — the grid stays mounted
+              with no cards, so AnimatePresence plays the exit on
+              collapse). FILTERED: every matching repo (featured +
+              more) as a regular grid card. */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AnimatePresence mode="popLayout">
+              {visible.map((repo, idx) => (
+                <motion.div
+                  key={repo.id}
+                  custom={idx}
+                  variants={cardAnim}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  layout
+                >
+                  <Card
+                    spotlight
+                    className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
+                    whileHover={{ y: -6, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {/* Slideshow — only when the repo has a `Project_Card`
+                        folder (images come from the build-time snapshot).
+                        Without images the card renders exactly as before:
+                        text-only, same layout, no empty image box. */}
+                    {Array.isArray(repo.images) && repo.images.length > 0 && (
+                      <ProjectSlideshow images={repo.images} repoName={repo.name} />
+                    )}
+
+                    {/* Title + language pills */}
+                    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                      <h3 className="text-lg font-semibold text-heading sm:text-xl">
+                        {formatName(repo.name)}
+                      </h3>
+                      <LanguagePills
+                        repoName={repo.name}
+                        fallbackLanguage={repo.language}
+                        langMap={langMap}
+                        loadingSet={langLoading}
+                      />
+                    </div>
+
+                    {/* Description — clamped to 3 lines so cards with a
+                        slideshow stay equal height. No description means
+                        no line at all (never invent one). */}
+                    {repo.description && (
+                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+                        {repo.description}
+                      </p>
+                    )}
+
+                    {/* Topics as tags */}
+                    {repo.topics.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {repo.topics.slice(0, 6).map((t) => (
+                          <Tag key={t}>{t}</Tag>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Stats row */}
+                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
+                      {formatUpdated(repo.pushedAt) && (
+                        <span>Updated {formatUpdated(repo.pushedAt)}</span>
+                      )}
+                      {repo.stars > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="h-3.5 w-3.5" aria-hidden />
+                          {repo.stars}
+                        </span>
+                      )}
+                      {repo.forks > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <GitFork className="h-3.5 w-3.5" aria-hidden />
+                          {repo.forks}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-auto flex flex-wrap gap-3 pt-6">
+                      {repo.homepage && (
+                        <Button
+                          {...externalLinkProps(repo.homepage)}
+                          variant="primary"
+                          className="flex-1 sm:flex-none"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                          Live demo
+                        </Button>
+                      )}
+                      <Button {...externalLinkProps(repo.url)} variant="secondary">
+                        <Github className="h-3.5 w-3.5" aria-hidden />
+                        GitHub
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Empty filtered state — unreachable by construction (a
+              clickable skill always matches >= 1 repo, and a chip is
+              built from a repo that matches it), kept as a defensive
+              fallback so a data inconsistency can never leave a
+              blank section. */}
+          {activeFilter && filtered.length === 0 && (
+            <div className="rounded-2xl border border-card bg-card p-8 text-center">
+              <p className="text-sm text-muted">No projects match this filter.</p>
+            </div>
+          )}
+
+          {/* Pagination below the grid — FILTERED state, and the ALL
+              state when there is no Featured block (the old
+              behaviour: first 4 + pager). In ALL with Featured the
+              controls live under Featured instead, so this block
+              stays out of the way there. */}
+          {filtered.length > INITIAL_COUNT && (activeFilter || featuredRepos.length === 0) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 text-center"
+            >
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {remaining > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleShowMore}
+                    className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                  >
+                    Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
+                    <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+                  </button>
+                )}
+                {expanded && (
+                  <button
+                    type="button"
+                    onClick={handleShowLess}
+                    className="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
+                  >
+                    Show less
+                    <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
+                  </button>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-muted-dim">
+                Showing {visible.length} of {filtered.length} projects
+              </p>
+            </motion.div>
           )}
         </>
       )}
