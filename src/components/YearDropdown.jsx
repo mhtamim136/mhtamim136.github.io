@@ -14,7 +14,12 @@ import { Check, ChevronDown } from 'lucide-react';
    and focuses the selected option, arrows move between options,
    Enter selects, Escape closes, Tab closes, outside-click closes,
    focus returns to the trigger. Options are real <button>s with
-   real focus (no roving tabindex bookkeeping). */
+   real focus (no roving tabindex bookkeeping).
+   Trigger active state (Tamim, 2026-11-09): "All years" stays
+   plain glass; a specific year selected colours the trigger in
+   the same active tone as the language chips and the sort pill
+   (accent border + accent-tinted bg + accent text +
+   shadow-accent-glow) — the "a year filter is active" signal. */
 const panelMotion = {
   initial: { opacity: 0, y: -6, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1 },
@@ -171,7 +176,11 @@ export function YearDropdown({ years, value, onChange }) {
         aria-controls="year-filter-listbox"
         onClick={() => (open ? setOpen(false) : openAndFocus(selectedIndex))}
         onKeyDown={handleTriggerKeyDown}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-glass/15 bg-glass/[0.06] px-3 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm"
+        className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
+          value !== null
+            ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+            : 'border-glass/15 bg-glass/[0.06] text-muted hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
+        }`}
       >
         Year: {selectedLabel}
         <ChevronDown

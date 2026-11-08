@@ -137,28 +137,47 @@ function FilterChip({ label, active, onClick }) {
 }
 
 /* ── Sort toggle ──────────────────────────────────────────────── */
-/* One pill, two states: "Newest ↓" / "Oldest ↑" — the arrow flips
-   with the direction. Same glass language as the year dropdown
-   trigger (translucent + backdrop blur + 1px light border), so the
-   two controls read as one cluster. */
-function SortToggle({ sortDir, onToggle }) {
-  const isNewest = sortDir === 'newest';
+/* One pill, THREE states, cycled on each click (Tamim, 2026-11-09):
+   'off' — label "Newest ↓", UNCOLOURED: the curated Featured view
+   (Featured on top, More collapsed). The label is the section's
+   default order, NOT an applied sort — clicking it APPLIES
+   newest-first. 'newest' — label "Newest ↓", COLOURED: flat list,
+   newest-first, no Featured. 'oldest' — label "Oldest ↑", COLOURED:
+   flat list, oldest-first, no Featured. A third click returns to
+   'off'. The colour is the "a sort is applied" signal, in the same
+   active tone as the language chips (accent border + accent-tinted
+   bg + accent text + shadow-accent-glow) — the label always matches
+   what is shown, so the pill can never mislead again. Same glass
+   language as the year dropdown trigger, so the two controls read
+   as one cluster. */
+const SORT_CYCLE = { off: 'newest', newest: 'oldest', oldest: 'off' };
+
+function SortToggle({ sortMode, onToggle }) {
+  const isOldest = sortMode === 'oldest';
+  const active = sortMode !== 'off';
+  const ariaLabel =
+    sortMode === 'off'
+      ? 'Sort: off, showing the featured projects. Activate to sort newest first.'
+      : sortMode === 'newest'
+        ? 'Sort: newest first. Activate to sort oldest first.'
+        : 'Sort: oldest first. Activate to clear the sort and show the featured projects.';
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={
-        isNewest
-          ? 'Sort: newest first. Activate to sort oldest first.'
-          : 'Sort: oldest first. Activate to sort newest first.'
-      }
-      className="inline-flex items-center gap-1.5 rounded-xl border border-glass/15 bg-glass/[0.06] px-3 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm"
+      aria-pressed={active}
+      aria-label={ariaLabel}
+      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
+        active
+          ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+          : 'border-glass/15 bg-glass/[0.06] text-muted hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
+      }`}
     >
-      {isNewest ? 'Newest' : 'Oldest'}
-      {isNewest ? (
-        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
-      ) : (
+      {isOldest ? 'Oldest' : 'Newest'}
+      {isOldest ? (
         <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
       )}
     </button>
   );
@@ -410,19 +429,26 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   /* Sort + year filter are local to this section — only Projects
      consumes them (the shared language filter stays in App because
-     the Skills section shares it). Default sort is Newest, the
-     order the data already arrives in. */
-  const [sortDir, setSortDir] = useState('newest');
+     the Skills section shares it). sortMode is a 3-state cycle
+     (Tamim, 2026-11-09): 'off' (default — the curated Featured view,
+     More grid in newest-first order) → 'newest' (flat list,
+     newest-first) → 'oldest' (flat list, oldest-first) → 'off'.
+     The sort counts as a filter only once applied (mode !== 'off'). */
+  const [sortMode, setSortMode] = useState('off');
   const [activeYear, setActiveYear] = useState(null);
+  /* sortDir is the 2-state direction sortRepos takes: 'off' and
+     'newest' both sort newest-first (the order the data already
+     arrives in). */
+  const sortDir = sortMode === 'oldest' ? 'oldest' : 'newest';
 
-  /* "Filtered" = a language filter, a year filter, OR a non-default
+  /* "Filtered" = a language filter, a year filter, OR an APPLIED
      sort is active. Any of the three turns Featured priority OFF
      (one flat list, sorted as chosen); only "All" + "All years" +
-     "Newest" shows the Featured-first view. The sort counts as a
-     filter (Tamim, 2026-11-09): clicking Oldest must hide Featured
-     and show the flat oldest-first list, like any other filter. */
+     sort 'off' shows the Featured-first view. The sort counts as a
+     filter only once applied (Tamim, 2026-11-09): the default
+     "Newest" label is the section's order, not an applied sort. */
   const isFiltered =
-    activeFilter !== null || activeYear !== null || sortDir !== 'newest';
+    activeFilter !== null || activeYear !== null || sortMode !== 'off';
 
   /* Years present in the data (pushedAt), derived live — never
      hardcoded. A repo pushed in a new year adds that year on the
@@ -449,7 +475,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      block appears on load. */
   useEffect(() => {
     setVisibleCount(isFiltered || featured.length === 0 ? INITIAL_COUNT : 0);
-  }, [activeFilter, activeYear, sortDir, featured.length, isFiltered]);
+  }, [activeFilter, activeYear, sortMode, featured.length, isFiltered]);
 
   /* Featured = the first 4 pinned repos (in pin order), resolved
      against the loaded repos. Everything else is "More Projects" —
@@ -576,10 +602,10 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      repo matches when the language key appears in its languages OR
      topics (the same rule the Skills counts use, so a pill's count
      and the filtered grid always agree) and its pushedAt year is
-     the selected one. With no filter (All + All years + Newest),
+     the selected one. With no filter (All + All years + sort off),
      the list is the More repos (Featured lives in its own block
-     above). With a filter (language, year, OR Oldest), the list is
-     EVERY matching repo — featured + more together — rendered as
+     above). With a filter (language, year, OR an applied sort), the
+     list is EVERY matching repo — featured + more together — rendered as
      regular grid cards, never the rich Featured cards. The sort
      orders the list in both states; the Featured block itself is
      never re-sorted (pin order). */
@@ -676,7 +702,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             <div className="mb-4 flex justify-end">
               <div className="flex items-center gap-2">
                 <YearDropdown years={yearOptions} value={activeYear} onChange={setActiveYear} />
-                <SortToggle sortDir={sortDir} onToggle={() => setSortDir((d) => (d === 'newest' ? 'oldest' : 'newest'))} />
+                <SortToggle sortMode={sortMode} onToggle={() => setSortMode((m) => SORT_CYCLE[m])} />
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
