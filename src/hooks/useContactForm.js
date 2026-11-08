@@ -145,6 +145,10 @@ export function useContactForm() {
             name: fields.name.trim(),
             email: fields.email.trim(),
             message: fields.message.trim(),
+            /* Honeypot: forward the hidden `botcheck` checkbox as the
+               API's `website` field — 'on' when a bot checked the
+               box (the API then silently drops it), '' otherwise. */
+            website: formData.get('botcheck') ? 'on' : '',
           }),
         });
 
