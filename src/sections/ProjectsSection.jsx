@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
@@ -13,7 +13,8 @@ import { externalLinkProps } from '../utils/links';
 /* Pagination: 4 cards by default (2 rows on desktop), then 4 more
    per "Show more" click. When 8 or fewer remain, the button becomes
    "Show all N projects" instead — so after 1–2 clicks the user can
-   jump straight to the full list. */
+   jump straight to the full list. Applies to the More Projects grid
+   only; Featured cards are always all shown. */
 const INITIAL_COUNT = 4;
 const PAGE_SIZE = 4;
 const SHOW_ALL_THRESHOLD = 8;
@@ -159,15 +160,208 @@ const cardAnim = {
   exit: { opacity: 0, y: -12, scale: 0.97, transition: { duration: 0.25 } },
 };
 
+/* ── Featured project card ────────────────────────────────────── */
+/* Richer than the grid card: the case-study details resolved by the
+   fallback chain (portfolio.json → README → curated → GitHub). Every
+   block renders only when its data exists — nothing is invented.
+   The intro label is honest about the source: README text is an
+   "Overview", a real problem statement is a "Problem", and the plain
+   GitHub description (github fallback) is shown unlabeled, exactly
+   like the grid card's description. */
+function FeaturedProjectCard({ repo, index }) {
+  const details = repo.details || {};
+  const introLabel =
+    details.detailsSource === 'readme'
+      ? 'Overview'
+      : details.detailsSource === 'github'
+        ? null
+        : 'Problem';
+  /* Tech pills: curated/portfolio.json tech first (more specific,
+     e.g. "Windows Forms"), else the repo's GitHub languages. */
+  const tech =
+    Array.isArray(details.tech) && details.tech.length > 0
+      ? details.tech
+      : Array.isArray(repo.languages) && repo.languages.length > 0
+        ? repo.languages
+        : repo.language
+          ? [repo.language]
+          : [];
+
+  return (
+    <motion.div
+      custom={index}
+      variants={cardAnim}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: '-40px' }}
+    >
+      <Card
+        spotlight
+        className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
+        whileHover={{ y: -6, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        {Array.isArray(repo.images) && repo.images.length > 0 && (
+          <ProjectSlideshow images={repo.images} repoName={repo.name} />
+        )}
+
+        {/* Title + tech pills */}
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <h3 className="text-lg font-semibold text-heading sm:text-xl">
+            {formatName(repo.name)}
+          </h3>
+          {tech.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tech.slice(0, MAX_PILLS).map((t) => (
+                <span key={t} className={pillClass}>
+                  {t}
+                </span>
+              ))}
+              {tech.length > MAX_PILLS && (
+                <span className={`${pillClass} opacity-70`}>
+                  +{tech.length - MAX_PILLS}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Problem / Overview / description */}
+        {details.problem && (
+          <div className="mt-4">
+            {introLabel && (
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">
+                {introLabel}
+              </p>
+            )}
+            <p className="mt-1 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+              {details.problem}
+            </p>
+          </div>
+        )}
+
+        {/* Solution */}
+        {details.solution && (
+          <div className="mt-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">
+              Solution
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+              {details.solution}
+            </p>
+          </div>
+        )}
+
+        {/* Key features */}
+        {Array.isArray(details.features) && details.features.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">
+              Key features
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {details.features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm leading-relaxed text-muted">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Contribution */}
+        {details.contribution && (
+          <div className="mt-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">
+              My contribution
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+              {details.contribution}
+            </p>
+          </div>
+        )}
+
+        {/* Topics as tags */}
+        {repo.topics.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {repo.topics.slice(0, 6).map((t) => (
+              <Tag key={t}>{t}</Tag>
+            ))}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
+          {formatUpdated(repo.pushedAt) && (
+            <span>Updated {formatUpdated(repo.pushedAt)}</span>
+          )}
+          {repo.stars > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" aria-hidden />
+              {repo.stars}
+            </span>
+          )}
+          {repo.forks > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <GitFork className="h-3.5 w-3.5" aria-hidden />
+              {repo.forks}
+            </span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto flex flex-wrap gap-3 pt-6">
+          {repo.homepage && (
+            <Button
+              {...externalLinkProps(repo.homepage)}
+              variant="primary"
+              className="flex-1 sm:flex-none"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              Live demo
+            </Button>
+          )}
+          <Button {...externalLinkProps(repo.url)} variant="secondary">
+            <Github className="h-3.5 w-3.5" aria-hidden />
+            GitHub
+          </Button>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
 /* ── Main component ───────────────────────────────────────────── */
 export function ProjectsSection() {
-  const { repos, loading, error } = useGitHubRepos();
+  const { repos, featured, loading, error } = useGitHubRepos();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const [activeLanguage, setActiveLanguage] = useState('All');
 
+  /* Featured = the first 4 pinned repos (in pin order), resolved
+     against the loaded repos. Everything else is "More Projects" —
+     no repo ever appears twice on the page. When `featured` is
+     empty (no token / GraphQL failed / old snapshot), the section
+     renders exactly as before: the full grid, no headings. */
+  const featuredRepos = useMemo(() => {
+    if (!Array.isArray(featured) || featured.length === 0) return [];
+    return featured
+      .map((name) => repos.find((r) => r.name.toLowerCase() === name.toLowerCase()))
+      .filter(Boolean);
+  }, [featured, repos]);
+
+  const featuredNames = useMemo(
+    () => new Set(featuredRepos.map((r) => r.name.toLowerCase())),
+    [featuredRepos],
+  );
+
+  const moreRepos = useMemo(
+    () => repos.filter((r) => !featuredNames.has(r.name.toLowerCase())),
+    [repos, featuredNames],
+  );
+
   /* Determine the visible slice BEFORE filtering by language,
-     so we know which repos to fetch languages for. */
-  const visibleSlice = repos.slice(0, visibleCount);
+     so we know which repos to fetch languages for. (More grid only.) */
+  const visibleSlice = moreRepos.slice(0, visibleCount);
 
   /* Languages that already ship with the repos (build-time snapshot
      `public/projects.json` carries a `languages` array per repo).
@@ -178,13 +372,13 @@ export function ProjectsSection() {
      403'd on a rate-limited IP and logged a console error. */
   const staticLangMap = useMemo(() => {
     const map = {};
-    for (const r of repos) {
+    for (const r of moreRepos) {
       if (Array.isArray(r.languages)) {
         map[r.name] = r.languages;
       }
     }
     return map;
-  }, [repos]);
+  }, [moreRepos]);
 
   /* Only fetch languages for visible repos that did NOT come with
      languages (i.e. when the snapshot was missing and the live API
@@ -206,9 +400,11 @@ export function ProjectsSection() {
     [staticLangMap, fetchedLangMap],
   );
 
-  /* Filter chips come from the union of ALL repos' languages — not
-     just the visible slice — so a language that only exists in repos
-     7+ always has a chip (previously chips only covered the first 6). */
+  /* Filter chips come from the union of ALL More repos' languages —
+     not just the visible slice — so a language that only exists in
+     repos 7+ always has a chip (previously chips only covered the
+     first 6). Featured repos are excluded: their languages would
+     filter the More grid to nothing. */
   const allLangs = useMemo(() => {
     const set = new Set(fetchedAllLangs);
     for (const langs of Object.values(staticLangMap)) {
@@ -223,18 +419,18 @@ export function ProjectsSection() {
     return ['All', ...allLangs];
   }, [allLangs]);
 
-  /* Filter repos using the full language list (not just primary) */
+  /* Filter More repos using the full language list (not just primary) */
   const filtered = useMemo(() => {
-    if (activeLanguage === 'All') return repos;
-    return repos.filter((r) => {
+    if (activeLanguage === 'All') return moreRepos;
+    return moreRepos.filter((r) => {
       const langs = langMap[r.name];
       if (langs) return langs.includes(activeLanguage);
       // Fallback to primary language if not yet loaded
       return r.language === activeLanguage;
     });
-  }, [repos, activeLanguage, langMap]);
+  }, [moreRepos, activeLanguage, langMap]);
 
-  /* Pagination on the filtered list */
+  /* Pagination on the filtered list (More grid only) */
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visibleCount;
 
@@ -286,180 +482,208 @@ export function ProjectsSection() {
       {/* Content */}
       {!loading && !error && repos.length > 0 && (
         <>
-          {/* Language filter chips */}
-          {languages.length > 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3 }}
-              className="mb-8 flex flex-wrap gap-2"
-            >
-              {languages.map((lang) => (
-                <FilterChip
-                  key={lang}
-                  label={lang}
-                  active={activeLanguage === lang}
-                  onClick={() => {
-                    setActiveLanguage(lang);
-                    setVisibleCount(INITIAL_COUNT);
-                  }}
-                />
-              ))}
-            </motion.div>
+          {/* Featured Projects — the first 4 pinned repos, in pin
+              order, with their case-study details. Re-pinning on
+              GitHub updates this block automatically. */}
+          {featuredRepos.length > 0 && (
+            <>
+              <h3 className="mb-6 text-lg font-semibold text-heading sm:text-xl">
+                Featured
+              </h3>
+              <div className="grid gap-6 lg:grid-cols-2">
+                {featuredRepos.map((repo, idx) => (
+                  <FeaturedProjectCard key={repo.id} repo={repo} index={idx} />
+                ))}
+              </div>
+            </>
           )}
 
-          {/* Project grid */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AnimatePresence mode="popLayout">
-              {visible.map((repo, idx) => (
+          {/* More Projects — the rest, in the existing grid with
+              filters, pagination and skeleton all unchanged. */}
+          {moreRepos.length > 0 && (
+            <>
+              {featuredRepos.length > 0 && (
+                <h3 className="mb-6 mt-14 text-lg font-semibold text-heading sm:text-xl">
+                  More Projects
+                </h3>
+              )}
+
+              {/* Language filter chips */}
+              {languages.length > 2 && (
                 <motion.div
-                  key={repo.id}
-                  custom={idx}
-                  variants={cardAnim}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3 }}
+                  className="mb-8 flex flex-wrap gap-2"
                 >
-                  <Card
-                    spotlight
-                    className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
-                    whileHover={{ y: -6, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Slideshow — only when the repo has a `Project_Card`
-                        folder (images come from the build-time snapshot).
-                        Without images the card renders exactly as before:
-                        text-only, same layout, no empty image box. */}
-                    {Array.isArray(repo.images) && repo.images.length > 0 && (
-                      <ProjectSlideshow images={repo.images} repoName={repo.name} />
-                    )}
-
-                    {/* Title + language pills */}
-                    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                      <h3 className="text-lg font-semibold text-heading sm:text-xl">
-                        {formatName(repo.name)}
-                      </h3>
-                      <LanguagePills
-                        repoName={repo.name}
-                        fallbackLanguage={repo.language}
-                        langMap={langMap}
-                        loadingSet={langLoading}
-                      />
-                    </div>
-
-                    {/* Description — clamped to 3 lines so cards with a
-                        slideshow stay equal height. No description means
-                        no line at all (never invent one). */}
-                    {repo.description && (
-                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
-                        {repo.description}
-                      </p>
-                    )}
-
-                    {/* Topics as tags */}
-                    {repo.topics.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {repo.topics.slice(0, 6).map((t) => (
-                          <Tag key={t}>{t}</Tag>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Stats row */}
-                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-                      {formatUpdated(repo.pushedAt) && (
-                        <span>Updated {formatUpdated(repo.pushedAt)}</span>
-                      )}
-                      {repo.stars > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5" aria-hidden />
-                          {repo.stars}
-                        </span>
-                      )}
-                      {repo.forks > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <GitFork className="h-3.5 w-3.5" aria-hidden />
-                          {repo.forks}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                      {repo.homepage && (
-                        <Button
-                          {...externalLinkProps(repo.homepage)}
-                          variant="primary"
-                          className="flex-1 sm:flex-none"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                          Live demo
-                        </Button>
-                      )}
-                      <Button {...externalLinkProps(repo.url)} variant="secondary">
-                        <Github className="h-3.5 w-3.5" aria-hidden />
-                        GitHub
-                      </Button>
-                    </div>
-                  </Card>
+                  {languages.map((lang) => (
+                    <FilterChip
+                      key={lang}
+                      label={lang}
+                      active={activeLanguage === lang}
+                      onClick={() => {
+                        setActiveLanguage(lang);
+                        setVisibleCount(INITIAL_COUNT);
+                      }}
+                    />
+                  ))}
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+              )}
 
-          {/* Show more / Show all / Show less */}
-          {filtered.length > INITIAL_COUNT && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 text-center"
-            >
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {/* Back to the first 4 — only once expanded. */}
-                {visibleCount > INITIAL_COUNT && (
-                  <button
-                    type="button"
-                    onClick={handleShowLess}
-                    className="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
-                  >
-                    Show less
-                    <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
-                  </button>
-                )}
-                {/* +4 per click; when few remain, jump to the full list. */}
-                {remaining > 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setVisibleCount((c) =>
-                        remaining > SHOW_ALL_THRESHOLD
-                          ? c + PAGE_SIZE
-                          : filtered.length,
-                      )
-                    }
-                    className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
-                  >
-                    {remaining > SHOW_ALL_THRESHOLD ? (
-                      <>
-                        Show more
-                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                      </>
-                    ) : (
-                      <>
-                        Show all {filtered.length} projects
-                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                      </>
-                    )}
-                  </button>
-                )}
+              {/* Project grid */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnimatePresence mode="popLayout">
+                  {visible.map((repo, idx) => (
+                    <motion.div
+                      key={repo.id}
+                      custom={idx}
+                      variants={cardAnim}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      layout
+                    >
+                      <Card
+                        spotlight
+                        className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
+                        whileHover={{ y: -6, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {/* Slideshow — only when the repo has a `Project_Card`
+                            folder (images come from the build-time snapshot).
+                            Without images the card renders exactly as before:
+                            text-only, same layout, no empty image box. */}
+                        {Array.isArray(repo.images) && repo.images.length > 0 && (
+                          <ProjectSlideshow images={repo.images} repoName={repo.name} />
+                        )}
+
+                        {/* Title + language pills */}
+                        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                          <h3 className="text-lg font-semibold text-heading sm:text-xl">
+                            {formatName(repo.name)}
+                          </h3>
+                          <LanguagePills
+                            repoName={repo.name}
+                            fallbackLanguage={repo.language}
+                            langMap={langMap}
+                            loadingSet={langLoading}
+                          />
+                        </div>
+
+                        {/* Description — clamped to 3 lines so cards with a
+                            slideshow stay equal height. No description means
+                            no line at all (never invent one). */}
+                        {repo.description && (
+                          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+                            {repo.description}
+                          </p>
+                        )}
+
+                        {/* Topics as tags */}
+                        {repo.topics.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {repo.topics.slice(0, 6).map((t) => (
+                              <Tag key={t}>{t}</Tag>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Stats row */}
+                        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
+                          {formatUpdated(repo.pushedAt) && (
+                            <span>Updated {formatUpdated(repo.pushedAt)}</span>
+                          )}
+                          {repo.stars > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5" aria-hidden />
+                              {repo.stars}
+                            </span>
+                          )}
+                          {repo.forks > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <GitFork className="h-3.5 w-3.5" aria-hidden />
+                              {repo.forks}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="mt-auto flex flex-wrap gap-3 pt-6">
+                          {repo.homepage && (
+                            <Button
+                              {...externalLinkProps(repo.homepage)}
+                              variant="primary"
+                              className="flex-1 sm:flex-none"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                              Live demo
+                            </Button>
+                          )}
+                          <Button {...externalLinkProps(repo.url)} variant="secondary">
+                            <Github className="h-3.5 w-3.5" aria-hidden />
+                            GitHub
+                          </Button>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-              <p className="mt-3 text-xs text-muted-dim">
-                Showing {visible.length} of {filtered.length} projects
-              </p>
-            </motion.div>
+
+              {/* Show more / Show all / Show less */}
+              {filtered.length > INITIAL_COUNT && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-8 text-center"
+                >
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {/* Back to the first 4 — only once expanded. */}
+                    {visibleCount > INITIAL_COUNT && (
+                      <button
+                        type="button"
+                        onClick={handleShowLess}
+                        className="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
+                      >
+                        Show less
+                        <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
+                      </button>
+                    )}
+                    {/* +4 per click; when few remain, jump to the full list. */}
+                    {remaining > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVisibleCount((c) =>
+                            remaining > SHOW_ALL_THRESHOLD
+                              ? c + PAGE_SIZE
+                              : filtered.length,
+                          )
+                        }
+                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                      >
+                        {remaining > SHOW_ALL_THRESHOLD ? (
+                          <>
+                            Show more
+                            <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+                          </>
+                        ) : (
+                          <>
+                            Show all {filtered.length} projects
+                            <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-3 text-xs text-muted-dim">
+                    Showing {visible.length} of {filtered.length} projects
+                  </p>
+                </motion.div>
+              )}
+            </>
           )}
         </>
       )}

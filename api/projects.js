@@ -5,10 +5,23 @@
  *
  * Response shape is EXACTLY the same as the build-time snapshot
  * `public/projects.json` produced by scripts/fetch-projects.mjs:
- *   { generatedAt, source: 'github-api', repos: [...] }
+ *   { generatedAt, source: 'github-api', featured: [...], repos: [...] }
  * so the frontend treats both sources identically and can fall back to
  * the snapshot when this function is unavailable (e.g. on GitHub Pages,
  * where no function exists).
+ *
+ * Featured Projects: `featured` is the first 4 pinned repos (in pin
+ * order, excluding this portfolio site itself), read via the GitHub
+ * GraphQL API (`pinnedItems`; REST has no pin endpoint). Each featured
+ * repo gets a `details` object { problem, solution, features,
+ * contribution, tech, detailsSource } resolved by the repo-first
+ * fallback chain in scripts/featuredDetails.mjs: the repo's own
+ * `portfolio.json`, then its README.md sections, then the curated data
+ * in src/data/portfolio.js, then the GitHub description. Re-pinning in
+ * the GitHub web UI updates the site within the cache hour — no code
+ * change, no manual curation. Enrichment runs for featured repos only
+ * (max 4) and never fails the function: any enrichment failure falls
+ * back silently, and a GraphQL failure just means featured = [].
  *
  * Caching: `Cache-Control: public, s-maxage=3600,
  * stale-while-revalidate=86400` — Vercel's CDN serves the response for
@@ -26,6 +39,8 @@
  *   token can be scoped to "All repositories" (read-only) or to the
  *   17 project repos. No write permission anywhere.
  */
+
+import { pickFeatured, resolveDetails } from '../scripts/featuredDetails.mjs';
 
 const GITHUB_USERNAME = 'mhtamim136';
 const MIN_PERCENT = 2; // hide languages below 2% of total bytes
@@ -101,15 +116,54 @@ export default async function handler(req, res) {
     return r.json();
   }
 
-  async function fetchImagesForRepo(repoName, defaultBranch) {
+  async function fetchText(url) {
+    const r = await fetch(url, { headers, signal: controller.signal });
+    if (!r.ok) {
+      const err = new Error(`GitHub fetch ${r.status}`);
+      err.status = r.status;
+      throw err;
+    }
+    return r.text();
+  }
+
+  /* Pinned repo names via GraphQL (REST has no pin endpoint).
+     Any failure → [] — the section degrades to the all-projects
+     grid instead of failing the function. */
+  async function fetchPinnedRepoNames() {
+    try {
+      const r = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          query: `query { user(login: "${GITHUB_USERNAME}") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name } } } } }`,
+        }),
+      });
+      if (!r.ok) return [];
+      const data = await r.json();
+      const nodes = data?.data?.user?.pinnedItems?.nodes;
+      if (!Array.isArray(nodes)) return [];
+      return nodes.map((n) => n?.name).filter((n) => typeof n === 'string');
+    } catch {
+      return [];
+    }
+  }
+
+  /* One repo's recursive file tree — serves both the slideshow
+     images and the Featured enrichment (portfolio.json / README
+     detection), so enrichment costs 0 extra tree calls. */
+  async function fetchTreeForRepo(repoName, defaultBranch) {
     const tree = await fetchJson(
       `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`,
     );
     if (!Array.isArray(tree.tree)) return [];
+    return tree.tree;
+  }
 
+  function imagesFromTree(tree, repoName, defaultBranch) {
     for (const folder of IMAGE_FOLDERS) {
       const prefix = `${folder}/`;
-      const files = tree.tree
+      const files = tree
         .filter((t) => t.type === 'blob' && t.path.startsWith(prefix))
         .map((t) => t.path)
         .filter((p) => IMAGE_EXTS.has(p.split('.').pop().toLowerCase()))
@@ -124,25 +178,84 @@ export default async function handler(req, res) {
     return [];
   }
 
+  function findRootFile(tree, fileName) {
+    const lower = fileName.toLowerCase();
+    const hit = tree.find(
+      (t) => t.type === 'blob' && t.path.toLowerCase() === lower,
+    );
+    return hit ? hit.path : null;
+  }
+
+  /* Case-study details for ONE featured repo (portfolio.json →
+     README → curated → GitHub description). Never throws. */
+  async function enrichFeaturedRepo(repo, tree, curated) {
+    let portfolioJson = null;
+    let readmeText = null;
+    try {
+      const portfolioPath = findRootFile(tree, 'portfolio.json');
+      if (portfolioPath) {
+        const raw = await fetchText(
+          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(portfolioPath)}`,
+        );
+        try {
+          portfolioJson = JSON.parse(raw);
+        } catch {
+          portfolioJson = null;
+        }
+      }
+      if (!portfolioJson) {
+        const readmePath = findRootFile(tree, 'README.md');
+        if (readmePath) {
+          readmeText = await fetchText(
+            `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(readmePath)}`,
+          );
+        }
+      }
+    } catch {
+      /* Any enrichment step failing just falls through. */
+    }
+    return resolveDetails({ portfolioJson, readmeText, curated, repo });
+  }
+
   try {
-    /* Repo list (paginated, newest push first). */
-    let rawRepos = [];
-    let page = 1;
-    let hasMore = true;
-    while (hasMore) {
-      const batch = await fetchJson(
-        `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`,
-      );
-      rawRepos = rawRepos.concat(batch);
-      hasMore = batch.length === 100;
-      page += 1;
+    /* Curated fallback data. Dynamic import with a try/catch so a
+       bundling surprise here can never take down the function —
+       worst case the chain just skips the curated layer. */
+    let curated = [];
+    try {
+      const mod = await import('../src/data/portfolio.js');
+      curated = Array.isArray(mod?.portfolio?.projects)
+        ? mod.portfolio.projects
+        : [];
+    } catch {
+      curated = [];
     }
 
-    const repos = rawRepos
-      .filter((r) => !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase()))
-      .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+    /* Repo list (paginated, newest push first) + pins in parallel. */
+    const reposPromise = (async () => {
+      let rawRepos = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const batch = await fetchJson(
+          `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`,
+        );
+        rawRepos = rawRepos.concat(batch);
+        hasMore = batch.length === 100;
+        page += 1;
+      }
+      return rawRepos
+        .filter((r) => !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase()))
+        .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+    })();
 
-    /* Languages + images per repo, in parallel. One repo failing
+    const [repos, pinnedNames] = await Promise.all([
+      reposPromise,
+      fetchPinnedRepoNames(),
+    ]);
+    const featured = pickFeatured(pinnedNames, repos);
+
+    /* Languages + trees per repo, in parallel. One repo failing
        must not fail the whole response — it falls back to its
        primary language and no images (same as the build script). */
     const enriched = await Promise.all(
@@ -157,14 +270,15 @@ export default async function handler(req, res) {
           languages = r.language ? [r.language] : [];
         }
 
-        let images = [];
+        let tree = [];
         try {
-          images = await fetchImagesForRepo(r.name, r.default_branch);
+          tree = await fetchTreeForRepo(r.name, r.default_branch);
         } catch {
-          images = [];
+          tree = [];
         }
+        const images = imagesFromTree(tree, r.name, r.default_branch);
 
-        return {
+        const entry = {
           id: r.id,
           name: r.name,
           description: r.description,
@@ -179,8 +293,28 @@ export default async function handler(req, res) {
           pushedAt: r.pushed_at,
           topics: r.topics || [],
         };
+        return { entry, tree };
       }),
     );
+
+    /* Featured details (featured repos only, max 4). */
+    const detailsByName = {};
+    await Promise.all(
+      featured.map(async (name) => {
+        const found = enriched.find(
+          (e) => e.entry.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (!found) return;
+        detailsByName[found.entry.name] = await enrichFeaturedRepo(
+          found.entry,
+          found.tree,
+          curated,
+        );
+      }),
+    );
+    for (const e of enriched) {
+      if (detailsByName[e.entry.name]) e.entry.details = detailsByName[e.entry.name];
+    }
 
     res.setHeader(
       'Cache-Control',
@@ -189,7 +323,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       generatedAt: new Date().toISOString(),
       source: 'github-api',
-      repos: enriched,
+      featured,
+      repos: enriched.map((e) => e.entry),
     });
   } catch (err) {
     /* Never leak the token or GitHub's response — log only the

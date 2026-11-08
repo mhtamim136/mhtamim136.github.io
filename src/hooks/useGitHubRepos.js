@@ -26,15 +26,39 @@ const API_TIMEOUT_MS = 6000;
  * - Function results are cached in sessionStorage with a TTL (the
  *   snapshot path keeps its old behaviour of not writing the cache).
  *
- * Returns { repos, loading, error }.
+ * Both sources now also carry `featured` — the first 4 pinned repos
+ * (in pin order, excluding the portfolio site itself) — and each
+ * featured repo carries a `details` object (see
+ * scripts/featuredDetails.mjs). When `featured` is absent or empty
+ * (e.g. an older snapshot, or the GraphQL pins query failed), the
+ * Projects section degrades gracefully to the all-projects grid.
+ *
+ * Returns { repos, featured, loading, error }.
  */
 export function useGitHubRepos() {
   const [repos, setRepos] = useState([]);
+  const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
+
+    /* Normalise a payload ({ repos, featured }) — tolerates the old
+       cache shape (a bare repos array) and missing `featured`. */
+    function applyData(data) {
+      if (Array.isArray(data)) {
+        setRepos(data);
+        setFeatured([]);
+        return true;
+      }
+      if (data && Array.isArray(data.repos) && data.repos.length > 0) {
+        setRepos(data.repos);
+        setFeatured(Array.isArray(data.featured) ? data.featured : []);
+        return true;
+      }
+      return false;
+    }
 
     async function fetchRepos() {
       /* ── Check cache first ── */
@@ -42,8 +66,7 @@ export function useGitHubRepos() {
         const cached = sessionStorage.getItem(CACHE_KEY);
         if (cached) {
           const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_TTL) {
-            setRepos(data);
+          if (Date.now() - timestamp < CACHE_TTL && applyData(data)) {
             setLoading(false);
             return;
           }
@@ -60,7 +83,10 @@ export function useGitHubRepos() {
         if (!res.ok) return null;
         const snapshot = await res.json();
         if (Array.isArray(snapshot.repos) && snapshot.repos.length > 0) {
-          return snapshot.repos;
+          return {
+            repos: snapshot.repos,
+            featured: Array.isArray(snapshot.featured) ? snapshot.featured : [],
+          };
         }
         return null;
       }
@@ -68,9 +94,9 @@ export function useGitHubRepos() {
       /* ── GitHub Pages: snapshot only, never /api/projects. ── */
       if (window.location.hostname === GITHUB_PAGES_HOST) {
         try {
-          const snapshotRepos = await loadSnapshot();
-          if (snapshotRepos) {
-            setRepos(snapshotRepos);
+          const snapshot = await loadSnapshot();
+          if (snapshot) {
+            applyData(snapshot);
           } else {
             setError('Projects could not be loaded. Please try again later.');
           }
@@ -86,7 +112,7 @@ export function useGitHubRepos() {
 
       /* ── Elsewhere: function first, snapshot fallback. ── */
       try {
-        let repos = null;
+        let data = null;
         let fromFunction = false;
 
         let timerId;
@@ -103,9 +129,12 @@ export function useGitHubRepos() {
           ]);
           clearTimeout(timerId);
           if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data.repos) && data.repos.length > 0) {
-              repos = data.repos;
+            const payload = await res.json();
+            if (Array.isArray(payload.repos) && payload.repos.length > 0) {
+              data = {
+                repos: payload.repos,
+                featured: Array.isArray(payload.featured) ? payload.featured : [],
+              };
               fromFunction = true;
             }
           }
@@ -114,24 +143,24 @@ export function useGitHubRepos() {
           clearTimeout(timerId);
         }
 
-        if (!repos) {
-          repos = await loadSnapshot();
+        if (!data) {
+          data = await loadSnapshot();
         }
 
-        if (repos) {
+        if (data) {
           /* Cache function results (as the old live-API path did);
              snapshot results keep the old no-cache behaviour. */
           if (fromFunction) {
             try {
               sessionStorage.setItem(
                 CACHE_KEY,
-                JSON.stringify({ data: repos, timestamp: Date.now() }),
+                JSON.stringify({ data, timestamp: Date.now() }),
               );
             } catch {
               /* sessionStorage full or unavailable — non-critical */
             }
           }
-          setRepos(repos);
+          applyData(data);
         } else {
           setError('Projects could not be loaded. Please try again later.');
         }
@@ -148,5 +177,5 @@ export function useGitHubRepos() {
     return () => controller.abort();
   }, []);
 
-  return { repos, loading, error };
+  return { repos, featured, loading, error };
 }
