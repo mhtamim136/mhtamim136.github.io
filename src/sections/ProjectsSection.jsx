@@ -415,10 +415,14 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
   const [sortDir, setSortDir] = useState('newest');
   const [activeYear, setActiveYear] = useState(null);
 
-  /* "Filtered" = a language filter OR a year filter is active.
-     Either one turns Featured priority OFF (one flat list); only
-     "All" + "All years" shows the Featured-first view. */
-  const isFiltered = activeFilter !== null || activeYear !== null;
+  /* "Filtered" = a language filter, a year filter, OR a non-default
+     sort is active. Any of the three turns Featured priority OFF
+     (one flat list, sorted as chosen); only "All" + "All years" +
+     "Newest" shows the Featured-first view. The sort counts as a
+     filter (Tamim, 2026-11-09): clicking Oldest must hide Featured
+     and show the flat oldest-first list, like any other filter. */
+  const isFiltered =
+    activeFilter !== null || activeYear !== null || sortDir !== 'newest';
 
   /* Years present in the data (pushedAt), derived live — never
      hardcoded. A repo pushed in a new year adds that year on the
@@ -444,10 +448,8 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      the filter, the year, or the sort changes, or when the Featured
      block appears on load. */
   useEffect(() => {
-    setVisibleCount(
-      activeFilter || activeYear !== null || featured.length === 0 ? INITIAL_COUNT : 0,
-    );
-  }, [activeFilter, activeYear, sortDir, featured.length]);
+    setVisibleCount(isFiltered || featured.length === 0 ? INITIAL_COUNT : 0);
+  }, [activeFilter, activeYear, sortDir, featured.length, isFiltered]);
 
   /* Featured = the first 4 pinned repos (in pin order), resolved
      against the loaded repos. Everything else is "More Projects" —
@@ -574,14 +576,15 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      repo matches when the language key appears in its languages OR
      topics (the same rule the Skills counts use, so a pill's count
      and the filtered grid always agree) and its pushedAt year is
-     the selected one. With no filter, the list is the More repos
-     (Featured lives in its own block above). With a filter, the
-     list is EVERY matching repo — featured + more together —
-     rendered as regular grid cards, never the rich Featured cards.
-     The sort orders the list in both states; the Featured block
-     itself is never re-sorted (pin order). */
+     the selected one. With no filter (All + All years + Newest),
+     the list is the More repos (Featured lives in its own block
+     above). With a filter (language, year, OR Oldest), the list is
+     EVERY matching repo — featured + more together — rendered as
+     regular grid cards, never the rich Featured cards. The sort
+     orders the list in both states; the Featured block itself is
+     never re-sorted (pin order). */
   const filtered = useMemo(() => {
-    const list = !activeFilter && activeYear === null
+    const list = !isFiltered
       ? moreRepos
       : repos.filter((r) => {
           if (activeFilter && !getRepoKeys(r, langMap[r.name]).has(activeFilter)) return false;
@@ -589,7 +592,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
           return true;
         });
     return sortRepos(list, sortDir);
-  }, [repos, moreRepos, activeFilter, activeYear, langMap, sortDir]);
+  }, [repos, moreRepos, isFiltered, activeFilter, activeYear, langMap, sortDir]);
 
   /* One list, one slice, for both states. `initialCount` is the
      count "Show less" returns to: 0 More (Featured only) in ALL
@@ -652,46 +655,53 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
       {/* Content */}
       {!loading && !error && repos.length > 0 && (
         <>
-          {/* Controls row — FIRST, directly under the section
-              heading: language chips + year dropdown + sort toggle,
-              together. (Tamim, binding: the filters must sit before
-              Featured, where the chips were before the Featured
-              redesign — never below it.) The sort toggle and year
-              dropdown form a right-aligned glass cluster at the end
-              of the row; it wraps cleanly on mobile (ml-auto pushes
-              it right on whatever line it lands on). */}
+          {/* Controls — FIRST, directly under the section heading,
+              BEFORE the Featured block (Tamim, binding: the filters
+              must sit before Featured, where the chips were before
+              the Featured redesign — never below it). Two rows:
+              (1) the Year + sort glass cluster on its OWN row,
+              right-aligned — it used to share the chips' row and
+              sat too close under them, and a growing chips row
+              could collide with it. Above the chips it has
+              breathing room, and the chips can wrap freely below
+              without ever touching the controls.
+              (2) the language chips row below it. */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3 }}
-            className="mb-8 flex flex-wrap gap-2"
+            className="mb-8"
           >
-            {(languages.length > 2 || activeSkillChip) && (
-              <>
-                {languages.map((lang) => {
-                  const key = lang === 'All' ? null : normalizeKey(lang);
-                  return (
+            <div className="mb-4 flex justify-end">
+              <div className="flex items-center gap-2">
+                <YearDropdown years={yearOptions} value={activeYear} onChange={setActiveYear} />
+                <SortToggle sortDir={sortDir} onToggle={() => setSortDir((d) => (d === 'newest' ? 'oldest' : 'newest'))} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(languages.length > 2 || activeSkillChip) && (
+                <>
+                  {languages.map((lang) => {
+                    const key = lang === 'All' ? null : normalizeKey(lang);
+                    return (
+                      <FilterChip
+                        key={lang}
+                        label={lang}
+                        active={activeFilter === key}
+                        onClick={() => onFilterChange(key)}
+                      />
+                    );
+                  })}
+                  {activeSkillChip && (
                     <FilterChip
-                      key={lang}
-                      label={lang}
-                      active={activeFilter === key}
-                      onClick={() => onFilterChange(key)}
+                      label={activeSkillChip}
+                      active
+                      onClick={() => onFilterChange(null)}
                     />
-                  );
-                })}
-                {activeSkillChip && (
-                  <FilterChip
-                    label={activeSkillChip}
-                    active
-                    onClick={() => onFilterChange(null)}
-                  />
-                )}
-              </>
-            )}
-            <div className="ml-auto flex items-center gap-2">
-              <YearDropdown years={yearOptions} value={activeYear} onChange={setActiveYear} />
-              <SortToggle sortDir={sortDir} onToggle={() => setSortDir((d) => (d === 'newest' ? 'oldest' : 'newest'))} />
+                  )}
+                </>
+              )}
             </div>
           </motion.div>
 
