@@ -7,11 +7,6 @@ import { motion, useReducedMotion } from 'framer-motion';
  * - Light mode: softer teal shadow, crisp ring
  * - object-position: center 20% keeps the head visible in the crop
  *
- * No mount entrance of its own: the hero owns the photo entrance
- * (clip-path wipe + scale in HeroSection), so this renders at full
- * opacity/scale immediately. The glow ring's gentle float is
- * ambient, not an entrance, and stays.
- *
  * Accepts either:
  *   (a) An image manifest from virtual:hero-image-manifest (with AVIF/WebP/PNG
  *       srcsets for build mode), or
@@ -23,7 +18,12 @@ export function Avatar({ src, manifest, alt, className = '' }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className={`relative mx-auto ${className}`}>
+    <motion.div
+      className={`relative mx-auto ${className}`}
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+    >
       {/* Outer glow ring — gentle float; the photo itself never moves */}
       <motion.div
         className="absolute -inset-1 rounded-full bg-gradient-to-br from-accent via-[var(--gradient-via)] to-[var(--gradient-to)] opacity-60 blur-md"
@@ -78,6 +78,6 @@ export function Avatar({ src, manifest, alt, className = '' }) {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

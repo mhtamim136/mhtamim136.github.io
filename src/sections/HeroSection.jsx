@@ -17,21 +17,26 @@ import heroManifest from 'virtual:hero-image-manifest';
  * on a spring (stiffness 260 / damping 26). Every element uses the
  * same physics, so the hero arrives as a single sequence instead of
  * competing fades. The name/title words use BlurWords — the same
- * spring plus a blur(8px)→0 focus pull — and the photo enters on
- * its own plane with a clip-path wipe + scale 1.06→1, concurrent
- * with the name, which is what gives the two-plane depth.
+ * spring plus a blur(8px)→0 focus pull.
+ *
+ * The photo is NOT part of that spring: it keeps the previous
+ * design — a gentle fade + 20px rise (0.4s) on the wrapper, plus
+ * the Avatar's own 0.85→1 scale-in. Direction A gave it a clip-path
+ * wipe + 1.06→1 scale, which made the photo look cut on all four
+ * sides (the 1.06 scale enlarged the circle past its frame while
+ * the wipe hid its lower part), so the photo entrance was reverted
+ * to the previous design and nothing else changed.
  *
  * Sequence (delays in seconds, spring settles ≈ 0.3s after delay):
  *   location 0.00 · name 0.05/0.12/0.19 · role 0.24 · underline 0.30
  *   username 0.33 · title 0.38/0.45/0.52/0.59 · bio 0.58
  *   skills 0.64 · CTAs 0.70 → whole hero settled ≈ 1.0s, then still.
- * Photo wipe starts at 0.05 and runs 0.8s, so it lands with the name.
  *
  * Reduced motion: <MotionConfig reducedMotion="user"> disables
  * transform/layout animations, but NOT opacity — so every motion
  * element here also gets initial={false} under reduced motion and
- * renders in its final state instantly. BlurWords and the photo
- * wipe gate themselves the same way (see those files).
+ * renders in its final state instantly. BlurWords gates itself the
+ * same way (see that file).
  */
 const SPRING = { type: 'spring', stiffness: 260, damping: 26 };
 
@@ -41,6 +46,19 @@ const rise = {
     opacity: 1,
     y: 0,
     transition: { ...SPRING, delay },
+  }),
+};
+
+/* Pre-Direction-A photo entrance (restored): the photo wrapper
+   fades + rises 20px in 0.4s — the previous design. Kept separate
+   from `rise` on purpose: the photo is not part of the Direction A
+   spring sequence. */
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] },
   }),
 };
 
@@ -187,18 +205,17 @@ export function HeroSection() {
             {/* Text — left */}
             <div className="flex-1 text-center lg:text-left">{textContent}</div>
 
-            {/* Image — right on desktop, top on mobile. Enters on
-                its own plane: a top-down clip-path wipe + a gentle
-                1.06→1 settle, concurrent with the name's focus pull
-                — the photo plane and the text plane arriving together
-                is the two-plane depth. The photo column already
-                spans the name's baseline vertically, so no extra
-                positional offset is needed for the overlap. */}
+            {/* Image — right on desktop, top on mobile. Previous
+                design restored: a gentle fade + 20px rise (0.4s) on
+                the wrapper, plus the Avatar's own 0.85→1 scale-in.
+                The photo always grows INTO its frame, never past
+                it, so it can never look cut. No wipe, no 1.06 scale. */}
             <motion.div
               className="w-48 shrink-0 sm:w-56 lg:w-64 xl:w-72"
-              initial={reduceMotion ? false : { clipPath: 'inset(0 0 100% 0)', scale: 1.06 }}
-              animate={{ clipPath: 'inset(0 0 0% 0)', scale: 1 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+              custom={0}
+              variants={item}
+              initial={reduceMotion ? false : 'hidden'}
+              animate="show"
             >
               <Avatar manifest={heroManifest} src={profileImage} alt={`Portrait of ${name}`} />
             </motion.div>
