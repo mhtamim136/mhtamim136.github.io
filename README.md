@@ -2,7 +2,7 @@
 
 Modern, polished personal portfolio built with **React 18 + Vite + Tailwind CSS + Framer Motion**.
 
-🌐 **Live**: [mhtamim136.github.io](https://mhtamim136.github.io)
+🌐 **Live**: [mhtamim136.vercel.app](https://mhtamim136.vercel.app) (primary) · [mhtamim136.github.io](https://mhtamim136.github.io) (fallback)
 
 ---
 
@@ -11,9 +11,9 @@ Modern, polished personal portfolio built with **React 18 + Vite + Tailwind CSS 
 - ⚡ Vite-powered fast dev / build
 - 🎨 Dark & light mode with animated circular-reveal transition (View Transitions API)
 - 📷 Auto-discovers profile image from `/Image/` folder (no hardcoded filenames)
-- 🔄 Projects served from a build-time snapshot (`public/projects.json`, regenerated on build; live GitHub API as fallback)
+- 🔄 Projects served fresh from the `/api/projects` Vercel Function, with a build-time snapshot (`public/projects.json`, regenerated on build) as fallback
 - 🖼️ Project cards show an automatic image slideshow from each repo's `Project_Card` folder (text-only fallback when a repo has none)
-- 📬 Contact form via [Web3Forms](https://web3forms.com) with floating labels, validation, and honeypot spam protection
+- 📬 Contact form via [Resend](https://resend.com) ([Web3Forms](https://web3forms.com) fallback) with floating labels, validation, and honeypot spam protection
 - 🧩 Language filter chips for projects
 - 🎯 Scroll spy navigation with icon-only pill navbar
 - 📱 Fully responsive (mobile-first)
@@ -24,15 +24,16 @@ Modern, polished personal portfolio built with **React 18 + Vite + Tailwind CSS 
 
 ```bash
 # 1. Clone
-git clone https://github.com/mhtamim136/mhtamim-.git
-cd mhtamim-
+git clone https://github.com/mhtamim136/mhtamim136.github.io.git
+cd mhtamim136.github.io
 
 # 2. Install
 npm install
 
 # 3. Set up environment (for the contact form)
 cp .env.example .env
-# Edit .env and add your Web3Forms access key
+# Edit .env and add your Web3Forms access key (contact-form fallback;
+# also used in local dev, where the form uses Web3Forms directly)
 # Get a free key at https://web3forms.com
 
 # 4. Dev
@@ -44,11 +45,11 @@ npm run build
 
 ## Contact Form Setup
 
-The contact form uses [Web3Forms](https://web3forms.com) — a free, serverless form backend.
+The contact form sends mail through the `/api/contact` Vercel Function using [Resend](https://resend.com) (free tier: 100 emails/day). [Web3Forms](https://web3forms.com) stays as the fallback — it takes over on GitHub Pages (where no Function exists) and if the Resend call ever fails.
 
-1. Go to [web3forms.com](https://web3forms.com) and enter your email to get an **access key**
-2. Copy `.env.example` to `.env`
-3. Replace `your_access_key_here` with your actual key:
+1. Get a Resend API key at [resend.com](https://resend.com) and set it as `RESEND_API_KEY` in the Vercel dashboard (see the Vercel Configuration section below)
+2. Get a Web3Forms access key (free) for the fallback: go to [web3forms.com](https://web3forms.com) and enter your email
+3. Copy `.env.example` to `.env` and replace `your_access_key_here` with your key:
    ```
    VITE_WEB3FORMS_KEY=your-actual-key-here
    ```
@@ -89,7 +90,9 @@ Each project card can show an automatic image slideshow. In a project repo, add 
 
 ```
 ├── Image/               # Profile photo (auto-discovered)
-├── public/              # Static assets (favicon, resume)
+├── api/                 # Vercel Functions (projects.js, contact.js)
+├── public/              # Static assets (favicon, resume, projects.json)
+├── scripts/             # Build-time project snapshot (fetch-projects.mjs)
 ├── src/
 │   ├── components/      # Reusable UI components
 │   ├── data/            # Portfolio content (portfolio.js)
@@ -98,7 +101,10 @@ Each project card can show an automatic image slideshow. In a project repo, add 
 │   └── utils/           # Utilities
 ├── .env                 # Environment variables (gitignored)
 ├── .env.example         # Template for .env
-└── index.html           # Entry point
+├── index.html           # Entry point
+├── tailwind.config.js   # Tailwind theme
+├── vercel.json          # SPA rewrites + security headers
+└── vite.config.js       # Vite config
 ```
 
 ## Tech Stack
@@ -111,9 +117,9 @@ Each project card can show an automatic image slideshow. In a project repo, add 
 | Animation  | Framer Motion 11                        |
 | Icons      | Lucide React + React Icons              |
 | Font       | Plus Jakarta Sans (headings) + Inter    |
-| Forms      | Web3Forms                               |
-| Deploy     | GitHub Pages                            |
+| Forms      | Resend (primary) + Web3Forms (fallback)      |
+| Deploy     | Vercel (primary) + GitHub Pages (fallback)    |
 
 ## License
 
-MIT
+All Rights Reserved — see [LICENSE](./LICENSE) for details.
