@@ -5,7 +5,15 @@ import { useScrollTop } from '../hooks/useScrollTop';
 export function ScrollToTop() {
   const visible = useScrollTop(480);
 
-  const scrollUp = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  /* An explicit behavior overrides the CSS `scroll-behavior: auto`
+     under prefers-reduced-motion, so check the preference here —
+     same pattern as ProjectsSection's handleShowLess. */
+  const scrollUp = () => {
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  };
 
   return (
     <AnimatePresence>

@@ -1,5 +1,11 @@
 import { useRef, useCallback } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 
 /**
  * Card with a subtle 3D tilt on hover.
@@ -19,6 +25,11 @@ export function Card({
   ...motionProps
 }) {
   const ref = useRef(null);
+  /* prefers-reduced-motion: motion values driven by useSpring /
+     useMotionValue BYPASS <MotionConfig reducedMotion="user">, so the
+     tilt needs its own gate — otherwise the card keeps tilting for
+     users who asked for reduced motion. */
+  const reduceMotion = useReducedMotion();
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
 
@@ -36,10 +47,15 @@ export function Card({
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
-      mouseX.set(x);
-      mouseY.set(y);
+      /* Reduced motion: never move the tilt values off neutral. The
+         spotlight position writes below still run — the spotlight
+         itself is hidden under reduced motion by the CSS rule. */
+      if (!reduceMotion) {
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        mouseX.set(x);
+        mouseY.set(y);
+      }
       /* Spotlight position for the ::before radial gradient.
          Style writes only — no layout work. */
       if (spotlight) {
@@ -47,7 +63,7 @@ export function Card({
         el.style.setProperty('--my', `${e.clientY - rect.top}px`);
       }
     },
-    [mouseX, mouseY, spotlight],
+    [mouseX, mouseY, spotlight, reduceMotion],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -68,7 +84,11 @@ export function Card({
     <motion.div
       ref={ref}
       className={`${base} ${glow} ${spotlight ? 'card-spotlight' : ''} ${className}`}
-      style={{ rotateX, rotateY, transformPerspective: 800 }}
+      style={{
+        rotateX: reduceMotion ? 0 : rotateX,
+        rotateY: reduceMotion ? 0 : rotateY,
+        transformPerspective: 800,
+      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       {...motionProps}
