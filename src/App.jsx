@@ -45,7 +45,7 @@ export default function App() {
   const { isDark, toggle } = useTheme();
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div className="relative min-h-screen">
       {/* Background layers */}
       <div
         className="pointer-events-none fixed inset-0 -z-10 bg-surface bg-grid-pattern bg-grid"

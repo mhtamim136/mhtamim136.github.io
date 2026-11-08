@@ -23,8 +23,11 @@ export default {
         glass: 'rgb(var(--glass) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        /* Variable fonts from @fontsource-variable, self-hosted.
+           'Inter Fallback' and 'Jakarta Fallback' are size-adjusted
+           system-font aliases defined in index.css to prevent CLS. */
+        sans: ['"Inter Variable"', '"Inter Fallback"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans Variable"', '"Jakarta Fallback"', '"Inter Variable"', 'system-ui', 'sans-serif'],
       },
       spacing: {
         18: '4.5rem',

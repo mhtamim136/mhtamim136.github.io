@@ -17,14 +17,21 @@ export function ServicesSection() {
         {services.map((s, idx) => (
           <motion.div
             key={s.title}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: '-30px' }}
             transition={{ delay: idx * 0.06, duration: 0.35 }}
+            whileHover={{ y: -4 }}
           >
-            <Card className="flex gap-4 p-5 sm:p-6">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
-                <ServiceIcon name={s.icon} />
+            <Card className="group flex gap-4 p-5 sm:p-6">
+              {/* Icon chip answers the hover: deeper tint + the icon
+                  grows a touch, so the card feels alive instead of
+                  just sliding in once and going still. */}
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:border-accent/40 group-hover:bg-accent/20">
+                <ServiceIcon
+                  name={s.icon}
+                  className="transition-transform duration-300 group-hover:scale-110"
+                />
               </div>
               <div>
                 <h3 className="font-semibold text-heading">{s.title}</h3>

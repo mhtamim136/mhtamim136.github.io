@@ -13,13 +13,14 @@ const transition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] };
  * Uses AnimatePresence for a smooth rotate-crossfade between icons.
  */
 export function ThemeToggle({ isDark, onToggle }) {
+  /* No native `title` here: Navbar renders the instant custom tooltip
+     for this button — with a title, both would show. */
   return (
     <motion.button
       type="button"
       onClick={onToggle}
       className="flex h-10 w-10 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-colors duration-300 hover:border-accent/25 hover:bg-glass/[0.07] hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:h-11 sm:w-11"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Light mode' : 'Dark mode'}
       whileHover={{ scale: 1.07, y: -2 }}
       whileTap={{ scale: 0.93 }}
     >

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# NOTE: no Agentmap line here on purpose. It points agents at the
+# catalog, but Google's robots.txt validator flags "Agentmap" as an
+# unknown directive and fails the Lighthouse SEO robots.txt audit.
+# Discovery instead uses the <link rel="ai-catalog"> / <link rel="ard">
+# tags in index.html plus the well-known paths, which is how the ARD
+# spec's primary mechanism works anyway.

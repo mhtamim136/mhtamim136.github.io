@@ -1,0 +1,40 @@
+# Murad Hasan Tamim
+
+> Murad Hasan Tamim is a Software Developer and CSE student at the American International University-Bangladesh (AIUB) in Dhaka, Bangladesh. He builds web and desktop applications with Java, C#, JavaScript, React, and Node.js, with a focus on clean UI, strong logic, and problem solving. This file helps AI agents find the key pages of his portfolio.
+
+## About
+
+- [About Murad Hasan Tamim](https://mhtamim136.github.io/#about): CSE student at AIUB, Dhaka; builds practical web and desktop software.
+- [Resume (PDF)](https://mhtamim136.github.io/Resume/Resume-MHTamim.pdf): Murad's resume.
+- [GitHub profile](https://github.com/mhtamim136): All public repositories and code.
+
+## Projects
+
+- [Projects](https://mhtamim136.github.io/#projects): 17 projects, auto-synced from GitHub, with language filters.
+- [IdeaBid — Project Request & Management Platform](https://github.com/mhtamim136/IdeaBid--Project-Request-Management-Platform): C# Windows Forms app with role-based access for project requests, proposals, and transactions.
+- [ITFirmHub](https://github.com/mhtamim136/ItFirmHub): Java Swing desktop app to manage IT firm information with full CRUD.
+- [TeamFlow-Lite Mini Task Tracker](https://github.com/mhtamim136/TeamFlow-Lite-Mini-Task-Tracker): Lightweight Java task management system with deadlines and progress tracking.
+- [Profile Card](https://github.com/mhtamim136/profile-card): Personal profile card with information, social links, and quick access to the portfolio and GitHub.
+- [AI Governance Dashboard](https://github.com/mhtamim136/ai-governance): Research-based web dashboard evaluating AI governance readiness (DCAG framework).
+- [BuyTrust](https://github.com/mhtamim136/BuyTrust): E-commerce system design for new and pre-owned items, with Figma UI and UML diagrams.
+
+## Skills
+
+- [Skills](https://mhtamim136.github.io/#skills): C++, Java, C#, JavaScript, React, Node.js, Tailwind CSS, MySQL, SQL Server, Oracle DB, OOP, DSA.
+
+## Experience
+
+- [Experience](https://mhtamim136.github.io/#experience): CSE student at AIUB, building full applications with Java, C#, React, and Tailwind, plus Oracle DB and SQL work.
+
+## Services
+
+- [Services](https://mhtamim136.github.io/#services): Web interfaces (React, Tailwind), desktop applications (Java Swing, C# Windows Forms), database and data handling, problem solving.
+
+## Contact
+
+- [Contact](https://mhtamim136.github.io/#contact): Open to collaboration, project work, and new opportunities.
+- Email: mhtamim136@gmail.com
+- [GitHub](https://github.com/mhtamim136)
+- [X (Twitter)](https://x.com/tamim_136)
+- [Instagram](https://www.instagram.com/mhtamim136)
+- [Facebook](https://www.facebook.com/mhtamim136)

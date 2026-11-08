@@ -34,7 +34,7 @@ const listItem = {
 };
 
 /* ── Floating label input ─────────────────────────────────────── */
-function FloatingInput({ id, name, type = 'text', label, value, onChange, error }) {
+function FloatingInput({ id, name, type = 'text', label, value, onChange, error, autoComplete }) {
   const filled = value.length > 0;
   return (
     <div className="relative">
@@ -45,6 +45,7 @@ function FloatingInput({ id, name, type = 'text', label, value, onChange, error 
         value={value}
         onChange={onChange}
         placeholder=" "
+        autoComplete={autoComplete}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`peer w-full rounded-xl border bg-glass/[0.03] px-4 pb-2.5 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
@@ -83,6 +84,7 @@ function FloatingTextarea({ id, name, label, value, onChange, error }) {
         value={value}
         onChange={onChange}
         placeholder=" "
+        autoComplete="off"
         rows={5}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
@@ -132,7 +134,10 @@ export function ContactSection() {
           transition={{ duration: 0.4 }}
           className="lg:col-span-3"
         >
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl sm:p-8">
+          {/* Same hover language as Card (border steps up, soft
+              shadow) but deliberately WITHOUT the tilt — a form
+              should stay still under the hand while typing. */}
+          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover sm:p-8">
             {/* Success state */}
             {status === 'success' && (
               <motion.div
@@ -172,6 +177,7 @@ export function ContactSection() {
                     id="contact-name"
                     name="name"
                     label="Your name"
+                    autoComplete="name"
                     value={fields.name}
                     onChange={handleChange}
                     error={errors.name}
@@ -181,6 +187,7 @@ export function ContactSection() {
                     name="email"
                     type="email"
                     label="Email address"
+                    autoComplete="email"
                     value={fields.email}
                     onChange={handleChange}
                     error={errors.email}
@@ -242,7 +249,7 @@ export function ContactSection() {
           className="flex flex-col gap-6 lg:col-span-2"
         >
           {/* Email card */}
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl">
+          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">
               Email
             </p>
@@ -259,7 +266,7 @@ export function ContactSection() {
           </div>
 
           {/* Socials card */}
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl">
+          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">
               Social
             </p>

@@ -13,35 +13,60 @@
     <meta property="og:description" content="Software Developer & CSE student building web and desktop applications with clean UI, strong logic, and problem-solving focus." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mhtamim136.github.io" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://mhtamim136.github.io/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="Murad Hasan Tamim — Software Developer" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Murad Hasan Tamim | Software Developer" />
+    <meta name="twitter:description" content="Software Developer & CSE student building web and desktop applications with clean UI, strong logic, and problem-solving focus." />
+    <meta name="twitter:image" content="https://mhtamim136.github.io/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Murad Hasan Tamim — Software Developer" />
 
-    <!-- Theme-colour per system preference -->
-    <meta name="theme-color" content="#0a0e13" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <!-- Theme colour — matches the dark default (useTheme updates this
+         when the user toggles to light, so it never follows the OS). -->
+    <meta name="theme-color" content="#0a0e13" />
+
+    <!-- Agent discovery (Agentic Resource Discovery): lets AI agents
+         find this site's catalog manifest.
+         - ai-catalog points at the root copy: Lighthouse follows the
+           link tag, and the root path is served from the same origin
+           being audited. (The old setup pointed discovery at the LIVE
+           domain via robots.txt Agentmap, where the catalog is not
+           deployed yet — so the audit fetched the live 404 page
+           instead of the local file and failed.)
+         - ard points at the ARD v0.91 location, which newer Lighthouse
+           (13.6+) checks first. Both files hold the same manifest. -->
+    <link rel="ai-catalog" href="/ai-catalog.json" />
+    <link rel="ard" href="/.well-known/ard.json" />
 
     <!--
       Inline theme init — runs synchronously before first paint
       so the user never sees a flash of the wrong theme.
+
+      Dark is the default. Only an explicit 'light' choice is honoured.
+      The resolved value is stored, so a first-time visitor is no longer
+      "nothing stored" — the OS preference can never flip the theme
+      afterwards (see useTheme.js).
     -->
     <script>
       (function () {
-        var t = localStorage.getItem('theme');
-        if (t !== 'light' && t !== 'dark') {
-          t = window.matchMedia('(prefers-color-scheme: light)').matches
-            ? 'light'
-            : 'dark';
+        var t = 'dark';
+        try {
+          t = localStorage.getItem('theme');
+          t = t === 'light' ? 'light' : 'dark';
+          localStorage.setItem('theme', t);
+        } catch (e) {
+          /* Storage unavailable (e.g. private mode) — dark still applies. */
+          t = 'dark';
         }
         document.documentElement.setAttribute('data-theme', t);
       })();
     </script>
 
-    <!-- Fonts: Plus Jakarta Sans (headings) + Inter (body) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts: self-hosted via @fontsource-variable (bundled in CSS).
+         No external Google Fonts request — zero render-blocking. -->
 
     <title>Murad Hasan Tamim | Software Developer</title>
   </head>

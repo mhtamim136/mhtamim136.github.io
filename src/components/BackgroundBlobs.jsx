@@ -6,30 +6,34 @@
 export function BackgroundBlobs() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-      {/* Top-right blob */}
+      {/* Top-right blob — opacity comes from --blob-1 so the light
+          theme (bright page) gets a touch more presence. */}
       <div
-        className="absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full opacity-[0.035] blur-[100px] sm:h-[600px] sm:w-[600px]"
+        className="absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full blur-[100px] sm:h-[600px] sm:w-[600px]"
         style={{
           background:
             'radial-gradient(circle, rgb(var(--accent)) 0%, transparent 70%)',
+          opacity: 'var(--blob-1)',
           animation: 'blob-float 22s ease-in-out infinite',
         }}
       />
       {/* Bottom-left blob */}
       <div
-        className="absolute -bottom-40 -left-40 h-[450px] w-[450px] rounded-full opacity-[0.03] blur-[100px] sm:h-[550px] sm:w-[550px]"
+        className="absolute -bottom-40 -left-40 h-[450px] w-[450px] rounded-full blur-[100px] sm:h-[550px] sm:w-[550px]"
         style={{
           background:
             'radial-gradient(circle, var(--gradient-via) 0%, transparent 70%)',
+          opacity: 'var(--blob-2)',
           animation: 'blob-float 26s ease-in-out infinite reverse',
         }}
       />
       {/* Centre-right blob (only visible on larger screens) */}
       <div
-        className="absolute right-1/4 top-1/2 hidden h-[400px] w-[400px] -translate-y-1/2 rounded-full opacity-[0.02] blur-[100px] lg:block"
+        className="absolute right-1/4 top-1/2 hidden h-[400px] w-[400px] -translate-y-1/2 rounded-full blur-[100px] lg:block"
         style={{
           background:
             'radial-gradient(circle, var(--gradient-to) 0%, transparent 70%)',
+          opacity: 'var(--blob-3)',
           animation: 'blob-float 30s ease-in-out infinite 5s',
         }}
       />

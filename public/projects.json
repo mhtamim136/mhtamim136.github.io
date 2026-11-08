@@ -1,0 +1,429 @@
+{
+  "generatedAt": "2026-11-07T12:31:16.218Z",
+  "source": "github-api",
+  "repos": [
+    {
+      "id": 1361470996,
+      "name": "2D-City-Disaster-Simulation-OpenGL",
+      "description": "A modular OpenGL-based 2D city disaster simulation developed in C++. The project features six interactive scenes, real-time animation, keyboard controls, and handcrafted graphics using OpenGL primitives.",
+      "language": "C",
+      "languages": [
+        "C",
+        "C++"
+      ],
+      "default_branch": "main",
+      "images": [
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/1.%20Normal%20City.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/2.%20Night%20Mode.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/3.%20Evening%20mode.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/4.%20Earthquake.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/5.%20Fire.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/6.%20Flood.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/7.%20Road%20Accident.png",
+        "https://raw.githubusercontent.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL/main/Project_Card/8.%20Storm.png"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/2D-City-Disaster-Simulation-OpenGL",
+      "homepage": null,
+      "pushedAt": "2026-11-06T21:04:15Z",
+      "topics": [
+        "2d-simulation",
+        "animation",
+        "city-simulation",
+        "computer-graphics",
+        "cpp",
+        "disaster-simulation",
+        "opengl"
+      ]
+    },
+    {
+      "id": 1386400488,
+      "name": "oct-c8-near-duplicate-leakage-audit",
+      "description": "OCT-C8 near-duplicate leakage audit using pHash, SSIM, fixed-model scoring, and paired retraining with ResNet18 and EfficientNet-B0.",
+      "language": "Jupyter Notebook",
+      "languages": [
+        "Jupyter Notebook"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/oct-c8-near-duplicate-leakage-audit",
+      "homepage": null,
+      "pushedAt": "2026-10-12T16:16:18Z",
+      "topics": [
+        "dataset-integrity",
+        "dataset-leakage",
+        "deep-learning",
+        "efficientnet-b0",
+        "medical-imaging",
+        "near-duplicate-detection",
+        "oct-c8",
+        "perceptual-hashing",
+        "reproducibility",
+        "resnet18",
+        "retinal-oct",
+        "ssim"
+      ]
+    },
+    {
+      "id": 1380020737,
+      "name": "r-twitter-sentiment-noise-robustness",
+      "description": "R-based data science project on noise-robust Twitter sentiment classification using BoW and TF-IDF representations with Naive Bayes, SVM, and Multinomial Logistic Regression.",
+      "language": "R",
+      "languages": [
+        "R"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/r-twitter-sentiment-noise-robustness",
+      "homepage": null,
+      "pushedAt": "2026-10-12T16:14:55Z",
+      "topics": [
+        "bag-of-words",
+        "data-analysis",
+        "data-science",
+        "logistic-regression",
+        "machine-learning",
+        "naive-bayes-classifier",
+        "natural-language-processing",
+        "r",
+        "r-programming",
+        "sentiment-analysis",
+        "support-vector-machines",
+        "text-classification",
+        "text-mining",
+        "tf-idf",
+        "twitter"
+      ]
+    },
+    {
+      "id": 1226010590,
+      "name": "profile-card",
+      "description": "A responsive profile card showcasing my websites, projects, and social links in one clean and accessible interface.",
+      "language": "CSS",
+      "languages": [
+        "CSS"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/profile-card",
+      "homepage": null,
+      "pushedAt": "2026-09-01T20:53:58Z",
+      "topics": []
+    },
+    {
+      "id": 1129787746,
+      "name": "BuyTrust",
+      "description": "BuyTrust is a Software Engineering project for a secure and trustworthy e-commerce marketplace concept. The repository includes the project report, system design diagrams, and high-fidelity UI mockups for major flows such as user authentication, product browsing, cart, checkout, order tracking, chat, and dispute resolution.",
+      "language": null,
+      "languages": [],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/BuyTrust",
+      "homepage": null,
+      "pushedAt": "2026-09-01T20:45:35Z",
+      "topics": [
+        "activity-diagram",
+        "e-commerce",
+        "figma",
+        "marketplace",
+        "prd",
+        "product-design",
+        "project-documentation",
+        "prototype",
+        "sequence-diagram",
+        "software-engineering",
+        "srs",
+        "system-design",
+        "ui-ux",
+        "uml",
+        "use-case-diagram"
+      ]
+    },
+    {
+      "id": 1238499792,
+      "name": "online-quiz-and-exam-platform",
+      "description": "Online Quiz and Exam Platform using PHP, MySQL, MVC, mysqli prepared statements, sessions, and role-based access control.",
+      "language": "PHP",
+      "languages": [
+        "PHP",
+        "JavaScript",
+        "CSS"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 2,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/online-quiz-and-exam-platform",
+      "homepage": null,
+      "pushedAt": "2026-09-01T20:31:02Z",
+      "topics": [
+        "academic-project",
+        "exam-system",
+        "mvc",
+        "mysql",
+        "mysqli",
+        "php",
+        "quiz-system",
+        "sessions",
+        "web-application"
+      ]
+    },
+    {
+      "id": 1350652155,
+      "name": "stroke-data-cleaning-preprocessing-eda",
+      "description": "An Introduction to Data Science mid-term project demonstrating data cleaning, preprocessing, missing-value handling, outlier treatment, normalization, filtering, and exploratory data analysis on a stroke prediction dataset using R.",
+      "language": "R",
+      "languages": [
+        "R"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/stroke-data-cleaning-preprocessing-eda",
+      "homepage": null,
+      "pushedAt": "2026-08-29T15:09:17Z",
+      "topics": [
+        "data-analysis",
+        "data-cleaning",
+        "data-preprocessing",
+        "data-science",
+        "eda",
+        "exploratory-data-analysis",
+        "healthcare-data",
+        "missing-values",
+        "normalization",
+        "outlier-detection",
+        "r-programming",
+        "stroke-prediction"
+      ]
+    },
+    {
+      "id": 1303934923,
+      "name": "tashe",
+      "description": "A modern personal cloud storage web app powered by Google Drive and Google Apps Script.",
+      "language": "JavaScript",
+      "languages": [
+        "JavaScript",
+        "CSS",
+        "HTML"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/tashe",
+      "homepage": null,
+      "pushedAt": "2026-07-17T17:37:42Z",
+      "topics": []
+    },
+    {
+      "id": 1227068125,
+      "name": "aiublive",
+      "description": "Modern campus identity & collaboration platform for AIUB students.",
+      "language": "TypeScript",
+      "languages": [
+        "TypeScript"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/aiublive",
+      "homepage": "https://aiublive.vercel.app",
+      "pushedAt": "2026-05-06T19:32:07Z",
+      "topics": [
+        "aiub",
+        "campus-platform",
+        "neon",
+        "nextjs",
+        "postgresql",
+        "saas",
+        "student-network",
+        "tailwindcss",
+        "typescript"
+      ]
+    },
+    {
+      "id": 1226024619,
+      "name": "ai-governance",
+      "description": "A web-based Governance Readiness Dashboard built from our research on AI governance in developing countries, implementing the DCAG framework to evaluate policy, institutional capacity, risk management, technical infrastructure, and ethical inclusion.",
+      "language": "HTML",
+      "languages": [
+        "HTML"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/ai-governance",
+      "homepage": "https://mhtamim136.github.io/ai-governance/",
+      "pushedAt": "2026-04-30T22:32:43Z",
+      "topics": [
+        "academic-project",
+        "ai-ethics",
+        "ai-governance",
+        "ai-policy",
+        "ai-regulation",
+        "ethics",
+        "governance-framework",
+        "research-project"
+      ]
+    },
+    {
+      "id": 1206332568,
+      "name": "php-learning-projects",
+      "description": "PHP projects and practice code developed during learning.",
+      "language": "PHP",
+      "languages": [
+        "PHP"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/php-learning-projects",
+      "homepage": null,
+      "pushedAt": "2026-04-09T20:50:45Z",
+      "topics": []
+    },
+    {
+      "id": 1160953436,
+      "name": "Web-Technologies",
+      "description": "All materials for my Web Technology course — lab tasks, code, and projects.",
+      "language": "HTML",
+      "languages": [
+        "HTML"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/Web-Technologies",
+      "homepage": null,
+      "pushedAt": "2026-03-25T04:11:52Z",
+      "topics": []
+    },
+    {
+      "id": 1102119139,
+      "name": "skills-introduction-to-github",
+      "description": "My clone repository",
+      "language": null,
+      "languages": [],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/skills-introduction-to-github",
+      "homepage": null,
+      "pushedAt": "2025-11-22T21:17:26Z",
+      "topics": []
+    },
+    {
+      "id": 1070315130,
+      "name": "IdeaBid--Project-Request-Management-Platform",
+      "description": "💡 A complete C# Windows Forms system for managing project requests, proposals, and responses between users, developers, and admins.",
+      "language": "C#",
+      "languages": [
+        "C#"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/IdeaBid--Project-Request-Management-Platform",
+      "homepage": null,
+      "pushedAt": "2025-10-21T15:58:09Z",
+      "topics": [
+        "academic-project",
+        "admin-panel",
+        "csharp",
+        "desktop-application",
+        "project-management",
+        "proposal-management",
+        "software-engineering",
+        "user-management",
+        "windows-forms"
+      ]
+    },
+    {
+      "id": 1007971338,
+      "name": "TeamFlow-Lite-Mini-Task-Tracker",
+      "description": "TeamFlow Lite is a lightweight Java-based task tracker designed to help teams organize, assign, and monitor tasks efficiently.",
+      "language": "Java",
+      "languages": [
+        "Java"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 1,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/TeamFlow-Lite-Mini-Task-Tracker",
+      "homepage": null,
+      "pushedAt": "2025-06-25T10:55:35Z",
+      "topics": [
+        "academic-project",
+        "desktop-application",
+        "java",
+        "mini-project",
+        "task-management",
+        "task-tracker",
+        "team-collaboration",
+        "workflow"
+      ]
+    },
+    {
+      "id": 895763759,
+      "name": "DataBaseLabTask_Aiub",
+      "description": null,
+      "language": null,
+      "languages": [],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/DataBaseLabTask_Aiub",
+      "homepage": null,
+      "pushedAt": "2024-11-28T21:25:13Z",
+      "topics": []
+    },
+    {
+      "id": 864711231,
+      "name": "ItFirmHub",
+      "description": "In the \"IT Firm Hub Management System\" project, focused on developing a tool that allows users to add, update, delete, search, and display information about IT firms. ",
+      "language": "Java",
+      "languages": [
+        "Java"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/ItFirmHub",
+      "homepage": null,
+      "pushedAt": "2024-09-29T00:44:27Z",
+      "topics": [
+        "academic-project",
+        "crud",
+        "desktop-application",
+        "firm-management",
+        "gui",
+        "it-firm",
+        "java",
+        "management-system",
+        "software-engineering",
+        "swing",
+        "swing-gui"
+      ]
+    }
+  ]
+}

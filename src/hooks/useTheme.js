@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 /**
  * Manages dark ↔ light theme.
@@ -6,10 +6,22 @@ import { useState, useEffect, useCallback } from 'react';
  * - Reads the initial state from the DOM `data-theme` attribute
  *   (set by the inline <head> script, so there's no flash).
  * - Persists to localStorage.
- * - Falls back to `prefers-color-scheme` if nothing is stored.
+ * - Default is dark. The OS `prefers-color-scheme` is deliberately
+ *   NOT listened to: the inline script stores the resolved theme on
+ *   first load, so only an explicit toggle changes the theme.
+ *   (Previously an OS-change listener flipped a first-time visitor's
+ *   theme whenever the OS theme changed — that is why the site opened
+ *   light in one browser and dark in another.)
+ * - Keeps the `theme-color` meta in sync with the active theme, so
+ *   the browser chrome matches the site instead of the OS.
  * - Uses the View Transitions API for a circular reveal when toggling
  *   (with a simple fallback for older browsers).
  */
+const THEME_COLORS = {
+  dark: '#0a0e13',
+  light: '#f5f7fa',
+};
+
 export function useTheme() {
   const [theme, setThemeState] = useState(() => {
     if (typeof document !== 'undefined') {
@@ -20,7 +32,13 @@ export function useTheme() {
 
   const applyTheme = useCallback((next) => {
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      /* Storage unavailable — theme still applies for this visit. */
+    }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLORS[next]);
     setThemeState(next);
   }, []);
 
@@ -53,19 +71,6 @@ export function useTheme() {
     },
     [theme, applyTheme],
   );
-
-  /* Re-sync if the system preference changes and the user hasn't
-     stored an explicit choice. */
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
-    const handler = (e) => {
-      if (!localStorage.getItem('theme')) {
-        applyTheme(e.matches ? 'light' : 'dark');
-      }
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [applyTheme]);
 
   return { theme, toggle, isDark: theme === 'dark' };
 }

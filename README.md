@@ -11,7 +11,8 @@ Modern, polished personal portfolio built with **React 18 + Vite + Tailwind CSS 
 - ⚡ Vite-powered fast dev / build
 - 🎨 Dark & light mode with animated circular-reveal transition (View Transitions API)
 - 📷 Auto-discovers profile image from `/Image/` folder (no hardcoded filenames)
-- 🔄 Projects auto-synced from GitHub API (cached in sessionStorage)
+- 🔄 Projects served from a build-time snapshot (`public/projects.json`, regenerated on build; live GitHub API as fallback)
+- 🖼️ Project cards show an automatic image slideshow from each repo's `Project_Card` folder (text-only fallback when a repo has none)
 - 📬 Contact form via [Web3Forms](https://web3forms.com) with floating labels, validation, and honeypot spam protection
 - 🧩 Language filter chips for projects
 - 🎯 Scroll spy navigation with icon-only pill navbar
@@ -23,8 +24,8 @@ Modern, polished personal portfolio built with **React 18 + Vite + Tailwind CSS 
 
 ```bash
 # 1. Clone
-git clone https://github.com/mhtamim136/mhtamim136.github.io.git
-cd mhtamim136.github.io
+git clone https://github.com/mhtamim136/mhtamim-.git
+cd mhtamim-
 
 # 2. Install
 npm install
@@ -61,6 +62,14 @@ Drop any image into the `/Image/` folder. The site auto-discovers it via Vite's 
 
 - Recommended: head-and-shoulders portrait, square or portrait aspect ratio
 - The avatar crops to a circle with `object-position: center 20%` to keep the head visible
+
+## Project Card Images
+
+Each project card can show an automatic image slideshow. In a project repo, add a folder named exactly `Project_Card` (capital P and C, underscore) at the repo root with 1 or more images (png / jpg / jpeg / webp / avif / gif). The card then shows them 16:9 at the top — auto-advancing every 3.5s, with arrows, dots, a counter, and swipe. A repo without the folder keeps the current text-only card.
+
+- The folder is discovered at build time by `npm run fetch-projects` (runs automatically before every build via `prebuild`), which writes the image URLs into `public/projects.json` — the live site makes zero extra GitHub API calls for images.
+- A folder named `Project Card` (with a space) is accepted as a legacy fallback; `Project_Card` wins if both exist.
+- To test: add the folder to a repo, run `npm run fetch-projects`, then `npm run build` and `npm run preview`.
 
 ## Project Structure
 

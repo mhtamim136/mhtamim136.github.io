@@ -42,7 +42,10 @@ export function Card({ className = '', children, highlight = false, ...motionPro
     'rounded-xl border border-card bg-card shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ease-out sm:rounded-2xl';
   const glow = highlight
     ? 'ring-1 ring-accent/25 shadow-accent-glow'
-    : 'hover:border-accent/20 hover:shadow-glass-hover';
+    : /* Border steps up one notch on hover (white 8% → 12% dark,
+         slate 10% → 12% light); the shadow adds the soft
+         accent-tinted lift. No new colour is introduced. */
+      'hover:border-[var(--card-border-hover)] hover:shadow-glass-hover';
 
   return (
     <motion.div

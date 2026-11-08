@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Size-adjusted fallback fonts ──────────────────────────────────
+   These system-font aliases have metrics tuned to match Inter Variable
+   and Plus Jakarta Sans Variable so there's zero layout shift while
+   the real woff2 files download.  font-display:swap on the real fonts
+   shows these instantly, then swaps seamlessly.
+   ---------------------------------------------------------------- */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Jakarta Fallback';
+  src: local('Arial');
+  size-adjust: 113%;
+  ascent-override: 84%;
+  descent-override: 20%;
+  line-gap-override: 0%;
+}
+
 /* ─── Design Tokens ─────────────────────────────────────────────────
    RGB channels — enable Tailwind's  bg-accent/20  opacity syntax.
    Every colour in the UI flows from these variables.
@@ -19,7 +43,11 @@
   --body: 226 232 240;
   --subtle: 203 213 225;
   --muted: 148 163 184;
-  --muted-dim: 100 116 139;
+  /* Was 100 116 139 (#64748B): 3.85:1 on card bg, 4.07:1 on the page
+     surface — both fail WCAG AA (4.5:1) for the small stats/“Showing”
+     text. 124 138 160 (#7C8AA0) is 5.24:1 on cards, 5.53:1 on the
+     surface, still clearly dimmer than --muted. */
+  --muted-dim: 124 138 160;
 
   /* Glass overlay tint — white in dark, dark in light */
   --glass: 255 255 255;
@@ -27,6 +55,21 @@
   /* Pre-composed card surface */
   --card-bg: rgb(255 255 255 / 0.03);
   --card-border: rgb(255 255 255 / 0.08);
+  /* Hover border — one step brighter than the resting border, so a
+     card gains definition on hover without flashing a new colour. */
+  --card-border-hover: rgb(255 255 255 / 0.12);
+
+  /* Section glows — deliberately faint (see .bg-hero-glow /
+     .bg-projects-glow): the accent should read as light in the
+     room, not as a coloured lamp. */
+  --hero-glow: rgb(var(--accent) / 0.1);
+  --projects-glow: rgb(110 231 183 / 0.08);
+
+  /* Decorative blob opacity — per theme so the light mode, where
+     the page is already bright, gets a touch more presence. */
+  --blob-1: 0.035;
+  --blob-2: 0.03;
+  --blob-3: 0.02;
 
   /* Shadows */
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.35),
@@ -44,11 +87,22 @@
   /* Hero name gradient stops */
   --gradient-via: #67e8f9;
   --gradient-to: #6ee7b7;
+
+  /* Navbar frosted glass */
+  --nav-bg: rgba(15, 18, 25, 0.2);
+  --nav-border: rgba(255, 255, 255, 0.12);
+  --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 /* ─── Light theme ───────────────────────────────────────────────── */
 [data-theme="light"] {
-  --surface: 245 247 250;
+  /* Was 245 247 250 (#F5F7FA): the page read as one flat sheet of
+     white — cards barely separated from the background and the
+     whole mode felt harsh. 233 237 242 (#E9EDF2) is a cool light
+     grey: still clearly "light mode", but white cards now sit on
+     something. */
+  --surface: 233 237 242;
   --surface-elevated: 255 255 255;
   --accent: 14 116 144;          /* cyan-700 — passes WCAG AA on light bg */
 
@@ -56,12 +110,29 @@
   --body: 30 41 59;
   --subtle: 51 65 85;
   --muted: 71 85 105;
-  --muted-dim: 100 116 139;
+  /* Was 100 116 139 (#64748B), then 91 107 128 (#5B6B80) in PR #9.
+     The darker light surface (#E9EDF2) pulls #5B6B80 down to
+     4.63:1 — still passing, but thin. 82 101 122 (#52657A) is
+     5.10:1 on the surface, 5.31:1 on cards, still lighter than
+     --muted (#475569). */
+  --muted-dim: 82 101 122;
 
   --glass: 15 23 42;
 
-  --card-bg: rgb(255 255 255 / 0.72);
-  --card-border: rgb(15 23 42 / 0.07);
+  /* 0.72 → 0.85: on the deeper page grey the card fill needs to
+     read as white, or the card disappears into the page. */
+  --card-bg: rgb(255 255 255 / 0.85);
+  /* Light cards need a touch more edge than dark ones to read
+     against the bright page — 7% was too faint. */
+  --card-border: rgb(15 23 42 / 0.1);
+  --card-border-hover: rgb(15 23 42 / 0.12);
+
+  --hero-glow: rgb(var(--accent) / 0.06);
+  --projects-glow: rgb(5 150 105 / 0.06);
+
+  --blob-1: 0.06;
+  --blob-2: 0.05;
+  --blob-3: 0.035;
 
   --shadow-glass: 0 4px 24px rgba(15, 23, 42, 0.06),
     0 1px 2px rgba(15, 23, 42, 0.04);
@@ -71,11 +142,17 @@
   --shadow-float: 0 4px 20px rgba(15, 23, 42, 0.08),
     0 1px 3px rgba(15, 23, 42, 0.06);
 
-  --grid-color: rgb(var(--accent) / 0.035);
-  --radial-glow: rgb(var(--accent) / 0.05);
+  --grid-color: rgb(var(--accent) / 0.05);
+  --radial-glow: rgb(var(--accent) / 0.07);
 
   --gradient-via: #0d9488;
   --gradient-to: #059669;
+
+  /* Navbar frosted glass — light */
+  --nav-bg: rgba(255, 255, 255, 0.4);
+  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04);
+  --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 /* ─── Base layer ────────────────────────────────────────────────── */
@@ -137,6 +214,25 @@
     );
   }
 
+  /* Section-local glows — used as an absolute layer inside the
+     hero (cyan) and Projects (emerald) sections. Kept faint on
+     purpose: a professional page reads the glow as depth, not
+     as decoration. */
+  .bg-hero-glow {
+    background: radial-gradient(
+      ellipse 65% 55% at 50% 0%,
+      var(--hero-glow),
+      transparent 70%
+    );
+  }
+  .bg-projects-glow {
+    background: radial-gradient(
+      ellipse 55% 60% at 85% 0%,
+      var(--projects-glow),
+      transparent 70%
+    );
+  }
+
   /* Thin gradient divider between sections */
   .section-divider {
     height: 1px;
@@ -147,6 +243,22 @@
       rgb(var(--accent) / 0.15) 80%,
       transparent
     );
+  }
+
+  /* iOS-style frosted glass navbar */
+  .nav-glass {
+    background: var(--nav-bg);
+    border: 1px solid var(--nav-border);
+    box-shadow: var(--nav-shadow), var(--nav-highlight);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .nav-glass {
+      /* Opaque fallback for browsers without backdrop-filter */
+      background: rgb(var(--surface) / 0.92);
+    }
   }
 }
 

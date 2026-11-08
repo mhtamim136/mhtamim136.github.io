@@ -4,9 +4,11 @@ import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { Tag } from '../components/Tag';
 import { Avatar } from '../components/Avatar';
+import { RoleLine } from '../components/RoleLine';
 import { NavIcon } from '../components/icons/NavIcons';
 import { externalLinkProps } from '../utils/links';
 import { useProfileImage } from '../hooks/useProfileImage';
+import heroManifest from 'virtual:hero-image-manifest';
 
 const item = {
   hidden: { opacity: 0, y: 20 },
@@ -20,7 +22,7 @@ const item = {
 export function HeroSection() {
   const { name, username, title, bio, highlightedSkills, resumeLink, githubProfile } = portfolio;
   const profileImage = useProfileImage();
-  const hasImage = Boolean(profileImage);
+  const hasImage = Boolean(heroManifest || profileImage);
 
   /* ── Text column content (shared for both layouts) ── */
   const textContent = (
@@ -54,6 +56,18 @@ export function HeroSection() {
           );
         })()}
       </motion.h1>
+
+      {/* Rotating role line — min-h keeps the swap from moving the
+          layout below it. Placed under the name, before the username. */}
+      <motion.p
+        custom={1.5}
+        variants={item}
+        initial="hidden"
+        animate="show"
+        className="mt-3 min-h-[1.75rem] font-mono text-base font-medium text-accent sm:text-lg"
+      >
+        <RoleLine />
+      </motion.p>
 
       <motion.p
         custom={2}
@@ -125,6 +139,8 @@ export function HeroSection() {
         id="hero"
         className="relative flex min-h-[88vh] flex-col justify-center py-20 sm:min-h-[85vh] sm:py-24"
       >
+        {/* Faint cyan glow behind the hero — depth, not decoration. */}
+        <div className="pointer-events-none absolute inset-0 bg-hero-glow" aria-hidden />
         <Container className="relative z-10">
           <div className="flex flex-col-reverse items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
             {/* Text — left */}
@@ -138,7 +154,7 @@ export function HeroSection() {
               initial="hidden"
               animate="show"
             >
-              <Avatar src={profileImage} alt={`Portrait of ${name}`} />
+              <Avatar manifest={heroManifest} src={profileImage} alt={`Portrait of ${name}`} />
             </motion.div>
           </div>
         </Container>
@@ -152,6 +168,7 @@ export function HeroSection() {
       id="hero"
       className="relative flex min-h-[88vh] flex-col justify-center py-20 sm:min-h-[85vh] sm:py-24"
     >
+      <div className="pointer-events-none absolute inset-0 bg-hero-glow" aria-hidden />
       <Container className="relative z-10 text-center">{textContent}</Container>
     </section>
   );

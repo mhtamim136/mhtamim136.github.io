@@ -1,3 +1,5 @@
+import { Brain, Database } from 'lucide-react';
+
 const iconClass = 'h-5 w-5 shrink-0';
 
 export function NavIcon({ name, className = '' }) {
@@ -100,6 +102,14 @@ export function ServiceIcon({ name, className = '' }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm3.25-12.5L11 11l-2.5 4.25L13 13l2.5-4.25Z" />
         </svg>
       );
+    /* 'database' and 'brain' used to fall through to the default
+       spark icon, so Database & data handling and Problem solving
+       showed the same shape. Distinct Lucide icons, drawn at the
+       same 1.5 stroke weight as the hand-drawn ones. */
+    case 'database':
+      return <Database className={c} strokeWidth={1.5} />;
+    case 'brain':
+      return <Brain className={c} strokeWidth={1.5} />;
     default:
       return <NavIcon name="spark" className={className} />;
   }
