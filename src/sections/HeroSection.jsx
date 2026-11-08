@@ -186,20 +186,53 @@ export function HeroSection() {
         variants={rise}
         initial={initial}
         animate="show"
-        className={`mt-10 flex flex-wrap gap-4 ${hasImage ? '' : 'items-center justify-center'}`}
+        className={`mt-10 flex flex-wrap gap-4 ${
+          hasImage ? 'justify-center lg:justify-start' : 'items-center justify-center'
+        }`}
       >
-        {/* Primary CTAs — magnetic (lean toward the pointer, capped
-            so the two buttons can never overlap; see Magnetic.jsx). */}
+        {/* Hero CTAs — magnetic (lean toward the pointer, capped
+            so neighbours can never overlap; see Magnetic.jsx).
+            Mobile centring: on small screens the hero text is
+            centred, so the row is centred too — the GitHub icon
+            wraps to a second row at 390px and below, and centred
+            it reads as a deliberate second row (left-aligned it
+            read as an orphaned leftover). Desktop keeps the left
+            alignment that matches the left-aligned text.
+            Order is the hierarchy: Contact first (primary), Resume
+            second, GitHub icon-only last. The Contact label is
+            "Get In Touch" (Tamim's pick — "Let's Work Together" was
+            too long on mobile; this is the professional standard,
+            Brittany Chiang's exact label); its arrow nudges 3px on
+            hover — the pattern borrowed from Chiang's "Get In Touch"
+            hero CTA (single most prominent action) and Snellenberg's
+            arrow-led "Get in touch" pill, restyled in this site's
+            own Button language (accent tint + border + glow), not
+            copied. Resume opens in a NEW TAB (no `download`) so the
+            visitor stays on the site; GitHub is icon-only at the
+            same height/padding as its siblings, with aria-label +
+            title so it stays discoverable. */}
         <Magnetic>
-          <Button href={resumeLink} variant="primary" download>
-            <NavIcon name="document" className="h-4 w-4" />
-            Download resume
+          <Button href="#contact" variant="primary">
+            Get In Touch
+            <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px]">
+              <NavIcon name="arrow-right" className="h-4 w-4" />
+            </span>
           </Button>
         </Magnetic>
         <Magnetic>
-          <Button {...externalLinkProps(githubProfile)} variant="secondary">
+          <Button {...externalLinkProps(resumeLink)} variant="secondary">
+            <NavIcon name="document" className="h-4 w-4" />
+            Resume
+          </Button>
+        </Magnetic>
+        <Magnetic>
+          <Button
+            {...externalLinkProps(githubProfile)}
+            variant="secondary"
+            aria-label="View GitHub profile"
+            title="View GitHub profile"
+          >
             <NavIcon name="github" className="h-4 w-4" />
-            View GitHub
           </Button>
         </Magnetic>
       </motion.div>
