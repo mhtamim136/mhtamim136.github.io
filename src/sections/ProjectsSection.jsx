@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
+import { YearDropdown } from '../components/YearDropdown';
 import { Button } from '../components/Button';
 import { Tag } from '../components/Tag';
 import { useRepoLanguages } from '../hooks/useRepoLanguages';
@@ -135,6 +136,34 @@ function FilterChip({ label, active, onClick }) {
   );
 }
 
+/* ── Sort toggle ──────────────────────────────────────────────── */
+/* One pill, two states: "Newest ↓" / "Oldest ↑" — the arrow flips
+   with the direction. Same glass language as the year dropdown
+   trigger (translucent + backdrop blur + 1px light border), so the
+   two controls read as one cluster. */
+function SortToggle({ sortDir, onToggle }) {
+  const isNewest = sortDir === 'newest';
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={
+        isNewest
+          ? 'Sort: newest first. Activate to sort oldest first.'
+          : 'Sort: oldest first. Activate to sort newest first.'
+      }
+      className="inline-flex items-center gap-1.5 rounded-xl border border-glass/15 bg-glass/[0.06] px-3 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm"
+    >
+      {isNewest ? 'Newest' : 'Oldest'}
+      {isNewest ? (
+        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+      )}
+    </button>
+  );
+}
+
 /* ── Format repo name ─────────────────────────────────────────── */
 
 /* "Oct 2026" style date for the card's Updated label. */
@@ -149,6 +178,40 @@ function formatName(name) {
   return name
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/* ── Date helpers (sort + year filter) ────────────────────────── */
+/* The year a repo was last updated in, in the visitor's local time
+   — the same clock the "Updated <Mon YYYY>" card label uses, so a
+   repo never lands in a different year than its card shows. */
+function yearOf(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.getFullYear();
+}
+
+/* Epoch ms for sorting; null for a missing/invalid date — invalid
+   dates always sort LAST, in either direction. */
+function timeOf(iso) {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
+}
+
+/* Order a repo list by pushedAt. 'newest' is the order the data
+   already arrives in (pushedAt desc); 'oldest' reverses it. The
+   Featured block never goes through this — pins keep pin order. */
+function sortRepos(list, dir) {
+  const sorted = [...list];
+  sorted.sort((a, b) => {
+    const ta = timeOf(a.pushedAt);
+    const tb = timeOf(b.pushedAt);
+    if (ta === null && tb === null) return 0;
+    if (ta === null) return 1;
+    if (tb === null) return -1;
+    return dir === 'oldest' ? ta - tb : tb - ta;
+  });
+  return sorted;
 }
 
 /* ── Project card item animation ──────────────────────────────── */
@@ -345,6 +408,32 @@ function FeaturedProjectCard({ repo, index }) {
    key, or null for "All". */
 export function ProjectsSection({ repos, featured, loading, error, activeFilter, onFilterChange }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
+  /* Sort + year filter are local to this section — only Projects
+     consumes them (the shared language filter stays in App because
+     the Skills section shares it). Default sort is Newest, the
+     order the data already arrives in. */
+  const [sortDir, setSortDir] = useState('newest');
+  const [activeYear, setActiveYear] = useState(null);
+
+  /* "Filtered" = a language filter OR a year filter is active.
+     Either one turns Featured priority OFF (one flat list); only
+     "All" + "All years" shows the Featured-first view. */
+  const isFiltered = activeFilter !== null || activeYear !== null;
+
+  /* Years present in the data (pushedAt), derived live — never
+     hardcoded. A repo pushed in a new year adds that year on the
+     next sync; a year with no repos never appears. */
+  const yearOptions = useMemo(() => {
+    const counts = new Map();
+    for (const r of repos) {
+      const y = yearOf(r.pushedAt);
+      if (y === null) continue;
+      counts.set(y, (counts.get(y) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year - a.year);
+  }, [repos]);
 
   /* The filter is shared with the Skills section — one filter
      state, owned by App. The initial visible count depends on the
@@ -352,12 +441,13 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      collapsed (0 More) when there is a Featured block, and at the
      first batch of 4 when there is none (no pins / GraphQL failed —
      the old behaviour: the full grid, no headings). Reset whenever
-     the filter changes, or when the Featured block appears on load. */
+     the filter, the year, or the sort changes, or when the Featured
+     block appears on load. */
   useEffect(() => {
     setVisibleCount(
-      activeFilter || featured.length === 0 ? INITIAL_COUNT : 0,
+      activeFilter || activeYear !== null || featured.length === 0 ? INITIAL_COUNT : 0,
     );
-  }, [activeFilter, featured.length]);
+  }, [activeFilter, activeYear, sortDir, featured.length]);
 
   /* Featured = the first 4 pinned repos (in pin order), resolved
      against the loaded repos. Everything else is "More Projects" —
@@ -387,13 +477,18 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      FILTERED state the visible matches (featured included). Matching
      here uses each repo's own data (no langMap override yet) — the
      hook's job is precisely to supply the override for repos that
-     lack a languages array. */
+     lack a languages array. The year predicate and the sort are the
+     same as the grid's, so the fetched set is the displayed set. */
   const hookCandidates = useMemo(() => {
-    const list = activeFilter
-      ? repos.filter((r) => getRepoKeys(r).has(activeFilter))
+    const list = isFiltered
+      ? repos.filter((r) => {
+          if (activeFilter && !getRepoKeys(r).has(activeFilter)) return false;
+          if (activeYear !== null && yearOf(r.pushedAt) !== activeYear) return false;
+          return true;
+        })
       : moreRepos;
-    return list.slice(0, visibleCount);
-  }, [repos, moreRepos, activeFilter, visibleCount]);
+    return sortRepos(list, sortDir).slice(0, visibleCount);
+  }, [repos, moreRepos, isFiltered, activeFilter, activeYear, sortDir, visibleCount]);
 
   /* Languages that already ship with the repos (build-time snapshot
      `public/projects.json` carries a `languages` array per repo).
@@ -475,23 +570,31 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
     return hasChip ? null : activeSkillName;
   }, [activeFilter, activeSkillName, languages]);
 
-  /* Filter the full repo list by the shared key: a repo matches
-     when the key appears in its languages OR topics — the same rule
-     the Skills counts use, so a pill's count and the filtered grid
-     always agree. With no filter, the list is the More repos
+  /* Filter the full repo list by the shared key AND the year: a
+     repo matches when the language key appears in its languages OR
+     topics (the same rule the Skills counts use, so a pill's count
+     and the filtered grid always agree) and its pushedAt year is
+     the selected one. With no filter, the list is the More repos
      (Featured lives in its own block above). With a filter, the
-     list is EVERY matching repo — featured + more together, in the
-     existing sort order (pushedAt desc) — rendered as regular grid
-     cards, never the rich Featured cards. */
+     list is EVERY matching repo — featured + more together —
+     rendered as regular grid cards, never the rich Featured cards.
+     The sort orders the list in both states; the Featured block
+     itself is never re-sorted (pin order). */
   const filtered = useMemo(() => {
-    if (!activeFilter) return moreRepos;
-    return repos.filter((r) => getRepoKeys(r, langMap[r.name]).has(activeFilter));
-  }, [repos, moreRepos, activeFilter, langMap]);
+    const list = !activeFilter && activeYear === null
+      ? moreRepos
+      : repos.filter((r) => {
+          if (activeFilter && !getRepoKeys(r, langMap[r.name]).has(activeFilter)) return false;
+          if (activeYear !== null && yearOf(r.pushedAt) !== activeYear) return false;
+          return true;
+        });
+    return sortRepos(list, sortDir);
+  }, [repos, moreRepos, activeFilter, activeYear, langMap, sortDir]);
 
   /* One list, one slice, for both states. `initialCount` is the
      count "Show less" returns to: 0 More (Featured only) in ALL
      with a Featured block, the first batch of 4 otherwise. */
-  const initialCount = !activeFilter && featuredRepos.length > 0 ? 0 : INITIAL_COUNT;
+  const initialCount = !isFiltered && featuredRepos.length > 0 ? 0 : INITIAL_COUNT;
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visibleCount;
   const expanded = visibleCount > initialCount;
@@ -549,11 +652,55 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
       {/* Content */}
       {!loading && !error && repos.length > 0 && (
         <>
+          {/* Controls row — FIRST, directly under the section
+              heading: language chips + year dropdown + sort toggle,
+              together. (Tamim, binding: the filters must sit before
+              Featured, where the chips were before the Featured
+              redesign — never below it.) The sort toggle and year
+              dropdown form a right-aligned glass cluster at the end
+              of the row; it wraps cleanly on mobile (ml-auto pushes
+              it right on whatever line it lands on). */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.3 }}
+            className="mb-8 flex flex-wrap gap-2"
+          >
+            {(languages.length > 2 || activeSkillChip) && (
+              <>
+                {languages.map((lang) => {
+                  const key = lang === 'All' ? null : normalizeKey(lang);
+                  return (
+                    <FilterChip
+                      key={lang}
+                      label={lang}
+                      active={activeFilter === key}
+                      onClick={() => onFilterChange(key)}
+                    />
+                  );
+                })}
+                {activeSkillChip && (
+                  <FilterChip
+                    label={activeSkillChip}
+                    active
+                    onClick={() => onFilterChange(null)}
+                  />
+                )}
+              </>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <YearDropdown years={yearOptions} value={activeYear} onChange={setActiveYear} />
+              <SortToggle sortDir={sortDir} onToggle={() => setSortDir((d) => (d === 'newest' ? 'oldest' : 'newest'))} />
+            </div>
+          </motion.div>
+
           {/* ALL state: Featured — the first 4 pinned repos, in pin
               order, with their case-study details. Re-pinning on
               GitHub updates this block automatically. Hidden while a
-              filter is active: the filtered state is one flat list. */}
-          {!activeFilter && featuredRepos.length > 0 && (
+              filter is active: the filtered state is one flat list.
+              Never re-sorted — pins keep pin order. */}
+          {!isFiltered && featuredRepos.length > 0 && (
             <>
               <h3 className="mb-6 text-lg font-semibold text-heading sm:text-xl">
                 Featured
@@ -604,43 +751,10 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             </>
           )}
 
-          {/* Language filter chips (plus the active skill chip when
-              the filter is a framework/tool skill with no language
-              chip of its own). One row, both states: under the
-              button row in ALL, at the top (where Featured was) in
-              FILTERED. */}
-          {(languages.length > 2 || activeSkillChip) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3 }}
-              className={`mb-8 flex flex-wrap gap-2${!activeFilter && featuredRepos.length > 0 ? ' mt-10' : ''}`}
-            >
-              {languages.map((lang) => {
-                const key = lang === 'All' ? null : normalizeKey(lang);
-                return (
-                  <FilterChip
-                    key={lang}
-                    label={lang}
-                    active={activeFilter === key}
-                    onClick={() => onFilterChange(key)}
-                  />
-                );
-              })}
-              {activeSkillChip && (
-                <FilterChip
-                  label={activeSkillChip}
-                  active
-                  onClick={() => onFilterChange(null)}
-                />
-              )}
-            </motion.div>
-          )}
 
           {/* "More Projects" heading — only once the More grid is
               expanded (never while collapsed, never while filtered). */}
-          {!activeFilter && featuredRepos.length > 0 && expanded && (
+          {!isFiltered && featuredRepos.length > 0 && expanded && (
             <h3 className="mb-6 mt-14 text-lg font-semibold text-heading sm:text-xl">
               More Projects
             </h3>
@@ -750,12 +864,12 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             </AnimatePresence>
           </div>
 
-          {/* Empty filtered state — unreachable by construction (a
-              clickable skill always matches >= 1 repo, and a chip is
-              built from a repo that matches it), kept as a defensive
-              fallback so a data inconsistency can never leave a
-              blank section. */}
-          {activeFilter && filtered.length === 0 && (
+          {/* Empty filtered state — reachable when a language × year
+              combination matches nothing (e.g. R + 2024: both R
+              repos were pushed in 2026). A language alone or a year
+              alone always matches >= 1 repo by construction, so this
+              only ever appears for a combination. */}
+          {isFiltered && filtered.length === 0 && (
             <div className="rounded-2xl border border-card bg-card p-8 text-center">
               <p className="text-sm text-muted">No projects match this filter.</p>
             </div>
@@ -766,7 +880,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
               behaviour: first 4 + pager). In ALL with Featured the
               controls live under Featured instead, so this block
               stays out of the way there. */}
-          {filtered.length > INITIAL_COUNT && (activeFilter || featuredRepos.length === 0) && (
+          {filtered.length > INITIAL_COUNT && (isFiltered || featuredRepos.length === 0) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
