@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Clock, Code, FolderOpen, Home, Layers, Mail, User } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { useHideOnScroll } from '../hooks/useHideOnScroll';
 
 const NAV_ICONS = {
   home: Home,
@@ -46,6 +47,15 @@ const navItemIdle = 'text-muted-dim';
  */
 export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);
+  /* Smart navigation — hide on scroll down, show on any scroll
+     up, always visible at the top. Transform only; see
+     useHideOnScroll for the hysteresis design. */
+  const hidden = useHideOnScroll();
+
+  /* A tooltip left open must not linger while the bar is away. */
+  useEffect(() => {
+    if (hidden) setTip(null);
+  }, [hidden]);
 
   const showTip = (e, label) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -58,7 +68,19 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const hideTip = () => setTip(null);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-6 sm:pt-4">
+    <header
+      className={`pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 transition-[transform,visibility] duration-300 ease-out sm:px-6 sm:pt-4 ${
+        hidden ? '-translate-y-[calc(100%+1rem)] invisible' : 'translate-y-0'
+      }`}
+    >
+      {/* Hide: the bar slides up out of view (transform only, so
+          no layout shift). `invisible` flips at the END of the
+          slide — and instantly on the way back — so the links also
+          leave the tab order while hidden, and the frosted-glass
+          shadow can never leave a faint trace at the top edge.
+          Under reduced motion the site's global rule collapses
+          the transition to 0.01ms, so hide/show becomes instant
+          instead of sliding. */}
       <nav
         className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-center gap-1 overflow-x-auto rounded-[1.125rem] px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
         aria-label="Primary"
