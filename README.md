@@ -56,6 +56,19 @@ The contact form uses [Web3Forms](https://web3forms.com) — a free, serverless 
 
 > **Note**: `.env` is gitignored. The key is safe locally but will be embedded in the built JS bundle (this is expected — Web3Forms keys are public-facing, similar to reCAPTCHA site keys).
 
+## Vercel Configuration
+
+The primary deployment is on [Vercel](https://mhtamim136.vercel.app) (GitHub Pages stays as a fallback). The Vercel Functions (`/api/projects` and `/api/contact`) need these environment variables, set in the Vercel dashboard → **Settings → Environment Variables** (Production scope):
+
+| Variable | Purpose | Where to set |
+| -------- | ------- | ------------ |
+| `GITHUB_TOKEN` | GitHub API token for `/api/projects` (fresh repo data) and the build-time project snapshot | Vercel dashboard (Production) |
+| `RESEND_API_KEY` | Resend API key for `/api/contact` (sends the contact-form email) | Vercel dashboard (Production) |
+| `VITE_WEB3FORMS_KEY` | Web3Forms key — contact-form fallback (also needed at build time) | Vercel dashboard (Production) |
+| `CONTACT_TO_EMAIL` | (Optional) Where contact-form emails go — defaults to `mhtamim136@gmail.com` when unset | Vercel dashboard (Production) |
+
+> **Note**: changing an environment variable only applies to new deployments — redeploy after adding or changing one. The contact API sends from Resend's `onboarding@resend.dev` address, which only delivers to the Resend signup email; a verified sending domain is optional, not required, for this single-recipient form.
+
 ## Profile Image
 
 Drop any image into the `/Image/` folder. The site auto-discovers it via Vite's `import.meta.glob`. No filename changes needed.
