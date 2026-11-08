@@ -105,7 +105,7 @@ export function HeroSection() {
         <span className="whitespace-nowrap">
           Open to internships &amp; collaboration <span aria-hidden className="text-accent/40">·</span>
         </span>{' '}
-        <span className="whitespace-nowrap">Folio 2026</span>
+        <span className="whitespace-nowrap">Folio {new Date().getFullYear()}</span>
       </motion.p>
 
       {/* Name — blur + rise, word by word. The focus pull IS the
