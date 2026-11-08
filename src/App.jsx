@@ -8,6 +8,7 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { ScrollProgress } from './components/ScrollProgress';
 import { BackgroundBlobs } from './components/BackgroundBlobs';
 import { Spotlight } from './components/Spotlight';
+import { Footer } from './components/Footer';
 import { HeroSection } from './sections/HeroSection';
 import { useActiveSection } from './hooks/useActiveSection';
 import { useGitHubRepos } from './hooks/useGitHubRepos';
@@ -116,11 +117,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      <footer className="border-t border-glass/[0.06] py-8 text-center text-xs text-muted-dim">
-        <p>
-          © {new Date().getFullYear()} {portfolio.name}. All rights reserved.
-        </p>
-      </footer>
+      <Footer />
 
       <ScrollToTop />
 
