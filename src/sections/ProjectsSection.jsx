@@ -706,20 +706,42 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
           {/* Controls — FIRST, directly under the section heading,
               BEFORE the Featured block (Tamim, binding: the filters
               must sit before Featured, where the chips were before
-              the Featured redesign — never below it). Two rows:
-              (1) the Year + sort glass cluster on its OWN row,
-              right-aligned — it used to share the chips' row and
-              sat too close under them, and a growing chips row
-              could collide with it. Above the chips it has
-              breathing room, and the chips can wrap freely below
-              without ever touching the controls.
-              (2) the language chips row below it. */}
+              the Featured redesign — never below it).
+              LAYOUT (Tamim, 2026-11-09): the Year + sort glass
+              cluster shares the SUBTITLE row, right-aligned and
+              vertically centred on the subtitle text — the old
+              layout left that row's right half empty and the
+              controls on their own row below it, pushing the chips
+              and cards down by a full row. The subtitle is rendered
+              by SectionWrapper (shared with every section, not
+              touched here), so the cluster is pulled up over the
+              header's bottom margin with a negative top margin —
+              the margin is empty space, so nothing overlaps.
+              Geometry, measured live at 1280px: subtitle 24px tall,
+              header bottom margin 56px, controls 50px tall, so the
+              pull-up that centres the controls on the subtitle is
+              56 + 12 + 25 = 93px. Re-check that number if the
+              subtitle copy ever changes length.
+              RESPONSIVE: below lg the subtitle and the cluster
+              cannot share a row — on a 390px phone the subtitle
+              wraps to two lines and the cluster is 249px wide, and
+              even at 768px only 22px would separate the subtitle
+              text from the cluster. So below lg the cluster stacks
+              UNDER the subtitle, right-aligned, 12px below it
+              (-mt-7 under the 40px header margin on mobile,
+              sm:-mt-11 under the 56px margin from sm up) — the
+              same reclaimed gap, no squeeze, no overlap. From lg
+              up (1024px: ~238px of clear air between subtitle text
+              and cluster) it sits on the subtitle row.
+              The language chips row sits below the cluster in both
+              layouts and moves up with it — that is the space being
+              reclaimed. */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3 }}
-            className="mb-8"
+            className="-mt-7 mb-8 sm:-mt-11 lg:-mt-[93px]"
           >
             <div className="mb-4 flex justify-end">
               <div className="flex items-center gap-2">
