@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { FaGithub, FaInstagram, FaFacebook, FaDiscord } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { FiGlobe } from 'react-icons/fi';
@@ -186,6 +186,9 @@ export function ContactSection() {
   const { contacts } = portfolio;
   const { fields, errors, status, serverMsg, handleChange, handleSubmit, reset } =
     useContactForm();
+  /* Reduced motion: the submit button's hover/tap gestures are
+     gated below — under reduced motion the button must not move. */
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <SectionWrapper
@@ -296,8 +299,8 @@ export function ContactSection() {
                     type="submit"
                     disabled={status === 'sending'}
                     aria-busy={status === 'sending'}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={reduceMotion ? undefined : { scale: 1.02, y: -2 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                     className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
                   >
                     {status === 'sending' ? (

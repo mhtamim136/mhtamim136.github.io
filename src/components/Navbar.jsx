@@ -24,7 +24,7 @@ const navItemBase =
 
 /** Hover: subtle lift, soft translucent pill — glass-friendly */
 const navItemHover =
-  'hover:-translate-y-1 hover:scale-[1.07] hover:bg-glass/[0.06] hover:text-accent';
+  'hover:-translate-y-1 hover:scale-[1.07] hover:bg-glass/[0.06] hover:text-accent motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100';
 
 /** Active section: visible translucent pill in both themes */
 const navItemActive =

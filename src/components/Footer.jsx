@@ -142,7 +142,7 @@ export function Footer() {
             <Magnetic>
               <Button href="#contact" variant="primary">
                 Get In Touch
-                <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px]">
+                <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">
                   <NavIcon name="arrow-right" className="h-4 w-4" />
                 </span>
               </Button>
