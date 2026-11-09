@@ -82,7 +82,9 @@ import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE
  *   (touch-none) / harmless no-ops (draggable) for the hero.
  * - Pinch + double-tap zoom (touch, 2026-11-09): pinch with two
  *   fingers scales the zoom continuously, clamped [1, 2] like
- *   desktop (centre zoom only, no pan); double-tap toggles 1 ↔ 2.
+ *   desktop; double-tap toggles 1 ↔ 2 (and resets the pan).
+ *   The hero stays centre-zoom only, no pan; the project
+ *   variant pans while zoomed (see the pan note below).
  *   The photo div is `touch-none` ALWAYS now (pinch needs it on
  *   the hero photo too, or the browser takes over the touch stream
  *   and fires pointercancel mid-pinch — the same gotcha as the
@@ -103,8 +105,9 @@ import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE
  *   commits (the track slides fully to the adjacent photo, THEN
  *   it navigates and the track resets to 0) and anything less
  *   springs back. The zoom lives on an inner wrapper INSIDE
- *   each cell (same scale on all three, so a drag while zoomed
- *   shows the next photo at the same zoom). Each cell keeps
+ *   each cell (same scale on all three), and a drag while
+ *   zoomed PANS within the same photo instead of navigating
+ *   (see the pan note below). Each cell keeps
  *   overflow-hidden and NO transform, so its box stays exactly
  *   one frame wide and clips the scaled image inside it — a
  *   scale on the cell itself grows the cell's own box past its
@@ -114,6 +117,15 @@ import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE
  *   The hero portrait has no track — a drag there does nothing,
  *   as before. Keyboard arrows and the prev/next buttons still
  *   navigate instantly, with no drag animation.
+ * - Pan while zoomed (project screenshots only, 2026-11-10):
+ *   at zoom > 1 a drag moves WITHIN the same photo (pan) instead
+ *   of navigating — the photo's edges can be reached at 2x, like
+ *   a phone gallery. The pan is clamped so an image edge never
+ *   passes the frame edge (|pan| <= (zoom-1)/2 * frame size, so
+ *   at zoom 1 the pan is 0 and the drag navigates as before).
+ *   The pan resets to (0, 0) on every navigation and whenever
+ *   the zoom returns to 1. The hero portrait is unchanged —
+ *   centre zoom only, no pan.
  */
 /* Touch tap timing: a single tap waits this long before closing, so
    a second tap landing nearby can still be recognised as a
@@ -122,6 +134,20 @@ import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE
    first to count. */
 const DOUBLE_TAP_DELAY = 250; /* ms */
 const DOUBLE_TAP_SLOP = 30; /* px */
+/* Pan clamp (project lightbox only): the zoomed photo may move
+   only far enough to bring an edge into view — never past it.
+   The inner wrapper is frame-sized and scales about its centre,
+   so at zoom z it overhangs the frame by (z-1)/2 * frame size on
+   every side; that overhang is the max pan. At zoom 1 the max is
+   0, so the pan is 0 and a drag navigates instead of panning. */
+const clampPan = (x, y, zoom, width, height) => {
+  const maxX = ((zoom - 1) / 2) * width;
+  const maxY = ((zoom - 1) / 2) * height;
+  return {
+    x: Math.max(-maxX, Math.min(maxX, x)),
+    y: Math.max(-maxY, Math.min(maxY, y)),
+  };
+};
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
@@ -165,6 +191,13 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   const draggingRef = useRef(false);
   const animatingRef = useRef(false);
   const trackAnimRef = useRef(null);
+  /* Pan tracking (project lightbox only, zoom > 1): panningRef
+     latches once the gesture is a pan; panDragRef holds the pan
+     at the latch, so each move is start + delta (clamped) rather
+     than an accumulation. The pan VALUE is state (below) — these
+     refs only track the gesture in progress. */
+  const panningRef = useRef(false);
+  const panDragRef = useRef(null);
 
   /* Stops a running track animation, if any. Called before the
      track is set directly (pinch start, pointer cancel). */
@@ -186,6 +219,16 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
   const [zoom, setZoom] = useState(1);
+  /* Pan while zoomed (project lightbox only): the zoomed photo's
+     offset inside its frame, in frame pixels — applied to the same
+     inner wrapper as the zoom scale (translate + scale). It is 0
+     whenever zoom is 1 (the zoom-change effect below guarantees
+     it), so navigation drags at zoom 1 are unaffected. `panning`
+     is the gesture in progress: while it is true the zoom
+     transition is off, so the photo follows the finger directly
+     instead of lagging 200 ms behind it. */
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
   /* Zoom needs a mouse: evaluated on mount (i.e. on open), per the
      live pointer. Headless Chrome reports (pointer: none), so zoom
      tests must run in headed Chrome under Xvfb. */
@@ -213,10 +256,33 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   }, [canNavigate, images, index, onNavigate]);
 
   /* Navigating to another image resets the zoom, so the user is
-     never stuck zoomed on the next image. */
+     never stuck zoomed on the next image — and resets the pan
+     with it, so the next image starts centred. (A pan gesture
+     in flight is forgotten too — navigation only happens on
+     release or via buttons/keys, so this is just insurance.) */
   useEffect(() => {
     setZoom(1);
+    setPan((prev) => (prev.x === 0 && prev.y === 0 ? prev : { x: 0, y: 0 }));
+    panningRef.current = false;
+    panDragRef.current = null;
+    setPanning(false);
   }, [index]);
+
+  /* Pan follows the zoom: whenever the zoom changes, the pan is
+     re-clamped to the new zoom — at zoom 1 the clamp is 0, so the
+     pan resets to (0, 0) on wheel-out, click-cycle back to 1, and
+     double-tap toggle to 1; at a smaller zoom the pan shrinks to
+     the new max, so an edge can never sit past the frame. The
+     functional update returns the previous object unchanged when
+     already in bounds, so no extra render happens. */
+  useEffect(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setPan((prev) => {
+      const next = clampPan(prev.x, prev.y, zoom, rect.width, rect.height);
+      return next.x === prev.x && next.y === prev.y ? prev : next;
+    });
+  }, [zoom]);
 
   /* Focus moves into the dialog on open and body scroll locks while
      open; both are restored on unmount. Mount-only: navigating
@@ -287,11 +353,14 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      captures the pointer so move/up keep firing if the finger
      slides off the photo; a move of ≥ SWIPE_THRESHOLD marks a
      drag; on release a horizontal-dominant drag that passed a third of
-     the container width COMMITS — the track slides fully to the
-     adjacent photo and only then does it navigate — while a
-     shorter drag springs back (see onPhotoPointerUp). The drag
-     leaves swipedRef true so the click that follows the drag is
-     suppressed. Navigation only when canNavigate — for the hero
+     the container width COMMITS at zoom 1 — the track slides fully
+     to the adjacent photo and only then does it navigate — while a
+     shorter drag springs back (see onPhotoPointerUp). While zoomed
+     the same drag pans within the photo instead, and its release
+     navigates nowhere (see the routing note in
+     onPhotoPointerMove). The drag leaves swipedRef true so the
+     click that follows the drag is suppressed. Navigation only
+     when canNavigate — for the hero
      a swipe navigates nowhere and the track never moves, so a
      drag never closes or zooms by accident.
      A second pointer down starts a PINCH instead: the finger
@@ -321,8 +390,10 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
        swipe: suppress the release click(s), cancel any swipe,
        forget any double-tap in progress, and cancel a pending
        tap-close (the first tap is now part of a pinch). It also
-       cancels any drag-follow in progress — the track resets to
-       0 with no animation, and the drag state is forgotten. */
+       cancels any drag-follow or pan in progress — the track
+       resets to 0 with no animation, the pan gesture is
+       forgotten (its VALUE stays — a pinch only zooms), and the
+       drag state is forgotten. */
     if (pointersRef.current.size === 2) {
       const ids = [...pointersRef.current.keys()];
       const [a, b] = [...pointersRef.current.values()];
@@ -342,6 +413,12 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       trackX.set(0);
       draggingRef.current = false;
       dragRef.current = null;
+      /* A pan in progress ends too — but the pan VALUE is left
+         alone (a pinch only zooms; the zoom-change effect
+         re-clamps it to the new zoom). */
+      panningRef.current = false;
+      panDragRef.current = null;
+      setPanning(false);
       return;
     }
     if (pointersRef.current.size > 2) return; /* Third finger: ignore. */
@@ -349,12 +426,15 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     /* One pointer — the single-pointer behaviour. */
     downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
     swipedRef.current = false;
-    /* Drag-follow setup (project lightbox only): measure the
-       frame once — the commit threshold is a third of this width. The
-       drag latches as a horizontal drag in the move handler. */
+    /* Drag setup (project lightbox only): measure the frame once —
+       the commit threshold is a third of this width, and the pan
+       clamp needs the height too. The drag latches as a horizontal
+       drag — or, while zoomed, as a pan — in the move handler. */
     if (canNavigate) {
-      const width = containerRef.current?.getBoundingClientRect().width ?? 0;
-      dragRef.current = width > 0 ? { width } : null;
+      const rect = containerRef.current?.getBoundingClientRect();
+      const width = rect?.width ?? 0;
+      const height = rect?.height ?? 0;
+      dragRef.current = width > 0 ? { width, height } : null;
       draggingRef.current = false;
     }
     /* Touch only: is this the second tap of a double-tap? The
@@ -409,33 +489,59 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       doubleTapRef.current = false;
       clearTapTimer();
     }
-    /* Drag-follow (project lightbox only): once the gesture is
-       horizontal-dominant, the track follows the finger 1:1,
-       clamped to one container width either way. Latching also
+    /* Drag routing (project lightbox only). While zoomed, a drag
+       PANS within the same photo — the pan follows the finger
+       1:1, clamped so an edge never passes the frame; the track
+       stays at 0 and the release navigates nowhere. At zoom 1
+       the same drag is the gallery drag-follow: once the gesture
+       is horizontal-dominant, the track follows the finger 1:1,
+       clamped to one container width either way. Either latch
        marks the gesture a drag (swipedRef), so the release click
-       is suppressed even for a short drag that springs back —
-       otherwise the spring-back would be followed by a close
-       (touch) or a zoom (desktop). A drag in flight while a
-       commit/spring-back animation runs is ignored. */
+       is suppressed even for a short drag — otherwise it would
+       be followed by a close (touch) or a zoom (desktop). A
+       drag in flight while a commit/spring-back animation runs
+       is ignored. The mode is fixed at latch time by the zoom
+       then; a wheel zoom mid-drag does not switch modes. */
     if (
       canNavigate &&
       dragRef.current &&
       !pinchRef.current &&
       !animatingRef.current
     ) {
-      if (
-        !draggingRef.current &&
-        Math.abs(dx) > Math.abs(dy) &&
-        Math.abs(dx) >= DRAG_LATCH
-      ) {
-        draggingRef.current = true;
-        swipedRef.current = true;
-        doubleTapRef.current = false;
-        clearTapTimer();
-      }
-      if (draggingRef.current) {
-        const width = dragRef.current.width;
-        trackX.set(Math.max(-width, Math.min(width, dx)));
+      if (zoom > 1) {
+        if (
+          !panningRef.current &&
+          Math.hypot(dx, dy) >= DRAG_LATCH
+        ) {
+          panningRef.current = true;
+          panDragRef.current = { startPanX: pan.x, startPanY: pan.y };
+          setPanning(true);
+          swipedRef.current = true;
+          doubleTapRef.current = false;
+          clearTapTimer();
+        }
+        if (panningRef.current && panDragRef.current) {
+          const { width, height } = dragRef.current;
+          const { startPanX, startPanY } = panDragRef.current;
+          setPan(
+            clampPan(startPanX + dx, startPanY + dy, zoom, width, height),
+          );
+        }
+      } else {
+        if (
+          !draggingRef.current &&
+          Math.abs(dx) > Math.abs(dy) &&
+          Math.abs(dx) >= DRAG_LATCH
+        ) {
+          draggingRef.current = true;
+          swipedRef.current = true;
+          doubleTapRef.current = false;
+          clearTapTimer();
+        }
+        if (draggingRef.current) {
+          const width = dragRef.current.width;
+          trackX.set(Math.max(-width, Math.min(width, dx)));
+        }
       }
     }
   };
@@ -460,6 +566,18 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     /* A commit/spring-back animation already in flight owns the
        track — a second pointerup in that window does nothing. */
     if (animatingRef.current) return;
+    /* Pan release (project lightbox only, zoomed): the pan simply
+       stays where the user left it — no navigation, no
+       spring-back, the track never moved. The release click is
+       still suppressed by swipedRef (set at the pan latch), so a
+       pan never zooms (desktop) or closes (touch) on release. */
+    if (canNavigate && panningRef.current) {
+      panningRef.current = false;
+      panDragRef.current = null;
+      setPanning(false);
+      dragRef.current = null;
+      return;
+    }
     /* Drag-follow release (project lightbox only): the gallery
        rule. A horizontal-dominant drag past a third of the container
        width COMMITS — the track slides fully to the adjacent
@@ -536,6 +654,14 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         stopTrackAnim();
         trackX.set(0);
       }
+      /* An interrupted pan is forgotten as a gesture, but the pan
+         VALUE stays — it is the resting view offset, not a
+         transient like the track. */
+      if (panningRef.current) {
+        panningRef.current = false;
+        panDragRef.current = null;
+        setPanning(false);
+      }
     }
     /* No navigation, no click suppression change: a cancelled
        gesture is neither a tap nor a swipe. (swipedRef is left
@@ -565,6 +691,10 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       if (doubleTapRef.current) {
         doubleTapRef.current = false;
         setZoom((z) => (z > 1 ? 1 : 2));
+        /* Toggling to 1 resets the pan too (the zoom-change
+           effect would do it as well — this makes it explicit
+           and immediate). Toggling to 2 starts from a 0 pan. */
+        setPan({ x: 0, y: 0 });
         return;
       }
       lastTapRef.current = { time: Date.now(), x: e.clientX, y: e.clientY };
@@ -809,31 +939,40 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
                cell clips. (A scale on the cell itself used to
                grow the cell's box past its slot, so the next
                cell painted over the current photo's right half
-               at zoom 2 — fixed 2026-11-09.) */
+               at zoom 2 — fixed 2026-11-09.) While zoomed the
+               same wrapper also carries the pan (translate), so
+               the photo moves within its cell and the neighbours
+               never show. */
             <motion.div
               style={{ x: trackX, marginLeft: '-100%' }}
               className="flex h-full w-full"
             >
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${zoomTransition}`}
-                  style={{ transform: `scale(${zoom})` }}
+                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  }}
                 >
                   {cellPhoto(prevSrc)}
                 </div>
               </div>
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${zoomTransition}`}
-                  style={{ transform: `scale(${zoom})` }}
+                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  }}
                 >
                   {photo}
                 </div>
               </div>
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${zoomTransition}`}
-                  style={{ transform: `scale(${zoom})` }}
+                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  }}
                 >
                   {cellPhoto(nextSrc)}
                 </div>
