@@ -9,42 +9,71 @@ const SWIPE_THRESHOLD = 50;
    for a while so it never yanks the slide away mid-look. */
 const MANUAL_PAUSE_MS = 7000;
 
-/* Directional slide variants — the slide moves the same way the user
-   swiped (or the arrow points), so the motion matches the gesture.
-   A crossfade ignores direction; a slide feels physical and is the
-   standard for image carousels (Airbnb / Instagram / e-commerce).
-   Defined inside the component so the resolvers can read the
-   `reducedMotion` state: with reduced motion there is no slide at
-   all (instant swap). */
+/* The slide transition is a plain opacity crossfade (see
+   `slideVariants` below), not a directional x-slide — the x-slide
+   is what caused the light-mode blink and the lean on arrow taps.
+   With reduced motion the swap is instant (duration 0). */
 
 /**
  * Professional project-image carousel (Airbnb / Behance style).
  *
- * - 16:9 cover image; slides move in the swipe/arrow direction.
+ * - 16:9 cover image; slides CROSSFADE (opacity only, no x movement).
+ *   The x-slide that was here before is gone on purpose: when a slide
+ *   entered from x=+100% its <img> was still fetching (lazy + only the
+ *   next slide preloaded, and the entering slide mounts off-viewport
+ *   so the fetch starts late), so the entering slide was transparent
+ *   and the near-white card background showed through as a bright
+ *   band sweeping in — the light-mode blink Tamim filmed (dark mode
+ *   hides the same band because its card background is dark). A
+ *   crossfade can never do that: the outgoing image stays underneath
+ *   covering the background until the incoming one is opaque. The
+ *   same change removes the picture sweeping 356px sideways on an
+ *   arrow tap: the image just fades. Swipe still works — the drag
+ *   only decides the direction, it no longer IS the transition. The
+ *   WHOLE BOX leaning (the card itself tilting and sticking after a
+ *   tap) is a different cause — Card.jsx's pointer-tracking tilt
+ *   reacting to the tap's emulated mouse — fixed there by gating
+ *   the tilt to mouse/pen only.
  * - Auto-advances every 3.5s; pauses on hover, when the card scrolls
- *   off-screen, when the tab is hidden, and briefly after any manual
- *   change. `prefers-reduced-motion` disables auto-advance and sliding.
+   off-screen, when the tab is hidden, and briefly after any manual
+   change. `prefers-reduced-motion` disables auto-advance and sliding.
  * - Manual control: prev/next arrows (hover-reveal on desktop, always
  *   visible on touch), clickable dots, and swipe (drag).
  * - Tap / click the image (or Enter / Space on it) opens the photo
  *   lightbox in its rectangular variant, so a screenshot can be seen
  *   full-size — on a phone the slideshow is ~350px wide and there
- *   was no way to enlarge it at all (Tier 4). A tap is a tap, not
- *   a drag: framer's tap gesture only fires when the pointer barely
- *   moves, so a swipe never opens the lightbox by accident.
- * - Only the next slide is preloaded; images lazy-load. The image
- *   area has a fixed 16:9 ratio, so cards never change height.
+ *   was no way to enlarge it at all (Tier 4). The tap is a plain
+ *   React onClick, NOT framer's onTap: onTap is broken here by
+ *   design of the library — motion-dom's press gesture refuses to
+ *   fire while ANY drag is active, and when a tap moves 3px or more
+ *   the parent drag starts, the press bails out at pointerup WITHOUT
+ *   clearing its internal `isPressing` set, so that slide's onTap is
+ *   dead for every later tap until the slide unmounts. A real thumb
+ *   wobbles a few px on almost every tap, which is why the lightbox
+ *   opened only sometimes. A native click has no such gate. A drag
+ *   must never open the lightbox, so the click is ignored when the
+ *   pointer moved at least the swipe distance (SWIPE_THRESHOLD, the
+ *   same distance that changes the slide) between pointerdown and
+ *   the click — a real thumb wobbles a few px on every tap and must
+ *   still open, while a swipe never does. The movement is tracked
+ *   with plain pointer events — synchronous, so it cannot lose the
+ *   race the way a frame-delayed onDragEnd guard would).
+ * - Every slide is preloaded once the card is on screen, so a swap
+ *   never lands on an image that still has to be fetched (the old
+ *   "preload only the next slide" left manual prev/dot jumps and the
+ *   first auto-advance on a slow connection fetching mid-swap).
+ *   Images lazy-load; the preload is gated on the card being in view
+ *   so off-screen cards fetch nothing. The image area has a fixed
+ *   16:9 ratio, so cards never change height.
  * - Rendered only when a repo actually has images — repos without a
  *   `Project_Card` folder keep the text-only card (see ProjectsSection).
  */
 export function ProjectSlideshow({ images, repoName }) {
   const count = images.length;
-  /* [index, direction]: direction is +1 forward, -1 backward, and
-     drives which side the next slide enters from. */
-  const [[index, direction], setIndexState] = useState([0, 0]);
+  const [index, setIndex] = useState(0);
   const [hoverPaused, setHoverPaused] = useState(false);
   const [manualPaused, setManualPaused] = useState(false);
-  const [inView, setInView] = useState(true);
+  const [inView, setInView] = useState(false);
   const [tabVisible, setTabVisible] = useState(
     typeof document === 'undefined' ? true : !document.hidden,
   );
@@ -58,30 +87,30 @@ export function ProjectSlideshow({ images, repoName }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const containerRef = useRef(null);
   const resumeTimer = useRef(null);
+  /* Crossfade only — no x movement at all (see the header comment).
+     The outgoing slide stays underneath, opaque, until the incoming
+     one has faded in over it, so the card background can never show
+     through mid-swap. With reduced motion the swap is instant. */
   const slideVariants = {
-    enter: (dir) => ({
-      x: reducedMotion ? 0 : dir >= 0 ? '100%' : '-100%',
-    }),
-    center: { x: 0 },
-    exit: (dir) => ({
-      x: reducedMotion ? 0 : dir >= 0 ? '-100%' : '100%',
-    }),
+    enter: { opacity: 0 },
+    center: { opacity: 1 },
+    exit: { opacity: 0 },
   };
+  /* A click that follows a drag must not open the lightbox. The flag
+     is set by plain pointer events on the slide (synchronous — a
+     frame-delayed onDragEnd guard would lose the race against the
+     click). Reset on every pointerdown. */
+  const downPointRef = useRef(null);
+  const draggedRef = useRef(false);
 
   const paginate = useCallback(
     (dir) => {
-      setIndexState(([prev]) => [
-        (((prev + dir) % count) + count) % count,
-        dir,
-      ]);
+      setIndex((prev) => (((prev + dir) % count) + count) % count);
     },
     [count],
   );
   const goTo = useCallback((i) => {
-    setIndexState(([prev]) => [
-      i,
-      i === prev ? 0 : i > prev ? 1 : -1,
-    ]);
+    setIndex(i);
   }, []);
   const next = useCallback(() => paginate(1), [paginate]);
   const prev = useCallback(() => paginate(-1), [paginate]);
@@ -106,7 +135,7 @@ export function ProjectSlideshow({ images, repoName }) {
 
   /* Keep the index valid if the image list changes. */
   useEffect(() => {
-    if (index >= count) setIndexState([0, 0]);
+    if (index >= count) setIndex(0);
   }, [index, count]);
 
   /* prefers-reduced-motion: no auto-advance, no sliding. */
@@ -118,10 +147,18 @@ export function ProjectSlideshow({ images, repoName }) {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  /* Pause when the card scrolls off-screen. */
+  /* Pause when the card scrolls off-screen. Starts false so the
+     preload below does not fetch for cards the user never scrolls
+     to; the observer corrects it on the first frame. Without
+     IntersectionObserver (very old browsers) assume in view, as
+     before, so auto-advance still runs. */
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    if (!el) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return undefined;
+    }
     const obs = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
       threshold: 0.15,
     });
@@ -153,13 +190,19 @@ export function ProjectSlideshow({ images, repoName }) {
     return () => window.clearInterval(id);
   }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, next]);
 
-  /* Preload only the next slide. */
+  /* Preload every slide once the card is on screen, so a swap never
+     lands on an image that still has to be fetched — the old
+     "next slide only" preload left manual prev/dot jumps (and the
+     first auto-advance on a slow connection) fetching mid-swap.
+     Gated on inView so off-screen cards fetch nothing. */
   useEffect(() => {
-    if (count <= 1) return undefined;
-    const img = new Image();
-    img.src = images[(index + 1) % count];
+    if (count <= 1 || !inView) return undefined;
+    images.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
     return undefined;
-  }, [index, images, count]);
+  }, [images, count, inView]);
 
   const showControls = count > 1;
 
@@ -184,14 +227,23 @@ export function ProjectSlideshow({ images, repoName }) {
         if (info.offset.x < -SWIPE_THRESHOLD) manualNav(next);
         else if (info.offset.x > SWIPE_THRESHOLD) manualNav(prev);
       }}
-      onMouseEnter={() => setHoverPaused(true)}
-      onMouseLeave={() => setHoverPaused(false)}
+      /* Hover-pause is mouse-only: a touch tap fires an emulated
+         mousemove that never leaves, so onMouseEnter would stick
+         hoverPaused on and auto-advance would never resume until
+         the user taps elsewhere (measured: counter stuck 2/8 for
+         12s+ after a touch arrow tap). A real mouse still pauses
+         on hover and resumes on leave. */
+      onPointerEnter={(e) => {
+        if (e.pointerType !== 'touch') setHoverPaused(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType !== 'touch') setHoverPaused(false);
+      }}
     >
-      {/* Slides — the wrapper slides; the img inside keeps the hover zoom. */}
-      <AnimatePresence initial={false} custom={direction}>
+      {/* Slides — the wrapper fades; the img inside keeps the hover zoom. */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={images[index]}
-          custom={direction}
           variants={slideVariants}
           initial="enter"
           animate="center"
@@ -204,7 +256,34 @@ export function ProjectSlideshow({ images, repoName }) {
           role="button"
           tabIndex={0}
           aria-label={`View ${repoName} screenshot ${index + 1} of ${count} full screen`}
-          onTap={openLightbox}
+          onPointerDown={(e) => {
+            downPointRef.current = { x: e.clientX, y: e.clientY };
+            draggedRef.current = false;
+          }}
+          onPointerMove={(e) => {
+            const p = downPointRef.current;
+            if (
+              p &&
+              Math.hypot(e.clientX - p.x, e.clientY - p.y) >=
+                SWIPE_THRESHOLD
+            ) {
+              draggedRef.current = true;
+            }
+          }}
+          onPointerUp={() => {
+            downPointRef.current = null;
+          }}
+          onClick={() => {
+            /* A swipe just ended — its click must not open the
+               lightbox. A real tap wobbles only a few px, so it
+               opens. See the header comment for why this is a
+               plain onClick and not framer's onTap. */
+            if (draggedRef.current) {
+              draggedRef.current = false;
+              return;
+            }
+            openLightbox();
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();

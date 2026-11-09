@@ -11,8 +11,12 @@ import {
  * Card with a subtle 3D tilt on hover.
  *
  * The tilt is lightweight (max ±4°), uses spring physics,
- * and is purely decorative — it has no effect on mobile
- * (hover doesn't fire on touch devices).
+ * and is purely decorative. It is MOUSE-ONLY: a touch tap fires
+ * an emulated mousemove at the tap point, and the emulated mouse
+ * never leaves, so without the pointer-type gate the tilt would
+ * spring to the tap position and STICK there — the whole card
+ * leaning to one side after every arrow tap on a phone (the
+ * "box leans" Tamim filmed). Touch never moves the tilt.
  */
 export function Card({
   className = '',
@@ -41,8 +45,14 @@ export function Card({
     damping: 25,
   });
 
-  const handleMouseMove = useCallback(
+  /* Pointer move drives the tilt — mouse (and pen) only. A touch
+     tap fires an emulated pointermove at the tap point, and the
+     emulated pointer never leaves the card, so a touch tap would
+     tilt the card to the tap position and leave it leaning there
+     (the whole box leaning to one side after an arrow tap). */
+  const handlePointerMove = useCallback(
     (e) => {
+      if (e.pointerType === 'touch') return;
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -86,7 +96,7 @@ export function Card({
         rotateY: reduceMotion ? 0 : rotateY,
         transformPerspective: 800,
       }}
-      onMouseMove={handleMouseMove}
+      onPointerMove={handlePointerMove}
       onMouseLeave={handleMouseLeave}
       {...motionProps}
     >

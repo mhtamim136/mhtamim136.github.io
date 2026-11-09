@@ -1,8 +1,12 @@
 import { externalLinkProps } from '../utils/links';
 
-/** Hover-only emphasis; all social buttons share the same default surface */
+/** Hover-only emphasis; all social buttons share the same default surface.
+    Under reduced motion the hover applies instantly with no lift or
+    scale (motion-reduce:transition-none kills the 300ms animation,
+    motion-reduce:hover:* neutralises the movement) — same pattern as
+    Button.jsx and the lightbox close button. */
 const hoverPremium =
-  'transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.06] hover:border-accent/35 hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_18px_rgb(var(--accent)_/_0.32)]';
+  'transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.06] hover:border-accent/35 hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_18px_rgb(var(--accent)_/_0.32)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100';
 
 const layout =
   'group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-3 text-sm font-medium text-body shadow-glass backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-100';
@@ -19,7 +23,7 @@ export function SocialButton({ href, icon: Icon, children, className = '', openI
     <a className={`${surface} ${className}`.trim()} {...linkProps} {...rest}>
       {Icon ? (
         <Icon
-          className="h-4 w-4 shrink-0 text-muted transition-colors duration-300 ease-out group-hover:text-accent"
+          className="h-4 w-4 shrink-0 text-muted transition-colors duration-300 ease-out group-hover:text-accent motion-reduce:transition-none"
           aria-hidden
         />
       ) : null}
