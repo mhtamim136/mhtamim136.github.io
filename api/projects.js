@@ -259,7 +259,7 @@ export default async function handler(req, res) {
         try {
           tree = await fetchTreeForRepo(r.name, r.default_branch);
         } catch {
-          tree = [];
+          /* keep tree as [] — this repo gets no slideshow images */
         }
         const images = imagesFromTree(tree, r.name, r.default_branch);
 

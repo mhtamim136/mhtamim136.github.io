@@ -27,7 +27,3 @@ export function SocialButton({ href, icon: Icon, children, className = '', openI
     </a>
   );
 }
-
-/** Inline email row — aligned hover language with social buttons */
-export const emailInlineLinkClassName =
-  'mt-1 inline-flex items-center gap-2 rounded-lg px-1.5 py-0.5 -mx-1.5 text-base font-medium text-body transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.04] hover:text-accent hover:shadow-[0_0_16px_rgb(var(--accent)_/_0.28)]';

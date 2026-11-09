@@ -46,7 +46,15 @@ function isRateLimited(ip) {
   return false;
 }
 
+/* Vercel sets x-real-ip to the connecting client — prefer it.
+   x-forwarded-for's first entry is client-supplied and can be
+   spoofed to dodge the per-IP limit, so it is only a fallback
+   for runtimes without x-real-ip (local dev). */
 function clientIp(req) {
+  const realIp = req.headers?.['x-real-ip'];
+  if (typeof realIp === 'string' && realIp.length > 0) {
+    return realIp.trim();
+  }
   const forwarded = req.headers?.['x-forwarded-for'];
   if (typeof forwarded === 'string' && forwarded.length > 0) {
     return forwarded.split(',')[0].trim();

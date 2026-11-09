@@ -1,10 +1,7 @@
 import { useState, useCallback } from 'react';
+import { GITHUB_PAGES_HOST } from '../utils/siteConstants';
 
 const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
-
-/* Hostname where no serverless function exists — the form must go
-   straight to Web3Forms and never attempt /api/contact. */
-const GITHUB_PAGES_HOST = 'mhtamim136.github.io';
 
 /**
  * Manages contact form state: field values, validation,

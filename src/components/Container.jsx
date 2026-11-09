@@ -1,10 +1,12 @@
-export function Container({ as: Component = 'div', className = '', children, ...rest }) {
+/* Always a <div> — no call site ever passed `as`, so the
+   polymorphic prop is gone. */
+export function Container({ className = '', children, ...rest }) {
   return (
-    <Component
+    <div
       className={`mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 ${className}`}
       {...rest}
     >
       {children}
-    </Component>
+    </div>
   );
 }

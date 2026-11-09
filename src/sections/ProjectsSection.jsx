@@ -11,6 +11,7 @@ import { portfolio } from '../data/portfolio';
 import { normalizeKey, getRepoKeys, findSkillByKey } from '../utils/skillProjectCounts';
 import { externalLinkProps } from '../utils/links';
 import { smoothScrollTo } from '../utils/smoothScroll';
+import { NAV_OFFSET_PX } from '../utils/navOffset';
 
 /* Pagination — two states, one shared list (`filtered`):
    - ALL (no filter): Featured first, More collapsed (0 visible).
@@ -607,7 +608,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
     const el = document.getElementById('projects');
     setVisibleCount(initialCount);
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+    const top = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET_PX;
     /* Lenis when active, native smooth scroll otherwise (instant
        under reduced motion — the helper applies the same check). */
     smoothScrollTo(top);

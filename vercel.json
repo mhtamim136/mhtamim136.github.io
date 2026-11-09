@@ -25,6 +25,10 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://va.vercel-scripts.com 'sha256-cg4znprcRCB7UGi9WFA88zZBX+gbHpDZk0MXCpE1Xpg='; style-src 'self'; img-src 'self' data: https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://va.vercel-scripts.com https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action 'self' https://api.web3forms.com; frame-ancestors 'none'"
         }
       ]
     },
@@ -34,6 +38,42 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/_hero/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/og-image.jpg",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/favicon.svg",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/Resume/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
         }
       ]
     }

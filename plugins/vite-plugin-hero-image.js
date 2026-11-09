@@ -5,7 +5,7 @@
  *
  * What it does:
  *  1. Scans /Image/ for the first image file (png, jpg, jpeg, webp, avif)
- *  2. Generates AVIF + WebP variants at 480 / 800 / 1100 px widths (quality 92)
+ *  2. Generates AVIF + WebP variants at 480 / 800 / 1100 px widths (quality 82)
  *  3. Copies the original as a PNG fallback at the largest width
  *  4. Writes a virtual module `virtual:hero-image-manifest` that the React
  *     <picture> component can import to get all srcset URLs
@@ -26,7 +26,7 @@ import sharp from 'sharp';
 
 const IMAGE_DIR = 'Image';
 const WIDTHS = [480, 800, 1100];
-const QUALITY = 92;
+const QUALITY = 82;
 const VIRTUAL_ID = 'virtual:hero-image-manifest';
 const RESOLVED_ID = '\0' + VIRTUAL_ID;
 

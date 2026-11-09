@@ -89,33 +89,26 @@ export default function App() {
       <main className="pt-20 sm:pt-[5.25rem]">
         <HeroSection />
 
-        <Divider />
+        {/* One boundary for all six lazy sections — the fallback is
+            identical for each, so separate wrappers only repeated
+            the same spinner. */}
         <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <AboutSection />
-        </Suspense>
 
-        <Divider />
-        <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <SkillsSection repos={repos} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
-        </Suspense>
 
-        <Divider />
-        <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <ProjectsSection repos={repos} featured={featured} loading={loading} error={error} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
-        </Suspense>
 
-        <Divider />
-        <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <ExperienceSection />
-        </Suspense>
 
-        <Divider />
-        <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <ServicesSection />
-        </Suspense>
 
-        <Divider />
-        <Suspense fallback={<SectionFallback />}>
+          <Divider />
           <ContactSection />
         </Suspense>
       </main>

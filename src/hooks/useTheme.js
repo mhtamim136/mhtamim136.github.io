@@ -19,7 +19,7 @@ import { useState, useCallback } from 'react';
  */
 const THEME_COLORS = {
   dark: '#0a0e13',
-  light: '#f5f7fa',
+  light: '#e9edf2',
 };
 
 export function useTheme() {

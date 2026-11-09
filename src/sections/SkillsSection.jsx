@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { Tag } from '../components/Tag';
 import { skillCounts, normalizeKey } from '../utils/skillProjectCounts';
 import { smoothScrollTo } from '../utils/smoothScroll';
+import { NAV_OFFSET_PX } from '../utils/navOffset';
 
 const labels = {
   languages: 'Languages',
@@ -37,7 +38,7 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
     onFilterChange(key);
     const el = document.getElementById('projects');
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+    const top = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET_PX;
     /* Lenis when active, native smooth scroll otherwise (instant
        under reduced motion — the helper applies the same check). */
     smoothScrollTo(top);

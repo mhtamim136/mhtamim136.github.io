@@ -12,7 +12,6 @@ export function SectionWrapper({
   children,
   title,
   subtitle,
-  titleClassName = '',
 }) {
   return (
     <section id={id} className={`relative py-16 sm:py-20 lg:py-24 ${className}`}>
@@ -34,7 +33,7 @@ export function SectionWrapper({
                   aria-hidden
                 />
                 <h2
-                  className={`font-display text-2xl font-semibold tracking-tight text-heading sm:text-3xl ${titleClassName}`}
+                  className="font-display text-2xl font-semibold tracking-tight text-heading sm:text-3xl"
                 >
                   {title}
                 </h2>

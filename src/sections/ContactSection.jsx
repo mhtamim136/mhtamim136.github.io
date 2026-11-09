@@ -133,7 +133,11 @@ function CopyEmailButton({ email }) {
   );
 
   const copy = useCallback(async () => {
-    let ok = false;
+    /* Assigned on every path below before it is read (clipboard
+       success → true; execCommand result; inner failure → false),
+       so no initializer — `let ok = false` was a useless
+       assignment (eslint no-useless-assignment). */
+    let ok;
     try {
       await navigator.clipboard.writeText(email);
       ok = true;
@@ -243,7 +247,6 @@ export function ContactSection() {
                   type="checkbox"
                   name="botcheck"
                   className="hidden"
-                  style={{ display: 'none' }}
                   tabIndex={-1}
                   autoComplete="off"
                 />

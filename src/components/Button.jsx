@@ -1,5 +1,10 @@
+/* Every call site is a link (href passed directly or via
+   externalLinkProps), so Button is always an anchor — no `as`
+   prop. The `ghost` variant was never used by any call site
+   (all uses are primary/secondary) and is gone; the
+   `hero-cta-fill--ghost` CSS class on the hero buttons is
+   unrelated (a resting-fill treatment, not this variant). */
 export function Button({
-  as: Component = 'a',
   variant = 'primary',
   className = '',
   children,
@@ -12,12 +17,11 @@ export function Button({
       'bg-accent/15 text-accent shadow-accent-glow border border-accent/40 hover:bg-accent/25 hover:border-accent/60 hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
     secondary:
       'border border-glass/10 bg-glass/[0.04] text-body hover:border-accent/25 hover:bg-glass/[0.07] hover:text-heading hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
-    ghost: 'text-muted hover:text-accent border border-transparent hover:border-accent/20 hover:bg-glass/[0.03]',
   };
 
   return (
-    <Component className={`${base} ${styles[variant] ?? styles.primary} ${className}`} {...rest}>
+    <a className={`${base} ${styles[variant] ?? styles.primary} ${className}`} {...rest}>
       {children}
-    </Component>
+    </a>
   );
 }

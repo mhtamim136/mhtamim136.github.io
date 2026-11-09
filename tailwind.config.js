@@ -29,21 +29,16 @@ export default {
         sans: ['"Inter Variable"', '"Inter Fallback"', 'system-ui', 'sans-serif'],
         display: ['"Plus Jakarta Sans Variable"', '"Jakarta Fallback"', '"Inter Variable"', 'system-ui', 'sans-serif'],
       },
-      spacing: {
-        18: '4.5rem',
-      },
       boxShadow: {
         glass: 'var(--shadow-glass)',
         'glass-hover': 'var(--shadow-glass-hover)',
         'accent-glow': 'var(--shadow-accent)',
-        float: 'var(--shadow-float)',
       },
       backgroundSize: {
         grid: '32px 32px',
       },
       transitionDuration: {
         250: '250ms',
-        350: '350ms',
       },
     },
   },

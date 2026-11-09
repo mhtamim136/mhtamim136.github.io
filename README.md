@@ -91,21 +91,44 @@ Each project card can show an automatic image slideshow. In a project repo, add 
 ```
 ├── Image/               # Profile photo (auto-discovered)
 ├── api/                 # Vercel Functions (projects.js, contact.js)
+├── plugins/             # Vite plugins (hero image optimiser, font preload)
 ├── public/              # Static assets (favicon, resume, projects.json)
-├── scripts/             # Build-time project snapshot (fetch-projects.mjs)
+├── scripts/             # Build-time scripts (fetch-projects.mjs, featuredDetails.mjs, sync-ai-catalog.mjs)
 ├── src/
 │   ├── components/      # Reusable UI components
 │   ├── data/            # Portfolio content (portfolio.js)
 │   ├── hooks/           # Custom React hooks
 │   ├── sections/        # Page sections (Hero, About, etc.)
+│   │   └── HeroCtaFill.css  # Hero CTA hover-fill (L-to-R wipe)
 │   └── utils/           # Utilities
 ├── .env                 # Environment variables (gitignored)
 ├── .env.example         # Template for .env
+├── .github/workflows/   # CI (PR build check) + Pages deploy
 ├── index.html           # Entry point
+├── postcss.config.js    # PostCSS (Tailwind + Autoprefixer)
 ├── tailwind.config.js   # Tailwind theme
 ├── vercel.json          # SPA rewrites + security headers
 └── vite.config.js       # Vite config
 ```
+
+### Footer CTA rationale
+
+The footer closes the page with one final invitation — it is not a
+second contact section:
+
+- "Let's build something together" appears nowhere else on the site;
+  the hero has name/title/bio and Contact's title is "Contact".
+- "Open to internships & collaboration" repeats the hero meta-label
+  wording exactly — the one deliberate repeat (availability belongs
+  at the close).
+- "Get In Touch" is the same button as the hero primary (same label,
+  same `#contact` target) — the Dennis Snellenberg pattern: the
+  footer IS the CTA. No second form, email, or channel.
+- Bottom bar shows a curated 3 only (GitHub, X, email); Facebook /
+  Instagram / Discord are personal and stay in Contact only.
+- Copyright is unchanged and dynamic (current year). No LinkedIn
+  (no key in contacts). Entrance is one fade + 16px rise, gated
+  with `useReducedMotion` so it is instant under reduced motion.
 
 ## Tech Stack
 

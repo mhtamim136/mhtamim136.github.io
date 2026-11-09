@@ -12,79 +12,15 @@ import { externalLinkProps } from '../utils/links';
 /**
  * Page footer — the closing CTA (§A Footer CTA item).
  *
- * ── THINK FIRST: duplicate re-check (verified against live code
- *    at base cf20b9da, before this component was written) ──
- *  1. "Let's build something together" — NOWHERE on the site.
- *     Hero has name/title/bio; Contact's title is "Contact" and
- *     its subtitle is "Open to collaboration, project work, and
- *     new opportunities." No closing statement exists anywhere.
- *     → NEW, no duplicate.
- *  2. Availability "Open to internships & collaboration" — ALREADY
- *     in the hero meta-label row (HeroSection.jsx). Repeating it
- *     here is the DELIBERATE closing repetition (hero = main CTA,
- *     footer = final CTA), in the EXACT same wording, so there is
- *     no second phrasing to drift. This is the one intentional
- *     repeat — an availability status belongs at the close.
- *  3. "Get In Touch" button → #contact — ALREADY the hero primary
- *     CTA (same label, same target). Repeating the SAME button at
- *     the bottom is the point of a closing CTA (the Dennis
- *     Snellenberg pattern: the footer IS the CTA). It is a link
- *     to the existing Contact section, NOT a second contact
- *     channel — no form, no second email, no second anything.
- *  4. Email address display — ALREADY in Contact (email card,
- *     mailto link). The footer shows NO email text, only a
- *     mailto icon in the bottom bar. → no duplicate display.
- *  5. Copy-email button — NOT built. It belongs to the pending
- *     Contact Micro-interactions item, not the footer.
- *  6. Social links — Contact has all 6 (GitHub, Profile Card, X,
- *     Instagram, Facebook, Discord). The footer shows a CURATED
- *     3 only: GitHub, X, email. Facebook / Instagram / Discord
- *     are personal — they stay in Contact only. The GitHub/X/
- *     email repeat is intentional curation (professional
- *     identities in the footer, full list in Contact), not a
- *     copy of the Socials card.
- *  7. Back to top — <ScrollToTop /> ALREADY EXISTS (App.jsx).
- *     NO second one is built.
- *  8. Copyright — ALREADY EXISTS, dynamic year. Kept
- *     byte-identical, moved into the bottom bar.
- *  9. Contact form — stays in Contact only. No form here.
- * 10. LinkedIn — contacts has NO linkedin key. NOT added.
- *
- * ── Build vs not build ──
- *  Build: the page gets a proper close. A visitor who scrolls
- *  past Contact (or lands at the bottom) sees one final,
- *  unmissable invitation plus the professional identities. Cost:
- *  one component + one small App.jsx edit, no new deps, no new
- *  data. The duplicate risk is contained by the check above.
- *  Don't build: the footer stays a bare copyright line — the
- *  "missed opportunity" the other AI named is real (verified:
- *  the footer IS only copyright). The page ends abruptly after
- *  Contact with no closing gesture. Nothing breaks, but the
- *  bottom of the site feels unfinished.
- *
- * ── Design ──
- *  CTA block: giant heading in the display font at hero-name
- *  scale (4xl/5xl/6xl), "together" in the site's gradient — the
- *  same last-word-gradient echo as the hero name. Availability
- *  line in the hero meta-label language (small caps, wide
- *  tracking, muted accent). ONE Magnetic primary button,
- *  "Get In Touch" → #contact, with the hero's 3px arrow nudge.
- *  A faint bg-hero-glow echo (the existing 10%-accent radial
- *  the hero uses) ties the close to the opening — no new
- *  gradient, no extra layer.
- *  Bottom bar: curated socials (icon-only, 40px targets, same
- *  hover language as SocialButton) + the unchanged copyright.
- *
- * ── Reduced motion ──
- *  The entrance is a single fade + 16px rise (whileInView,
- *  once). It is gated with useReducedMotion → initial={false},
- *  so under reduced motion the footer renders in its final
- *  state instantly. (The global <MotionConfig
- *  reducedMotion="user"> disables transform/layout animations
- *  but NOT opacity, so the explicit gate is required — the
- *  same pattern HeroSection uses.) Magnetic self-gates on
- *  reduced motion + coarse pointer, so the button is inert
- *  there too. Zero movement under reduced motion.
+ * Closing statement "Let's build something together" + the deliberate
+ * repeat of "Open to internships & collaboration" (same wording as
+ * the hero) + one Magnetic "Get In Touch" → #contact + a curated
+ * bottom bar (GitHub, X, email only; the full list lives in Contact).
+ * Full duplicate/build rationale: README "Footer CTA rationale".
+ * Entrance is a single fade + 16px rise, gated with useReducedMotion
+ * so under reduced motion the footer renders in its final state
+ * instantly (MotionConfig stops transforms, not opacity — the
+ * explicit gate is required, same pattern HeroSection uses).
  */
 
 /* Curated professional identities only. Missing keys are skipped,

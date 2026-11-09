@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NAV_OFFSET_PX } from '../utils/navOffset';
 
 /**
  * Scroll spy aligned with nav order. Works with lazy-mounted sections: we
@@ -14,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
  * clears the hash for a clean homepage URL.
  */
 export function useActiveSection(sectionIds, options = {}) {
-  const offset = options.offset ?? 96;
+  const offset = options.offset ?? NAV_OFFSET_PX;
   const [activeId, setActiveId] = useState(sectionIds[0] ?? '');
   /* Set after the first real measurement, so a deep-linked load (e.g.
      opening #contact) never briefly syncs the wrong hash while lazy

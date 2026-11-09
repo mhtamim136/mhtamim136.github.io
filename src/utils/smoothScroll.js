@@ -10,7 +10,7 @@
  *
  * Targets are absolute scroll positions (numbers), exactly like the
  * `top` values the call sites already compute (`el.top + scrollY -
- * 96`). Lenis clamps numbers to the scroll limit itself.
+ * NAV_OFFSET_PX`). Lenis clamps numbers to the scroll limit itself.
  */
 let lenisInstance = null;
 

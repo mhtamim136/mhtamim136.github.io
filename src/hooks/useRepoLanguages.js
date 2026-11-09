@@ -183,7 +183,6 @@ export function useRepoLanguages(visibleRepos) {
       cancelled = true;
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoKey]);
 
   // Compute the union of all languages across all loaded repos

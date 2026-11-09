@@ -54,8 +54,9 @@
     }
     </script>
 
-    <!-- Theme colour — matches the dark default (useTheme updates this
-         when the user toggles to light, so it never follows the OS). -->
+    <!-- Theme colour — dark default; the inline init script below
+         corrects it before first paint for a stored light theme,
+         and useTheme updates it on toggle. It never follows the OS. -->
     <meta name="theme-color" content="#0a0e13" />
 
     <!-- Agent discovery (Agentic Resource Discovery): lets AI agents
@@ -92,6 +93,12 @@
           t = 'dark';
         }
         document.documentElement.setAttribute('data-theme', t);
+        /* Keep theme-color in sync on first paint too: useTheme only
+           updates the meta on toggle, so without this a stored light
+           theme rendered light but kept the dark (#0a0e13) browser
+           chrome colour. Same values as THEME_COLORS in useTheme.js. */
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', t === 'light' ? '#e9edf2' : '#0a0e13');
       })();
     </script>
 

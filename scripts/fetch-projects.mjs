@@ -53,11 +53,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { portfolio } from '../src/data/portfolio.js';
-import {
-  MAX_FEATURED,
-  pickFeatured,
-  resolveDetails,
-} from './featuredDetails.mjs';
+import { pickFeatured, resolveDetails } from './featuredDetails.mjs';
 import { GITHUB_USERNAME, processLanguages } from '../src/utils/githubShared.js';
 
 const EXCLUDED_REPOS = new Set([

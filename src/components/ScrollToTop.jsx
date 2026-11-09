@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from './icons/NavIcons';
 import { useScrollTop } from '../hooks/useScrollTop';
@@ -5,6 +6,24 @@ import { smoothScrollTo } from '../utils/smoothScroll';
 
 export function ScrollToTop() {
   const visible = useScrollTop(480);
+  const [footerInView, setFooterInView] = useState(false);
+
+  /* Hide while the footer is on screen: the fixed button sits on
+     the footer's bottom bar on mobile and covers the end of the
+     copyright line ("…All rights reserve[d]"). Any intersection
+     hides it; scrolling back up brings it back. The existing
+     mount/exit animation is untouched — only the condition gains
+     a second term. */
+  useEffect(() => {
+    const footer = document.querySelector('footer');
+    if (!footer || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => setFooterInView(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    io.observe(footer);
+    return () => io.disconnect();
+  }, []);
 
   /* Routes through Lenis when it is active, native smooth scroll
      otherwise (instant under reduced motion — same check the
@@ -15,7 +34,7 @@ export function ScrollToTop() {
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !footerInView && (
         <motion.button
           type="button"
           initial={{ opacity: 0, scale: 0.9, y: 8 }}
