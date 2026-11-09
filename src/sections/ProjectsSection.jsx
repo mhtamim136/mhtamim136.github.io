@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
@@ -28,6 +28,12 @@ import { NAV_OFFSET_PX } from '../utils/navOffset';
 const INITIAL_COUNT = 4;
 const PAGE_SIZE = 4;
 const MAX_PILLS = 4;
+/* Session key for the persisted "Show more" expansion (Tamim,
+   2026-11-09) — the number of More projects shown, so a reload
+   no longer collapses the grid back to Featured-only. sessionStorage
+   (not localStorage): the expansion belongs to this tab's session —
+   a new tab starts collapsed, as before. */
+const SHOW_MORE_KEY = 'portfolio_projects_visible_count';
 
 /* ── Skeleton loader ──────────────────────────────────────────── */
 function ProjectSkeleton() {
@@ -480,7 +486,35 @@ function FeaturedProjectCard({ repo, index }) {
    key, or null for "All". */
 export function ProjectsSection({ repos, featured, loading, error, activeFilter, onFilterChange }) {
   const reduceMotion = useReducedMotion() ?? false;
-  const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
+  /* Persisted "Show more" expansion (Tamim, 2026-11-09): the number
+     of More projects shown survives a reload, so a refresh no longer
+     collapses the grid back to Featured-only — and the page keeps its
+     height, so the scroll restore lands on the same section instead
+     of Experience / What I Build. The count is read synchronously in
+     the lazy initializer (before first paint), so the grid renders
+     expanded from the start: no collapsed → expanded flash, and the
+     scroll-restore hook's height gate sees the correct height.
+     `restoredCountRef` carries the value to the reset effect below:
+     that effect must NOT overwrite it on mount (its first runs fire
+     while the repos data is still loading, when featured is empty).
+     Only a positive finite number counts; anything else falls back
+     to the default. The value is clamped to the list length when it
+     is applied (the list may have shrunk since it was saved). */
+  const restoredCountRef = useRef(0);
+  const [visibleCount, setVisibleCount] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(SHOW_MORE_KEY);
+      const n = raw === null ? NaN : Number(raw);
+      if (Number.isFinite(n) && n > 0) {
+        const count = Math.floor(n);
+        restoredCountRef.current = count;
+        return count;
+      }
+    } catch {
+      /* Storage unavailable (private mode, full) — the default. */
+    }
+    return INITIAL_COUNT;
+  });
   /* Sort + year filter are local to this section — only Projects
      consumes them (the shared language filter stays in App because
      the Skills section shares it). sortMode is a 3-state cycle
@@ -519,17 +553,11 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
       .sort((a, b) => b.year - a.year);
   }, [repos]);
 
-  /* The filter is shared with the Skills section — one filter
-     state, owned by App. The initial visible count depends on the
-     state: FILTERED starts at the first batch of 4; ALL starts
-     collapsed (0 More) when there is a Featured block, and at the
-     first batch of 4 when there is none (no pins / GraphQL failed —
-     the old behaviour: the full grid, no headings). Reset whenever
-     the filter, the year, or the sort changes, or when the Featured
-     block appears on load. */
-  useEffect(() => {
-    setVisibleCount(isFiltered || featured.length === 0 ? INITIAL_COUNT : 0);
-  }, [activeFilter, activeYear, sortMode, featured.length, isFiltered]);
+  /* The visible-count reset + persistence effects live below the
+     `filtered` list (not here): the reset effect reads
+     `filtered.length` in its dependency array, and a dependency
+     array is evaluated during render — `filtered` is declared
+     below, so these effects must be declared after it. */
 
   /* Featured = the first 4 pinned repos (in pin order), resolved
      against the loaded repos. Everything else is "More Projects" —
@@ -634,6 +662,73 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
         });
     return sortRepos(list, sortDir);
   }, [repos, moreRepos, isFiltered, activeFilter, activeYear, langMap, sortDir]);
+
+  /* The filter is shared with the Skills section — one filter
+     state, owned by App. The initial visible count depends on the
+     state: FILTERED starts at the first batch of 4; ALL starts
+     collapsed (0 More) when there is a Featured block, and at the
+     first batch of 4 when there is none (no pins / GraphQL failed —
+     the old behaviour: the full grid, no headings). Reset whenever
+     the filter, the year, or the sort changes, or when the Featured
+     block appears on load.
+     EXCEPTION — a persisted expansion (see the lazy initializer
+     above): when one was restored on mount, apply it once the
+     Featured block exists (the list it belongs to) instead of
+     resetting to collapsed. While the repos data is still loading
+     (featured empty) the restore just waits — resetting here would
+     wipe it, which is exactly the refresh bug Tamim reported. Once
+     applied the flag is cleared, so later filter / year / sort
+     changes reset exactly as before. If the data settles with no
+     Featured block at all, the restore has no list to belong to —
+     fall through to the normal reset. These effects are declared
+     here, below `filtered`, on purpose: the reset reads
+     `filtered.length` in its dependency array, and a dependency
+     array is evaluated during render, so declaring it above
+     `filtered` crashes the render (temporal dead zone). */
+  useEffect(() => {
+    if (restoredCountRef.current > 0) {
+      if (!isFiltered && featured.length > 0) {
+        setVisibleCount(
+          Math.min(restoredCountRef.current, filtered.length),
+        );
+        restoredCountRef.current = 0;
+        return;
+      }
+      if (featured.length === 0 && !loading) {
+        restoredCountRef.current = 0;
+        /* Fall through to the normal reset below. */
+      } else {
+        return; /* Data still loading — wait, don't reset. */
+      }
+    }
+    setVisibleCount(isFiltered || featured.length === 0 ? INITIAL_COUNT : 0);
+  }, [activeFilter, activeYear, sortMode, featured.length, isFiltered, filtered.length, loading]);
+
+  /* Persist the ALL-state expansion (see above): every change to
+     the count is written, so a reload restores it. Only the ALL
+     state is written — a filtered list is a different list, and
+     the persisted count belongs to the ALL state. Entering a
+     filter DROPS the stored value, so a reload after filtering
+     returns to the ALL state collapsed (the default), not to a
+     stale expanded count. "Show less" sets the count back to the
+     initial count, so the next write stores that — no stale
+     expanded value is ever left behind. */
+  useEffect(() => {
+    if (isFiltered) {
+      try {
+        sessionStorage.removeItem(SHOW_MORE_KEY);
+      } catch {
+        /* Storage unavailable — nothing to drop. */
+      }
+      return;
+    }
+    try {
+      sessionStorage.setItem(SHOW_MORE_KEY, String(visibleCount));
+    } catch {
+      /* Storage unavailable (private mode, full) — the next reload
+         simply starts collapsed, as before. */
+    }
+  }, [visibleCount, isFiltered]);
 
   /* One list, one slice, for both states. `initialCount` is the
      count "Show less" returns to: 0 More (Featured only) in ALL
