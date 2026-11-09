@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { PhotoLightbox } from './PhotoLightbox';
 
 const AUTO_ADVANCE_MS = 3500;
 const SWIPE_THRESHOLD = 50;
@@ -25,6 +26,12 @@ const MANUAL_PAUSE_MS = 7000;
  *   change. `prefers-reduced-motion` disables auto-advance and sliding.
  * - Manual control: prev/next arrows (hover-reveal on desktop, always
  *   visible on touch), clickable dots, and swipe (drag).
+ * - Tap / click the image (or Enter / Space on it) opens the photo
+ *   lightbox in its rectangular variant, so a screenshot can be seen
+ *   full-size — on a phone the slideshow is ~350px wide and there
+ *   was no way to enlarge it at all (Tier 4). A tap is a tap, not
+ *   a drag: framer's tap gesture only fires when the pointer barely
+ *   moves, so a swipe never opens the lightbox by accident.
  * - Only the next slide is preloaded; images lazy-load. The image
  *   area has a fixed 16:9 ratio, so cards never change height.
  * - Rendered only when a repo actually has images — repos without a
@@ -48,6 +55,7 @@ export function ProjectSlideshow({ images, repoName }) {
      arrows and dots keep working, and a slide that loads is
      unaffected. Keyed by URL so each slide fails independently. */
   const [failed, setFailed] = useState({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const containerRef = useRef(null);
   const resumeTimer = useRef(null);
   const slideVariants = {
@@ -136,13 +144,14 @@ export function ProjectSlideshow({ images, repoName }) {
       manualPaused ||
       !inView ||
       !tabVisible ||
-      reducedMotion
+      reducedMotion ||
+      lightboxOpen
     ) {
       return undefined;
     }
     const id = window.setInterval(next, AUTO_ADVANCE_MS);
     return () => window.clearInterval(id);
-  }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, next]);
+  }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, next]);
 
   /* Preload only the next slide. */
   useEffect(() => {
@@ -154,7 +163,14 @@ export function ProjectSlideshow({ images, repoName }) {
 
   const showControls = count > 1;
 
+  /* Open the lightbox for the current slide — never for a failed
+     slide (there is no image to enlarge). */
+  const openLightbox = useCallback(() => {
+    if (!failed[images[index]]) setLightboxOpen(true);
+  }, [failed, images, index]);
+
   return (
+    <>
     <motion.div
       ref={containerRef}
       role="region"
@@ -184,7 +200,17 @@ export function ProjectSlideshow({ images, repoName }) {
             duration: reducedMotion ? 0 : 0.45,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="absolute inset-0"
+          className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
+          role="button"
+          tabIndex={0}
+          aria-label={`View ${repoName} screenshot ${index + 1} of ${count} full screen`}
+          onTap={openLightbox}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openLightbox();
+            }
+          }}
         >
           {/* A failed slide shows a themed placeholder (same 16:9
               box, no layout shift) instead of the broken image. */}
@@ -289,5 +315,21 @@ export function ProjectSlideshow({ images, repoName }) {
         </div>
       )}
     </motion.div>
+
+    {/* Full-size view — the existing photo lightbox in its rectangular
+        variant (same zoom/close/Tab behaviour as the hero portrait).
+        Mounted only while open, so no extra image request happens
+        before the first tap. */}
+    <AnimatePresence>
+      {lightboxOpen && (
+        <PhotoLightbox
+          shape="rect"
+          src={images[index]}
+          alt={`${repoName} screenshot ${index + 1} of ${count}`}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }

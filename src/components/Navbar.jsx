@@ -96,7 +96,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
             <a
               key={id}
               href={`#${id}`}
-              aria-current={active ? 'true' : undefined}
+              aria-current={active ? 'page' : undefined}
               onMouseEnter={(e) => showTip(e, label)}
               onMouseLeave={hideTip}
               onFocus={(e) => showTip(e, label)}

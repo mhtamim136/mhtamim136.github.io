@@ -23,10 +23,15 @@
  * (max 4) and never fails the function: any enrichment failure falls
  * back silently, and a GraphQL failure just means featured = [].
  *
- * Caching: `Cache-Control: public, s-maxage=3600,
- * stale-while-revalidate=86400` — Vercel's CDN serves the response for
- * an hour and revalidates in the background, so GitHub is hit ~once an
- * hour instead of on every visit.
+ * Caching: the code sets `Cache-Control: public, s-maxage=3600,
+ * stale-while-revalidate=86400`, and Vercel's edge DOES honour it —
+ * repeated plain fetches return the same generatedAt with a growing
+ * Age (observed HITs up to ~7 min), so GitHub is hit ~once an hour
+ * instead of on every visit. But Vercel rewrites the header the
+ * client sees to `public, max-age=0, must-revalidate` — so do not
+ * be surprised when curl shows max-age=0: the hour-long edge cache
+ * is real, it is just not visible in the response header. (This
+ * confused two audits before it was written down here.)
  *
  * Errors: any GitHub failure → 502 {error:'github_unavailable'}.
  * The token and GitHub's response bodies are never exposed.

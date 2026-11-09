@@ -124,11 +124,11 @@ services: [
   contacts: {
     email: 'mhtamim136@gmail.com',
     github: 'https://github.com/mhtamim136',
-    portfolio: 'https://mhtamim136.github.io/profile-card/',
+    profileCard: 'https://mhtamim136.github.io/profile-card/',
     facebook: 'https://www.facebook.com/mhtamim136/',
     instagram: 'https://www.instagram.com/mhtamim136',
     x: 'https://x.com/mhtamim136',
-    discord: 'https://discordapp.com/users/1148815562080800900',
+    discord: 'https://discord.com/users/1148815562080800900',
   },
 
   nav: [

@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { Magnetic } from './Magnetic';
 import { NavIcon } from './icons/NavIcons';
 import { externalLinkProps } from '../utils/links';
+import '../sections/HeroCtaFill.css';
 
 /**
  * Page footer — the closing CTA (§A Footer CTA item).
@@ -78,7 +79,10 @@ export function Footer() {
           </p>
           <div className="mt-8 flex justify-center">
             <Magnetic>
-              <Button href="#contact" variant="primary">
+              {/* Same 550ms L-to-R wipe as the hero primary (Tier 4,
+                  item 21): the footer CTA bookends the page with the
+                  hero. Still a plain link to #contact. */}
+              <Button href="#contact" variant="primary" className="hero-cta-fill hero-cta-fill--solid">
                 Get In Touch
                 <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">
                   <NavIcon name="arrow-right" className="h-4 w-4" />
@@ -95,13 +99,19 @@ export function Footer() {
               const href = getHref(contacts);
               if (!href) return null;
               const linkProps = external ? externalLinkProps(href) : { href };
+              /* Tier 4, item 22(b): quick cyan fill — the same wipe
+                 as the primary CTAs, but --ghost (resting glass
+                 untouched) at 220ms (--quick) instead of 550ms,
+                 because a slow sweep feels mushy on a 44px target.
+                 Icon flips to #062A33 with the fill. No full 550ms
+                 wipe here: these stay secondary to the CTAs. */
               return (
                 <a
                   key={key}
                   {...linkProps}
                   aria-label={label}
                   title={label}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  className="hero-cta-fill hero-cta-fill--ghost hero-cta-fill--quick flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 >
                   <Icon className="h-[18px] w-[18px]" aria-hidden />
                 </a>

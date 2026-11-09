@@ -52,13 +52,23 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
       subtitle="Grouped stack with emphasis on the tools I reach for most often."
     >
       {/* The teal pills mark the tools reached for most often.
-          A numbered pill filters the Projects section. */}
-      <p className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-dim">
+          A numbered pill filters the Projects section. This hint
+          fades in with the section header (same 0.35s, same
+          trigger) — it used to be a plain <p>, so mid-fling it was
+          fully visible while the "Skills" heading was still fading
+          in. (Tier 4 — the live audit's heading/sub-text look-alike.) */}
+      <motion.p
+        initial={reduceMotion ? false : { opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-dim"
+      >
         <span className="inline-block h-2 w-2 rounded-full bg-accent" aria-hidden />
         Teal = most used
         <span aria-hidden>·</span>
         Click a numbered skill to filter projects
-      </p>
+      </motion.p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Object.entries(skills).map(([key, items], idx) => (
           <motion.div

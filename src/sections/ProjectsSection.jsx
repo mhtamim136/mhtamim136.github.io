@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp } from 'lucide-react';
+import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
@@ -119,13 +119,31 @@ function FilterChip({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-4 py-3.5 text-xs font-medium transition-all duration-200 sm:text-sm ${
+      aria-pressed={active}
+      className={`shrink-0 rounded-lg border px-4 py-3.5 text-xs font-medium transition-all duration-200 sm:text-sm ${
         active
           ? 'tone-accent border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
           : 'border-glass/10 bg-glass/[0.04] text-muted hover:-translate-y-px hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
       }`}
     >
       {label}
+    </button>
+  );
+}
+
+/* ── Show-more button ─────────────────────────────────────────── */
+/* One shared button for both pager spots (Tier 4, S3 — the markup
+   was written twice: once under Featured, once below the grid).
+   Same label, same classes, same handler in both places. */
+function ShowMoreButton({ remaining, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+    >
+      Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
+      <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
     </button>
   );
 }
@@ -143,7 +161,15 @@ function FilterChip({ label, active, onClick }) {
    bg + accent text + shadow-accent-glow) — the label always matches
    what is shown, so the pill can never mislead again. Same glass
    language as the year dropdown trigger, so the two controls read
-   as one cluster. */
+   as one cluster.
+   The off state ALSO carries a sort icon (⇅, Tier 4, item 20):
+   with no icon the bare "Featured" pill read like a static label
+   next to the Year control's chevron, not a button. The icon is a
+   sort icon, not a chevron, because this is a cycle button — a
+   chevron would wrongly imply a menu opens. The applied states
+   keep their direction arrows (↓/↑), which say which way the list
+   is sorted; the ⇅ appears only where no icon existed. Same size
+   (h-3.5) as the Year chevron and the direction arrows. */
 const SORT_CYCLE = { off: 'newest', newest: 'oldest', oldest: 'off' };
 
 function SortToggle({ sortMode, onToggle }) {
@@ -169,12 +195,13 @@ function SortToggle({ sortMode, onToggle }) {
       }`}
     >
       {isOff ? 'Featured' : isOldest ? 'Oldest' : 'Newest'}
-      {!isOff &&
-        (isOldest ? (
-          <ArrowUp className="h-3.5 w-3.5" aria-hidden />
-        ) : (
-          <ArrowDown className="h-3.5 w-3.5" aria-hidden />
-        ))}
+      {isOff ? (
+        <ArrowUpDown className="h-3.5 w-3.5" aria-hidden />
+      ) : isOldest ? (
+        <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+      )}
     </button>
   );
 }
@@ -277,8 +304,9 @@ const cardAnim = {
    block renders only when its data exists — nothing is invented.
    The intro label is honest about the source: README text is an
    "Overview", a real problem statement is a "Problem", and the plain
-   GitHub description (github fallback) is shown unlabeled, exactly
-   like the grid card's description. */
+   GitHub description (github fallback) — or a curated `description`
+   standing in as the intro (curated-description) — is shown
+   unlabeled, exactly like the grid card's description. */
 function FeaturedProjectCard({ repo, index }) {
   const details = repo.details || {};
   const reduceMotion = useReducedMotion() ?? false;
@@ -286,7 +314,8 @@ function FeaturedProjectCard({ repo, index }) {
   const introLabel =
     details.detailsSource === 'readme'
       ? 'Overview'
-      : details.detailsSource === 'github'
+      : details.detailsSource === 'github' ||
+          details.detailsSource === 'curated-description'
         ? null
         : 'Problem';
   /* Tech pills: curated/portfolio.json tech first (more specific,
@@ -698,7 +727,28 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                 <SortToggle sortMode={sortMode} onToggle={() => setSortMode((m) => SORT_CYCLE[m])} />
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            {/* Language chips — MOBILE (below sm): one horizontally
+                scrollable row (Tier 4, item 19). The 12 chips wrapped
+                into 3 rows on a 390px phone (~154px tall) and pushed
+                Featured ~110px down the page. Now the strip is a
+                single row with native horizontal scroll, a hidden
+                scrollbar, and a right-edge fade so the cut-off last
+                chip reads as "more to the right". Chips keep their
+                size (shrink-0 on FilterChip), order, styles and
+                44px+ targets; "All" stays first at the left.
+                DESKTOP (sm+): unchanged — flex-wrap, no scroll,
+                no mask, no extra padding (verified byte-identical
+                layout in the after-check). The py-1 on mobile is
+                breathing room for the focus ring / hover lift /
+                glow, which overflow-x would otherwise clip.
+                Keyboard: the chips are native buttons, so Tab moves
+                through them and the browser scrolls the focused
+                chip into view on its own. */}
+            <div
+              role="group"
+              aria-label="Filter projects by language"
+              className="flex flex-nowrap gap-2 overflow-x-auto py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_88%,transparent_100%)] sm:flex-wrap sm:overflow-visible sm:py-0 sm:[mask-image:none]"
+            >
               {(languages.length > 2 || activeSkillChip) && (
                 <>
                   {languages.map((lang) => {
@@ -753,14 +803,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                 <div className="mt-10 text-center">
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {remaining > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleShowMore}
-                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
-                      >
-                        Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
-                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                      </button>
+                      <ShowMoreButton remaining={remaining} onClick={handleShowMore} />
                     )}
                   </div>
                 </div>
@@ -919,14 +962,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             >
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {remaining > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleShowMore}
-                    className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
-                  >
-                    Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
-                    <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                  </button>
+                  <ShowMoreButton remaining={remaining} onClick={handleShowMore} />
                 )}
                 {expanded && (
                   <button

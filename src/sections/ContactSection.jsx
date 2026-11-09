@@ -10,10 +10,11 @@ import { SectionWrapper } from '../components/SectionWrapper';
 import { Magnetic } from '../components/Magnetic';
 import { SocialButton } from '../components/SocialButton';
 import { useContactForm } from '../hooks/useContactForm';
+import '../sections/HeroCtaFill.css';
 
 const socialMeta = [
   { key: 'github', label: 'GitHub', Icon: FaGithub },
-  { key: 'portfolio', label: 'Profile Card', Icon: FiGlobe },
+  { key: 'profileCard', label: 'Profile Card', Icon: FiGlobe },
   { key: 'x', label: 'X (Twitter)', Icon: FaXTwitter },
   { key: 'instagram', label: 'Instagram', Icon: FaInstagram },
   { key: 'facebook', label: 'Facebook', Icon: FaFacebook },
@@ -40,75 +41,58 @@ const listItem = {
   },
 };
 
-/* ── Floating label input ─────────────────────────────────────── */
-function FloatingInput({ id, name, type = 'text', label, value, onChange, error, autoComplete }) {
+/* ── Floating label field ───────────────────────────────────────
+   One component for the input and the textarea (Tier 4, S2 — they
+   were ~90% the same code: wrapper, floating-label classes, error
+   rendering). `multiline` renders the textarea; everything else —
+   label, error, classes — is shared, so a label/validation change
+   is made once. The rendered class SET is identical to the old
+   two components (only the attribute order differs, which does
+   not affect the cascade). */
+function FloatingField({ id, name, type = 'text', label, value, onChange, error, autoComplete, multiline = false, rows }) {
   const filled = value.length > 0;
+  const fieldClass = `contact-input peer w-full rounded-xl border bg-glass/[0.03] px-4 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
+    multiline ? 'resize-none pb-3' : 'pb-2.5'
+  } ${
+    error
+      ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
+      : 'border-glass/[0.08] hover:border-glass/[0.14]'
+  }`;
+  const labelClass = `pointer-events-none absolute left-4 top-2 origin-[0] text-[0.6875rem] font-medium uppercase tracking-wider transition-all duration-200 ${
+    filled || 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
+  } peer-focus:top-2 peer-focus:text-[0.6875rem] peer-focus:uppercase peer-focus:tracking-wider peer-focus:font-medium ${
+    error ? 'text-red-400' : 'text-muted-dim peer-focus:text-accent'
+  }`;
   return (
     <div className="relative">
-      <input
-        id={id}
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder=" "
-        autoComplete={autoComplete}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={`contact-input peer w-full rounded-xl border bg-glass/[0.03] px-4 pb-2.5 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
-          error
-            ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
-            : 'border-glass/[0.08] hover:border-glass/[0.14]'
-        }`}
-      />
-      <label
-        htmlFor={id}
-        className={`pointer-events-none absolute left-4 top-2 origin-[0] text-[0.6875rem] font-medium uppercase tracking-wider transition-all duration-200 ${
-          filled || 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
-        } peer-focus:top-2 peer-focus:text-[0.6875rem] peer-focus:uppercase peer-focus:tracking-wider peer-focus:font-medium ${
-          error ? 'text-red-400' : 'text-muted-dim peer-focus:text-accent'
-        }`}
-      >
-        {label}
-      </label>
-      {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-xs text-red-400" role="alert">
-          {error}
-        </p>
+      {multiline ? (
+        <textarea
+          id={id}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder=" "
+          autoComplete="off"
+          rows={rows ?? 5}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={fieldClass}
+        />
+      ) : (
+        <input
+          id={id}
+          name={name}
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder=" "
+          autoComplete={autoComplete}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={fieldClass}
+        />
       )}
-    </div>
-  );
-}
-
-/* ── Floating label textarea ──────────────────────────────────── */
-function FloatingTextarea({ id, name, label, value, onChange, error }) {
-  const filled = value.length > 0;
-  return (
-    <div className="relative">
-      <textarea
-        id={id}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder=" "
-        autoComplete="off"
-        rows={5}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={`contact-input peer w-full resize-none rounded-xl border bg-glass/[0.03] px-4 pb-3 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
-          error
-            ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
-            : 'border-glass/[0.08] hover:border-glass/[0.14]'
-        }`}
-      />
-      <label
-        htmlFor={id}
-        className={`pointer-events-none absolute left-4 top-2 origin-[0] text-[0.6875rem] font-medium uppercase tracking-wider transition-all duration-200 ${
-          filled || 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
-        } peer-focus:top-2 peer-focus:text-[0.6875rem] peer-focus:uppercase peer-focus:tracking-wider peer-focus:font-medium ${
-          error ? 'text-red-400' : 'text-muted-dim peer-focus:text-accent'
-        }`}
-      >
+      <label htmlFor={id} className={labelClass}>
         {label}
       </label>
       {error && (
@@ -257,7 +241,7 @@ export function ContactSection() {
                 />
 
                 <div className="space-y-5">
-                  <FloatingInput
+                  <FloatingField
                     id="contact-name"
                     name="name"
                     label="Your name"
@@ -266,7 +250,7 @@ export function ContactSection() {
                     onChange={handleChange}
                     error={errors.name}
                   />
-                  <FloatingInput
+                  <FloatingField
                     id="contact-email"
                     name="email"
                     type="email"
@@ -276,10 +260,12 @@ export function ContactSection() {
                     onChange={handleChange}
                     error={errors.email}
                   />
-                  <FloatingTextarea
+                  <FloatingField
                     id="contact-message"
                     name="message"
                     label="Your message"
+                    multiline
+                    rows={5}
                     value={fields.message}
                     onChange={handleChange}
                     error={errors.message}
@@ -303,13 +289,18 @@ export function ContactSection() {
                     button's own layout classes: full-width on mobile,
                     auto width from sm up (see Magnetic.jsx). */}
                 <Magnetic className="w-full sm:inline-block sm:w-auto">
+                  {/* Same 550ms L-to-R wipe as the hero primary (Tier 4,
+                      item 21). Idle + enabled only: the shared hover
+                      rule is gated with :not(:disabled), and the
+                      button also has disabled:pointer-events-none, so
+                      the "Sending…" state can never show a fill. */}
                   <motion.button
                     type="submit"
                     disabled={status === 'sending'}
                     aria-busy={status === 'sending'}
                     whileHover={reduceMotion ? undefined : { scale: 1.02, y: -2 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-                    className="contact-send mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
+                    className="contact-send hero-cta-fill hero-cta-fill--solid mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
                   >
                     {status === 'sending' ? (
                       <>

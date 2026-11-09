@@ -43,8 +43,14 @@ import { X } from 'lucide-react';
  *   mouse users don't have to discover click-anywhere. It stops
  *   propagation — clicking it closes without zooming — and it is a
  *   real <button> with a visible focus ring.
+ * - Rectangular variant (Tier 4, `shape="rect"`): project
+ *   screenshots open in a 16:9 rectangle (up to 900px wide) instead
+ *   of the portrait circle, with a centred crop. Same zoom, same
+ *   close behaviour (tap closes on touch, click zooms on desktop),
+ *   same Tab cycle. The circle stays the default — the hero
+ *   portrait is untouched.
  */
-export function PhotoLightbox({ manifest, src, alt, onClose }) {
+export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle' }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -134,10 +140,18 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
      a plain scale() on this div (NOT on the motion.div above — Framer
      Motion owns that element's transform for the open animation, and
      nested transforms compose). Zoom transition 0.2s; instant under
-     reduced motion. */
+     reduced motion.
+     The rectangle (project screenshots): 16:9, up to 900px wide,
+     centred crop — a screenshot is not a face, so the 20% headroom
+     crop does not apply. */
   const zoomTransition = reduceMotion
     ? ''
     : 'transition-transform duration-200 ease-out';
+  const objectPosition = shape === 'rect' ? 'center' : 'center 20%';
+  const photoFrameClass =
+    shape === 'rect'
+      ? 'relative aspect-video w-[min(92vw,900px)] cursor-zoom-in overflow-hidden rounded-2xl shadow-2xl'
+      : 'relative aspect-square w-[min(92vw,80vh,560px)] cursor-zoom-in overflow-hidden rounded-full shadow-2xl';
   const photo =
     manifest && !manifest.dev ? (
       <picture className="block h-full w-full">
@@ -159,7 +173,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
           loading="eager"
           decoding="async"
           className="h-full w-full object-cover"
-          style={{ objectPosition: 'center 20%' }}
+          style={{ objectPosition }}
         />
       </picture>
     ) : (
@@ -169,7 +183,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
         loading="eager"
         decoding="async"
         className="h-full w-full object-cover"
-        style={{ objectPosition: 'center 20%' }}
+        style={{ objectPosition }}
       />
     );
 
@@ -210,7 +224,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
           onClick={onPhotoClick}
           onWheel={onPhotoWheel}
           style={{ transform: `scale(${zoom})` }}
-          className={`relative aspect-square w-[min(92vw,80vh,560px)] cursor-zoom-in overflow-hidden rounded-full shadow-2xl ${zoomTransition}`}
+          className={`${photoFrameClass} ${zoomTransition}`}
         >
           {photo}
         </div>

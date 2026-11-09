@@ -1,13 +1,20 @@
-import { useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 /**
  * Rotating role line for the hero. One role at a time, swapped with
  * a smooth vertical blur-fade: the outgoing word rises out
  * (y -8px, blur 4px, fade) and the next one rises in from below
  * (y +8px, blur 4px, fade), 0.35s each on the site's expo-out ease.
- * AnimatePresence mode="wait" runs exit then enter, so the two words
- * never overlap and there is no flash — one calm beat per swap.
+ *
+ * Crossfade, not fade-out-then-in (Tier 4): the old AnimatePresence
+ * mode="wait" ran exit THEN enter, so the box sat empty for ~0.5s
+ * every 3s — the role text visibly blanked for a beat (measured
+ * live: opacity ~0 for 400-500ms per swap). Now the outgoing word
+ * stays mounted as an absolutely-positioned layer inside the same
+ * fixed-width box while the incoming word fades in beneath it, so
+ * the line is never empty. The incoming word stays in flow, so the
+ * box keeps its height and the caret after it never moves.
  *
  * The word sits in a fixed-width box sized to the longest role
  * ('Software Developer', 18 chars). The line is font-mono, so 1ch
@@ -18,7 +25,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
  * moves the content below it either.
  *
  * Interval: a new role every 3s; each role is fully visible for
- * ~2.3s between swaps (3.0s cycle minus the 0.7s swap).
+ * ~2.65s between swaps (3.0s cycle minus the 0.35s crossfade).
  *
  * - prefers-reduced-motion: the first role, shown statically.
  * - Hidden tab: the timer skips ticks instead of racing through roles.
@@ -34,12 +41,24 @@ const SWAP = { duration: 0.35, ease: [0.22, 1, 0.36, 1] };
 export function RoleLine({ roles = ROLES }) {
   const reduceMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
+  /* The word being faded out (null when no swap is in flight).
+     Kept as state (not derived from `index`) so it survives the
+     tick that advances `index` — the outgoing word must stay
+     mounted for its 0.35s exit. Cleared by onAnimationComplete
+     on the exiting span. A tick can never overlap an exit: the
+     interval is 3s, the exit is 0.35s. */
+  const [prevIndex, setPrevIndex] = useState(null);
+  const indexRef = useRef(0);
 
   useEffect(() => {
     if (reduceMotion) return undefined;
     const id = window.setInterval(() => {
       if (document.hidden) return;
-      setIndex((i) => (i + 1) % roles.length);
+      const prev = indexRef.current;
+      const next = (prev + 1) % roles.length;
+      indexRef.current = next;
+      setPrevIndex(prev);
+      setIndex(next);
     }, 3000);
     return () => window.clearInterval(id);
   }, [reduceMotion, roles.length]);
@@ -52,20 +71,31 @@ export function RoleLine({ roles = ROLES }) {
     <>
       <span className="sr-only">{roles.join(', ')}</span>
       {/* Fixed-width box (longest role = 18ch, font-mono so ch is
-          exact): the caret after it never moves, whatever the role. */}
-      <span aria-hidden="true" className="inline-block min-w-[18ch] text-left">
-        <AnimatePresence mode="wait">
+          exact): the caret after it never moves, whatever the role.
+          `relative` so the exiting word can overlay the incoming
+          one in the same box (crossfade, never a blank frame). */}
+      <span aria-hidden="true" className="relative inline-block min-w-[18ch] text-left">
+        {prevIndex !== null && (
           <motion.span
-            key={index}
-            className="inline-block"
-            initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+            key={`prev-${prevIndex}`}
+            className="absolute inset-0 inline-block whitespace-nowrap"
+            initial={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            animate={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
             transition={SWAP}
+            onAnimationComplete={() => setPrevIndex(null)}
           >
-            {roles[index]}
+            {roles[prevIndex]}
           </motion.span>
-        </AnimatePresence>
+        )}
+        <motion.span
+          key={index}
+          className="inline-block whitespace-nowrap"
+          initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={SWAP}
+        >
+          {roles[index]}
+        </motion.span>
       </span>
       <span aria-hidden="true" className="text-accent/70 motion-safe:animate-pulse">
         ▏

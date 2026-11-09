@@ -217,8 +217,11 @@ export function HeroSection() {
               focus-visible — all three hero buttons share it
               (see HeroCtaFill.css). --solid keeps the primary's
               resting tint; --ghost keeps the secondary's glass, so
-              the resting hierarchy stays distinct. Footer
-              "Get In Touch" has no such class — untouched. */}
+              the resting hierarchy stays distinct. Tier 4, item 21:
+              the Footer "Get In Touch" CTA and the Contact "Send
+              message" button reuse the same --solid wipe; Tier 4,
+              item 22: the footer icon buttons reuse it --ghost at
+              220ms. */}
           <Button href="#contact" variant="primary" className="hero-cta-fill hero-cta-fill--solid">
             Get In Touch
             <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">

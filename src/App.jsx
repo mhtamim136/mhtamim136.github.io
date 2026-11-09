@@ -58,9 +58,29 @@ export default function App() {
   const { repos, featured, loading, error } = useGitHubRepos();
   const [projectFilter, setProjectFilter] = useState(null);
 
+  /* Skip link target: move keyboard focus into <main> so the next
+     Tab starts in the content, not back at the nav. preventScroll:
+     the native anchor jump already moved the viewport; focusing
+     must not scroll it again. */
+  const skipToContent = () => {
+    document.getElementById('main')?.focus({ preventScroll: true });
+  };
+
   return (
     <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen">
+      {/* Skip link (Tier 4, X-2) — the first Tab stop on the page.
+          Visually hidden until keyboard focus (sr-only until
+          :focus-visible), then a small themed pill at the top-left.
+          Zero visual change otherwise; no animation, so reduced
+          motion needs no handling. */}
+      <a
+        href="#main"
+        onClick={skipToContent}
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[70] focus-visible:rounded-lg focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        Skip to content
+      </a>
       {/* Background layers */}
       <div
         className="pointer-events-none fixed inset-0 -z-10 bg-surface bg-grid-pattern bg-grid"
@@ -86,7 +106,10 @@ export default function App() {
         onThemeToggle={toggle}
       />
 
-      <main className="pt-20 sm:pt-[5.25rem]">
+      {/* tabIndex -1: the skip-link target. The ring is suppressed
+          here on purpose — a ring around the whole page content
+          would be noise; the skip link itself carries the ring. */}
+      <main id="main" tabIndex={-1} className="pt-20 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:pt-[5.25rem]">
         <HeroSection />
 
         {/* One boundary for all six lazy sections — the fallback is

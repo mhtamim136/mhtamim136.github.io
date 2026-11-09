@@ -190,6 +190,12 @@ function repoNameFromGithubUrl(url) {
  * A curated `description` stands in as the intro (problem) text
  * when the entry has no problem statement — otherwise a
  * description-only entry would resolve to tech pills alone.
+ * The marker matters downstream: a description is NOT a problem
+ * statement, so when the intro came from `description` the source
+ * is 'curated-description' and the card renders it unlabeled,
+ * exactly like the GitHub-description fallback — never under a
+ * "PROBLEM" eyebrow (Tier 4; the AI Governance description used
+ * to render under "PROBLEM", which was factually the wrong label).
  */
 export function detailsFromCurated(repoName, curatedProjects) {
   const entry = (curatedProjects || []).find(
@@ -209,7 +215,7 @@ export function detailsFromCurated(repoName, curatedProjects) {
     features: [],
     contribution: null,
     tech,
-    detailsSource: 'curated',
+    detailsSource: text(entry.problem) ? 'curated' : 'curated-description',
   };
 }
 

@@ -4,13 +4,13 @@
 
 ## About
 
-- [About Murad Hasan Tamim](https://mhtamim136.github.io/#about): CSE student at AIUB, Dhaka; builds practical web and desktop software.
-- [Resume (PDF)](https://mhtamim136.github.io/Resume/Resume-MHTamim.pdf): Murad's resume.
+- [About Murad Hasan Tamim](https://mhtamim136.vercel.app/#about): CSE student at AIUB, Dhaka; builds practical web and desktop software.
+- [Resume (PDF)](https://mhtamim136.vercel.app/Resume/Resume-MHTamim.pdf): Murad's resume.
 - [GitHub profile](https://github.com/mhtamim136): All public repositories and code.
 
 ## Projects
 
-- [Projects](https://mhtamim136.github.io/#projects): 17 projects, auto-synced from GitHub, with language filters.
+- [Projects](https://mhtamim136.vercel.app/#projects): Projects, auto-synced from GitHub, with language filters.
 - [IdeaBid — Project Request & Management Platform](https://github.com/mhtamim136/IdeaBid--Project-Request-Management-Platform): C# Windows Forms app with role-based access for project requests, proposals, and transactions.
 - [ITFirmHub](https://github.com/mhtamim136/ItFirmHub): Java Swing desktop app to manage IT firm information with full CRUD.
 - [TeamFlow-Lite Mini Task Tracker](https://github.com/mhtamim136/TeamFlow-Lite-Mini-Task-Tracker): Lightweight Java task management system with deadlines and progress tracking.
@@ -20,19 +20,19 @@
 
 ## Skills
 
-- [Skills](https://mhtamim136.github.io/#skills): C++, Java, C#, JavaScript, React, Node.js, Tailwind CSS, MySQL, SQL Server, Oracle DB, OOP, DSA.
+- [Skills](https://mhtamim136.vercel.app/#skills): C++, Java, C#, JavaScript, React, Node.js, Tailwind CSS, MySQL, SQL Server, Oracle DB, OOP, DSA.
 
 ## Experience
 
-- [Experience](https://mhtamim136.github.io/#experience): CSE student at AIUB, building full applications with Java, C#, React, and Tailwind, plus Oracle DB and SQL work.
+- [Experience](https://mhtamim136.vercel.app/#experience): CSE student at AIUB, building full applications with Java, C#, React, and Tailwind, plus Oracle DB and SQL work.
 
 ## Services
 
-- [Services](https://mhtamim136.github.io/#services): Web interfaces (React, Tailwind), desktop applications (Java Swing, C# Windows Forms), database and data handling, problem solving.
+- [Services](https://mhtamim136.vercel.app/#services): Web interfaces (React, Tailwind), desktop applications (Java Swing, C# Windows Forms), database and data handling, problem solving.
 
 ## Contact
 
-- [Contact](https://mhtamim136.github.io/#contact): Open to collaboration, project work, and new opportunities.
+- [Contact](https://mhtamim136.vercel.app/#contact): Open to collaboration, project work, and new opportunities.
 - Email: mhtamim136@gmail.com
 - [GitHub](https://github.com/mhtamim136)
 - [X (Twitter)](https://x.com/mhtamim136)
