@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { animate, motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { PhotoLightbox } from './PhotoLightbox';
 
@@ -8,63 +8,69 @@ const SWIPE_THRESHOLD = 50;
 /* After the user changes a slide by hand, auto-advance stays paused
    for a while so it never yanks the slide away mid-look. */
 const MANUAL_PAUSE_MS = 7000;
-
-/* The slide transition is a plain opacity crossfade (see
-   `slideVariants` below), not a directional x-slide — the x-slide
-   is what caused the light-mode blink and the lean on arrow taps.
-   With reduced motion the swap is instant (duration 0). */
+/* Drag-follow: a horizontal drag latches as a drag once it is
+   horizontal-dominant and at least this far — below it the gesture
+   is still a tap (the track does not move, the release click opens
+   the lightbox as before). 10px keeps the follow feeling glued to
+   the finger; SWIPE_THRESHOLD still distinguishes tap vs drag for
+   click suppression in general. Same values as the lightbox. */
+const DRAG_LATCH = 10;
+/* Drag-follow commit: a drag must pass half the box width to commit
+   to the next/previous slide (the gallery rule); anything less
+   springs back. Same as the lightbox. */
+const COMMIT_FRACTION = 0.5;
 
 /**
  * Professional project-image carousel (Airbnb / Behance style).
  *
- * - 16:9 cover image; slides CROSSFADE (opacity only, no x movement).
- *   The x-slide that was here before is gone on purpose: when a slide
- *   entered from x=+100% its <img> was still fetching (lazy + only the
- *   next slide preloaded, and the entering slide mounts off-viewport
- *   so the fetch starts late), so the entering slide was transparent
- *   and the near-white card background showed through as a bright
- *   band sweeping in — the light-mode blink Tamim filmed (dark mode
- *   hides the same band because its card background is dark). A
- *   crossfade can never do that: the outgoing image stays underneath
- *   covering the background until the incoming one is opaque. The
- *   same change removes the picture sweeping 356px sideways on an
- *   arrow tap: the image just fades. Swipe still works — the drag
- *   only decides the direction, it no longer IS the transition. The
- *   WHOLE BOX leaning (the card itself tilting and sticking after a
- *   tap) is a different cause — Card.jsx's pointer-tracking tilt
- *   reacting to the tap's emulated mouse — fixed there by gating
- *   the tilt to mouse/pen only.
+ * - 16:9 cover image; ONE carousel behaviour everywhere: a
+ *   three-cell track (previous / current / next, each exactly the
+ *   box width) that follows the finger 1:1 on a drag, commits past
+ *   half the box width, and springs back below it — exactly like
+ *   the photo lightbox. Arrows, dots and auto-advance use the SAME
+ *   track animation (slide to ±width, then swap the index, reset
+ *   the track to 0). There is no crossfade any more: the crossfade
+ *   was the S1 blink fix, but it made the slideshow and the
+ *   lightbox behave differently (the lightbox slides, the card
+ *   faded), and Tamim asked for consistency.
+ * - Why the blink cannot return with a track: the S1 blink was an
+ *   entering slide mounting off-viewport with a lazy <img> that
+ *   had never been fetched, showing the near-white card background
+ *   as a band sweeping in. Here all three cells are mounted at
+ *   once with eager <img>s, every slide is preloaded once the card
+ *   is on screen, and the incoming slide is already on screen (as
+ *   the adjacent cell) before the index swaps — so a swap never
+ *   lands on an image that still has to be fetched. The outgoing
+ *   image covers the background until the incoming one has taken
+ *   its place: the same guarantee the crossfade gave, with the
+ *   slide Tamim asked for.
+ * - The WHOLE BOX leaning (the card itself tilting and sticking
+ *   after a tap) is a different cause — Card.jsx's pointer-tracking
+ *   tilt reacting to the tap's emulated mouse — fixed there by
+ *   gating the tilt to mouse/pen only (S2). The drag here is plain
+ *   pointer events, not framer's drag: framer's drag + press
+ *   interplay once poisoned taps (S3 — onTap dead after a ≥3px
+ *   wobble), so the tap that opens the lightbox is a plain React
+ *   onClick, and a drag must never open it (the click is ignored
+ *   when the pointer moved at least SWIPE_THRESHOLD between
+ *   pointerdown and the click; a drag latches at DRAG_LATCH and
+ *   also suppresses the release click).
  * - Auto-advances every 3.5s; pauses on hover, when the card scrolls
-   off-screen, when the tab is hidden, and briefly after any manual
-   change. `prefers-reduced-motion` disables auto-advance and sliding.
+ *   off-screen, when the tab is hidden, and briefly after any manual
+ *   change. `prefers-reduced-motion` disables auto-advance; swaps
+ *   are instant (the drag still follows the finger — direct
+ *   manipulation — but commit/spring-back have no animation).
  * - Manual control: prev/next arrows (hover-reveal on desktop, always
  *   visible on touch), clickable dots, and swipe (drag).
  * - Tap / click the image (or Enter / Space on it) opens the photo
  *   lightbox in its rectangular variant, so a screenshot can be seen
  *   full-size — on a phone the slideshow is ~350px wide and there
- *   was no way to enlarge it at all (Tier 4). The tap is a plain
- *   React onClick, NOT framer's onTap: onTap is broken here by
- *   design of the library — motion-dom's press gesture refuses to
- *   fire while ANY drag is active, and when a tap moves 3px or more
- *   the parent drag starts, the press bails out at pointerup WITHOUT
- *   clearing its internal `isPressing` set, so that slide's onTap is
- *   dead for every later tap until the slide unmounts. A real thumb
- *   wobbles a few px on almost every tap, which is why the lightbox
- *   opened only sometimes. A native click has no such gate. A drag
- *   must never open the lightbox, so the click is ignored when the
- *   pointer moved at least the swipe distance (SWIPE_THRESHOLD, the
- *   same distance that changes the slide) between pointerdown and
- *   the click — a real thumb wobbles a few px on every tap and must
- *   still open, while a swipe never does. The movement is tracked
- *   with plain pointer events — synchronous, so it cannot lose the
- *   race the way a frame-delayed onDragEnd guard would).
+ *   was no way to enlarge it at all (Tier 4).
  * - Every slide is preloaded once the card is on screen, so a swap
- *   never lands on an image that still has to be fetched (the old
- *   "preload only the next slide" left manual prev/dot jumps and the
- *   first auto-advance on a slow connection fetching mid-swap).
- *   Images lazy-load; the preload is gated on the card being in view
- *   so off-screen cards fetch nothing. The image area has a fixed
- *   16:9 ratio, so cards never change height.
+ *   never lands on an image that still has to be fetched. Images
+ *   load eagerly in the track cells; the preload is gated on the
+ *   card being in view so off-screen cards fetch nothing. The image
+ *   area has a fixed 16:9 ratio, so cards never change height.
  * - Rendered only when a repo actually has images — repos without a
  *   `Project_Card` folder keep the text-only card (see ProjectsSection).
  */
@@ -87,33 +93,104 @@ export function ProjectSlideshow({ images, repoName }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const containerRef = useRef(null);
   const resumeTimer = useRef(null);
-  /* Crossfade only — no x movement at all (see the header comment).
-     The outgoing slide stays underneath, opaque, until the incoming
-     one has faded in over it, so the card background can never show
-     through mid-swap. With reduced motion the swap is instant. */
-  const slideVariants = {
-    enter: { opacity: 0 },
-    center: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
   /* A click that follows a drag must not open the lightbox. The flag
-     is set by plain pointer events on the slide (synchronous — a
-     frame-delayed onDragEnd guard would lose the race against the
-     click). Reset on every pointerdown. */
+     is set by plain pointer events on the current cell (synchronous —
+     a frame-delayed onDragEnd guard would lose the race against the
+     click). Reset on every pointerdown; a drag latches it at
+     DRAG_LATCH, a longer move at SWIPE_THRESHOLD. */
   const downPointRef = useRef(null);
   const draggedRef = useRef(false);
+  /* Drag-follow tracking (same pattern as the lightbox's track):
+     trackX is the track's horizontal offset as a Framer Motion
+     value — written in the pointermove handler, so the photos
+     follow the finger with no re-render per move. dragRef holds
+     the box width for the gesture in progress; draggingRef latches
+     once the gesture is a horizontal drag; animatingRef guards a
+     commit/spring-back animation in flight (a new gesture is
+     ignored until it settles); trackAnimRef holds the running
+     animation controls. indexRef mirrors index so the slide
+     functions (used by the auto-advance interval) never go stale.
+     overrideCell lets a dot jump show the REQUESTED slide as the
+     adjacent cell, so the track slides to exactly the slide the
+     user tapped instead of peeking at the neighbour. */
+  const trackX = useMotionValue(0);
+  const dragRef = useRef(null);
+  const draggingRef = useRef(false);
+  const animatingRef = useRef(false);
+  const trackAnimRef = useRef(null);
+  const indexRef = useRef(index);
+  const [overrideCell, setOverrideCell] = useState(null);
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
-  const paginate = useCallback(
-    (dir) => {
-      setIndex((prev) => (((prev + dir) % count) + count) % count);
+  const stopTrackAnim = () => {
+    trackAnimRef.current?.stop();
+    trackAnimRef.current = null;
+  };
+
+  /* Slides the track to the adjacent slide in direction dir (+1 =
+     next, -1 = prev) and only then swaps the index, resetting the
+     track to 0 in the same step. target is the index to land on.
+     If target is not the adjacent slide in that direction (a dot
+     jump to a far slide), the target is rendered as the adjacent
+     cell first, so the track slides to exactly the slide the user
+     asked for. Under reduced motion the swap is instant. Ignores
+     the call while a slide is animating or a pointer is down (a
+     drag in progress) — the auto-advance interval simply retries
+     on its next tick. */
+  const slideTo = useCallback(
+    async (target, dir) => {
+      if (count <= 1 || animatingRef.current) return;
+      if (downPointRef.current || draggingRef.current) return;
+      const from = indexRef.current;
+      const norm = (((target % count) + count) % count);
+      if (norm === from) return;
+      const width = containerRef.current?.getBoundingClientRect().width ?? 0;
+      if (width <= 0) {
+        setIndex(norm);
+        return;
+      }
+      const adj = dir > 0 ? (from + 1) % count : (from - 1 + count) % count;
+      if (adj !== norm) {
+        setOverrideCell({
+          side: dir > 0 ? 'next' : 'prev',
+          src: images[norm],
+          index: norm,
+        });
+      }
+      animatingRef.current = true;
+      try {
+        if (!reducedMotion) {
+          trackAnimRef.current = animate(trackX, dir > 0 ? -width : width, {
+            duration: 0.22,
+            ease: [0.32, 0.72, 0, 1],
+          });
+          await trackAnimRef.current;
+        }
+        setIndex(norm);
+        setOverrideCell(null);
+        stopTrackAnim();
+        trackX.set(0);
+      } catch {
+        /* Stopped mid-flight — leave the index alone, clear the
+           override and put the track back. */
+        setOverrideCell(null);
+        trackX.set(0);
+      } finally {
+        animatingRef.current = false;
+      }
     },
-    [count],
+    [count, images, reducedMotion, trackX],
   );
-  const goTo = useCallback((i) => {
-    setIndex(i);
-  }, []);
-  const next = useCallback(() => paginate(1), [paginate]);
-  const prev = useCallback(() => paginate(-1), [paginate]);
+  const slideNext = useCallback(
+    () => slideTo((indexRef.current + 1) % count, 1),
+    [slideTo, count],
+  );
+  const slidePrev = useCallback(
+    () => slideTo((indexRef.current - 1 + count) % count, -1),
+    [slideTo, count],
+  );
 
   /* Any manual change pauses auto-advance for a while. */
   const manualNav = useCallback((fn) => {
@@ -173,7 +250,7 @@ export function ProjectSlideshow({ images, repoName }) {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  /* Auto-advance. */
+  /* Auto-advance (slides, same track animation as a manual change). */
   useEffect(() => {
     if (
       count <= 1 ||
@@ -186,9 +263,9 @@ export function ProjectSlideshow({ images, repoName }) {
     ) {
       return undefined;
     }
-    const id = window.setInterval(next, AUTO_ADVANCE_MS);
+    const id = window.setInterval(slideNext, AUTO_ADVANCE_MS);
     return () => window.clearInterval(id);
-  }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, next]);
+  }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, slideNext]);
 
   /* Preload every slide once the card is on screen, so a swap never
      lands on an image that still has to be fetched — the old
@@ -212,21 +289,191 @@ export function ProjectSlideshow({ images, repoName }) {
     if (!failed[images[index]]) setLightboxOpen(true);
   }, [failed, images, index]);
 
+  /* The three cells of the track. prev/next wrap around, so both
+     neighbours always exist; a dot jump overrides the cell in the
+     jump direction with the requested slide. */
+  const prevIndex = (index - 1 + count) % count;
+  const nextIndex = (index + 1) % count;
+  const prevOverride = overrideCell?.side === 'prev' ? overrideCell : null;
+  const nextOverride = overrideCell?.side === 'next' ? overrideCell : null;
+  const prevSrc = prevOverride ? prevOverride.src : images[prevIndex];
+  const nextSrc = nextOverride ? nextOverride.src : images[nextIndex];
+  const prevShown = prevOverride ? prevOverride.index : prevIndex;
+  const nextShown = nextOverride ? nextOverride.index : nextIndex;
+
+  /* One cell's content: a failed slide shows a themed placeholder
+     (same 16:9 box, no layout shift); otherwise the image, eager
+     (the track cells are the visible/adjacent slides, and the
+     preload has already fetched them). The current cell keeps the
+     real alt text; adjacent cells are presentational. */
+  const cellContent = (src, shownIndex, isCurrent) => {
+    if (failed[src]) {
+      return (
+        <div
+          role="img"
+          aria-label={`${repoName} screenshot ${shownIndex + 1} of ${count} unavailable`}
+          className="flex h-full w-full flex-col items-center justify-center gap-2 bg-glass/[0.04] px-4 text-center"
+        >
+          <ImageOff className="h-8 w-8 text-muted-dim" aria-hidden />
+          <p className="text-sm font-medium text-muted">
+            Screenshot unavailable
+          </p>
+          <p className="text-xs text-muted-dim">
+            This image failed to load
+          </p>
+        </div>
+      );
+    }
+    return (
+      <img
+        src={src}
+        alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
+        loading="eager"
+        decoding="async"
+        draggable={false}
+        onError={() =>
+          setFailed((prev) =>
+            prev[src] ? prev : { ...prev, [src]: true },
+          )
+        }
+        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+      />
+    );
+  };
+
+  /* Plain pointer events on the current cell (same pattern as the
+     lightbox's track): pointerdown records the start (first pointer
+     only) and captures the pointer so move/up keep firing if the
+     finger slides off the cell; a horizontal-dominant move of
+     ≥ DRAG_LATCH latches a drag and the track follows the finger
+     1:1, clamped to one box width; on release a drag past half the
+     box width commits (slide, then swap the index) and anything
+     less springs back. A drag latches draggedRef, so the release
+     click never opens the lightbox; a plain tap still does. */
+  const onSlidePointerDown = (e) => {
+    if (downPointRef.current) return; /* First pointer only. */
+    downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    draggedRef.current = false;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* Capture is best-effort — move/up still fire while over the cell. */
+    }
+    /* Drag-follow setup: measure the box once — the commit threshold
+       is half this width. The drag latches in the move handler. */
+    if (count > 1) {
+      const width = containerRef.current?.getBoundingClientRect().width ?? 0;
+      dragRef.current = width > 0 ? { width } : null;
+      draggingRef.current = false;
+    }
+  };
+  const onSlidePointerMove = (e) => {
+    const p = downPointRef.current;
+    if (!p || e.pointerId !== p.pointerId) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
+    if (
+      !draggedRef.current &&
+      Math.hypot(dx, dy) >= SWIPE_THRESHOLD
+    ) {
+      draggedRef.current = true;
+    }
+    /* Drag-follow: once the gesture is horizontal-dominant, the
+       track follows the finger 1:1, clamped to one box width
+       either way. Latching also marks the gesture a drag
+       (draggedRef), so the release click is suppressed even for a
+       short drag that springs back — otherwise the spring-back
+       would be followed by the lightbox opening. A drag in flight
+       while a slide animation runs is ignored. */
+    if (dragRef.current && !animatingRef.current) {
+      if (
+        !draggingRef.current &&
+        Math.abs(dx) > Math.abs(dy) &&
+        Math.abs(dx) >= DRAG_LATCH
+      ) {
+        draggingRef.current = true;
+        draggedRef.current = true;
+      }
+      if (draggingRef.current) {
+        const width = dragRef.current.width;
+        trackX.set(Math.max(-width, Math.min(width, dx)));
+      }
+    }
+  };
+  const onSlidePointerUp = async (e) => {
+    const p = downPointRef.current;
+    downPointRef.current = null;
+    if (!p || e.pointerId !== p.pointerId) return;
+    /* A commit/spring-back animation already in flight owns the
+       track — a second pointerup in that window does nothing. */
+    if (animatingRef.current) return;
+    /* Drag-follow release: the gallery rule. A horizontal-dominant
+       drag past half the box width COMMITS — the track slides fully
+       to the adjacent slide and only then does the index swap (the
+       swap awaits the slide-out, otherwise the new slide would
+       appear at centre instantly and the slide would be lost).
+       Anything less springs back to 0 with no index change. Under
+       reduced motion both release animations are instant. A commit
+       is a manual change, so the 7s manual pause applies. */
+    if (draggingRef.current && dragRef.current) {
+      draggingRef.current = false;
+      const width = dragRef.current.width;
+      dragRef.current = null;
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      const commit =
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
+      if (!commit) {
+        animatingRef.current = true;
+        try {
+          if (reducedMotion) {
+            trackX.set(0);
+          } else {
+            trackAnimRef.current = animate(trackX, 0, {
+              type: 'spring',
+              stiffness: 400,
+              damping: 32,
+            });
+            await trackAnimRef.current;
+          }
+        } catch {
+          trackX.set(0);
+        } finally {
+          animatingRef.current = false;
+        }
+        return;
+      }
+      const dir = dx < 0 ? 1 : -1;
+      manualNav(() => slideTo(indexRef.current + dir, dir));
+      return;
+    }
+    dragRef.current = null;
+    /* draggedRef stays true on purpose: the click that follows this
+       release must be suppressed (see onClick). */
+  };
+  const onSlidePointerCancel = (e) => {
+    if (downPointRef.current?.pointerId === e.pointerId) {
+      downPointRef.current = null;
+      /* An interrupted drag is neither a tap nor a swipe: the track
+         returns to 0 at once (no animation — the gesture is dead)
+         and the drag state is forgotten. */
+      if (draggingRef.current) {
+        draggingRef.current = false;
+        dragRef.current = null;
+        stopTrackAnim();
+        trackX.set(0);
+      }
+    }
+  };
+
   return (
     <>
-    <motion.div
+    <div
       ref={containerRef}
       role="region"
       aria-roledescription="carousel"
       aria-label={`${repoName} screenshots`}
-      className="group relative -mx-6 -mt-6 mb-6 aspect-[16/9] overflow-hidden sm:-mx-7 sm:-mt-7"
-      drag={reducedMotion ? false : 'x'}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.12}
-      onDragEnd={(_, info) => {
-        if (info.offset.x < -SWIPE_THRESHOLD) manualNav(next);
-        else if (info.offset.x > SWIPE_THRESHOLD) manualNav(prev);
-      }}
+      className="group relative -mx-6 -mt-6 mb-6 aspect-[16/9] touch-pan-y overflow-hidden sm:-mx-7 sm:-mt-7"
       /* Hover-pause is mouse-only: a touch tap fires an emulated
          mousemove that never leaves, so onMouseEnter would stick
          hoverPaused on and auto-advance would never resume until
@@ -240,39 +487,30 @@ export function ProjectSlideshow({ images, repoName }) {
         if (e.pointerType !== 'touch') setHoverPaused(false);
       }}
     >
-      {/* Slides — the wrapper fades; the img inside keeps the hover zoom. */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={images[index]}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            duration: reducedMotion ? 0 : 0.45,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
+      {/* Drag track: three cells in a row — previous / current /
+          next — each exactly the box width. The track is shifted
+          left by one box width (marginLeft -100%), so the current
+          cell sits in the frame and the neighbours wait just
+          outside it; the track's x (a motion value, written by the
+          pointer handlers) then slides them through. Each cell
+          clips its own image, so the split between the outgoing
+          and incoming slide stays clean. */}
+      <motion.div
+        style={{ x: trackX, marginLeft: '-100%' }}
+        className="flex h-full w-full"
+      >
+        <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
+          {cellContent(prevSrc, prevShown, false)}
+        </div>
+        <div
           role="button"
           tabIndex={0}
           aria-label={`View ${repoName} screenshot ${index + 1} of ${count} full screen`}
-          onPointerDown={(e) => {
-            downPointRef.current = { x: e.clientX, y: e.clientY };
-            draggedRef.current = false;
-          }}
-          onPointerMove={(e) => {
-            const p = downPointRef.current;
-            if (
-              p &&
-              Math.hypot(e.clientX - p.x, e.clientY - p.y) >=
-                SWIPE_THRESHOLD
-            ) {
-              draggedRef.current = true;
-            }
-          }}
-          onPointerUp={() => {
-            downPointRef.current = null;
-          }}
+          className="h-full w-full shrink-0 cursor-zoom-in overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
+          onPointerDown={onSlidePointerDown}
+          onPointerMove={onSlidePointerMove}
+          onPointerUp={onSlidePointerUp}
+          onPointerCancel={onSlidePointerCancel}
           onClick={() => {
             /* A swipe just ended — its click must not open the
                lightbox. A real tap wobbles only a few px, so it
@@ -291,41 +529,12 @@ export function ProjectSlideshow({ images, repoName }) {
             }
           }}
         >
-          {/* A failed slide shows a themed placeholder (same 16:9
-              box, no layout shift) instead of the broken image. */}
-          {failed[images[index]] ? (
-            <div
-              role="img"
-              aria-label={`${repoName} screenshot ${index + 1} of ${count} unavailable`}
-              className="flex h-full w-full flex-col items-center justify-center gap-2 bg-glass/[0.04] px-4 text-center"
-            >
-              <ImageOff className="h-8 w-8 text-muted-dim" aria-hidden />
-              <p className="text-sm font-medium text-muted">
-                Screenshot unavailable
-              </p>
-              <p className="text-xs text-muted-dim">
-                This image failed to load
-              </p>
-            </div>
-          ) : (
-            <img
-              src={images[index]}
-              alt={`${repoName} screenshot ${index + 1} of ${count}`}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-              onError={() =>
-                setFailed((prev) =>
-                  prev[images[index]]
-                    ? prev
-                    : { ...prev, [images[index]]: true },
-                )
-              }
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-            />
-          )}
-        </motion.div>
-      </AnimatePresence>
+          {cellContent(images[index], index, true)}
+        </div>
+        <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
+          {cellContent(nextSrc, nextShown, false)}
+        </div>
+      </motion.div>
 
       {/* Bottom gradient so the dots stay readable on bright photos. */}
       {showControls && (
@@ -347,7 +556,7 @@ export function ProjectSlideshow({ images, repoName }) {
         <>
           <button
             type="button"
-            onClick={() => manualNav(prev)}
+            onClick={() => manualNav(slidePrev)}
             aria-label="Previous image"
             className="absolute left-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
           >
@@ -355,7 +564,7 @@ export function ProjectSlideshow({ images, repoName }) {
           </button>
           <button
             type="button"
-            onClick={() => manualNav(next)}
+            onClick={() => manualNav(slideNext)}
             aria-label="Next image"
             className="absolute right-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
           >
@@ -378,7 +587,16 @@ export function ProjectSlideshow({ images, repoName }) {
               type="button"
               aria-current={i === index}
               aria-label={`Go to image ${i + 1}`}
-              onClick={() => manualNav(() => goTo(i))}
+              onClick={() => {
+                /* Tapping the active dot changes nothing — it only
+                   pauses auto-advance, as before. Any other dot
+                   slides the track to exactly that slide. */
+                if (i === index) {
+                  manualNav(() => {});
+                  return;
+                }
+                manualNav(() => slideTo(i, i > index ? 1 : -1));
+              }}
               className="group flex h-6 w-6 items-center justify-center"
             >
               <span
@@ -393,7 +611,7 @@ export function ProjectSlideshow({ images, repoName }) {
           ))}
         </div>
       )}
-    </motion.div>
+    </div>
 
     {/* Full-size view — the existing photo lightbox in its rectangular
         variant (same zoom/close/Tab behaviour as the hero portrait),
