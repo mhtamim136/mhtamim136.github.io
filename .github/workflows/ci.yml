@@ -2,6 +2,12 @@
 # Runs ONLY on pull requests to main (or manual dispatch) — it never
 # deploys anything and cannot affect the live site (Vercel) or the
 # GitHub Pages fallback deploy (deploy.yml handles that).
+#
+# HOW TO ADD (the Muse GitHub App cannot push workflow files):
+# 1. GitHub web UI → repo → .github/workflows/ → ci.yml → Edit
+# 2. Replace the whole file with this content, commit to main.
+# This version adds a `lint` job (ESLint, Tier 1 platform work).
+# The build job is unchanged.
 name: PR build check
 
 on:
@@ -13,6 +19,25 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
   build:
     runs-on: ubuntu-latest
 
@@ -34,4 +59,3 @@ jobs:
         env:
           VITE_WEB3FORMS_KEY: ${{ secrets.VITE_WEB3FORMS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
