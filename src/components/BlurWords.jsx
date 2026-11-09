@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { useEffect } from 'react';
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 
 /**
  * Blur + rise word-by-word reveal — Direction A hero entrance.
@@ -21,6 +22,21 @@ import { motion, useReducedMotion } from 'framer-motion';
  * NO scale on text, no rotation, no extra glow, no 3D tilt, no
  * parallax. Transform + filter + opacity only — no layout shift.
  *
+ * ── Why the blur is clamped at 0 ──
+ * The spring is underdamped (damping ratio 26 / (2·√260) ≈ 0.81),
+ * so it overshoots its target by ~1.4% — for an 8px blur that is
+ * ~0.11px past zero, i.e. blur(-0.11px). CSS blur() cannot be
+ * negative, so the browser dropped those keyframes and logged
+ * "Invalid keyframe value for property filter" (~28 frames per
+ * load). The rendered result was unaffected (invalid frames are
+ * dropped), but the console was polluted. The blur now rides its
+ * own MotionValue driven by the SAME spring (same constants, same
+ * delay), and the rendered value is clamped at 0 — only the
+ * invalid tail is clipped; the visible trajectory is unchanged.
+ * (RoleLine's blur is a tween and cannot overshoot, so it needs
+ * no clamp — verified by grep: BlurWords is the only
+ * spring-animated blur in src/.)
+ *
  * ── Reduced motion ──
  * App is wrapped in <MotionConfig reducedMotion="user">, but that
  * only disables transform/layout animations — a filter (blur)
@@ -38,6 +54,37 @@ import { motion, useReducedMotion } from 'framer-motion';
 const SPRING = { type: 'spring', stiffness: 260, damping: 26 };
 const STAGGER = 0.07;
 
+/* Clamp a spring-driven blur at 0 — the rendered value can never go
+   negative. Module-level so the transformer reference is stable. */
+const clampBlur = (v) => `blur(${Math.max(0, v)}px)`;
+
+/* One word of the reveal. y/opacity ride the motion.span's animate
+   prop on SPRING, exactly as before. The blur rides its own
+   MotionValue driven by the SAME spring (same constants, same
+   delay), so its trajectory is identical — except the rendered
+   value is clamped at 0 (see header). */
+function BlurWord({ text, className, delay }) {
+  const blur = useMotionValue(8);
+  const filter = useTransform(blur, clampBlur);
+
+  useEffect(() => {
+    const controls = animate(blur, 0, { ...SPRING, delay });
+    return () => controls.stop();
+  }, [blur, delay]);
+
+  return (
+    <motion.span
+      className={`inline-block will-change-transform ${className ?? ''}`}
+      style={{ willChange: 'transform, filter', filter }}
+      initial={{ y: 24, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ ...SPRING, delay }}
+    >
+      {text}
+    </motion.span>
+  );
+}
+
 export function BlurWords({ words, baseDelay = 0, className }) {
   const reduceMotion = useReducedMotion() ?? false;
 
@@ -48,15 +95,7 @@ export function BlurWords({ words, baseDelay = 0, className }) {
           {reduceMotion ? (
             <span className={`inline-block ${w.className ?? ''}`}>{w.text}</span>
           ) : (
-            <motion.span
-              className={`inline-block will-change-transform ${w.className ?? ''}`}
-              style={{ willChange: 'transform, filter' }}
-              initial={{ y: 24, opacity: 0, filter: 'blur(8px)' }}
-              animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-              transition={{ ...SPRING, delay: baseDelay + i * STAGGER }}
-            >
-              {w.text}
-            </motion.span>
+            <BlurWord text={w.text} className={w.className} delay={baseDelay + i * STAGGER} />
           )}
           {i < words.length - 1 ? ' ' : null}
         </span>
