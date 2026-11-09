@@ -127,7 +127,7 @@ services: [
     portfolio: 'https://mhtamim136.github.io/profile-card/',
     facebook: 'https://www.facebook.com/mhtamim136/',
     instagram: 'https://www.instagram.com/mhtamim136',
-    x: 'https://x.com/tamim_136',
+    x: 'https://x.com/mhtamim136',
     discord: 'https://discordapp.com/users/1148815562080800900',
   },
 
