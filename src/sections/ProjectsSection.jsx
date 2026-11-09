@@ -628,6 +628,14 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
   const remaining = filtered.length - visibleCount;
   const expanded = visibleCount > initialCount;
 
+  /* "Showing X of Y" counts every card on screen. In ALL the Featured
+     cards sit above this grid, so shown = Featured + the visible More
+     slice and total = all repos. In FILTERED the flat list IS the
+     whole view. Both derive live from the repos data — a new repo or
+     a re-pin moves the numbers by itself, nothing hardcoded. */
+  const shown = isFiltered ? visible.length : featuredRepos.length + visible.length;
+  const total = isFiltered ? filtered.length : repos.length;
+
   /* +4 per click, never past the end. */
   const handleShowMore = () => {
     setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
@@ -956,7 +964,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                 )}
               </div>
               <p className="mt-3 text-xs text-muted-dim">
-                Showing {visible.length} of {filtered.length} projects
+                Showing {shown} of {total} projects
               </p>
             </motion.div>
           )}
