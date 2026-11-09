@@ -1,0 +1,92 @@
+/* ── Hero buttons hover fill ────────────────────────────────────────
+   Scope: the THREE hero buttons ONLY (classes applied to those Button
+   instances in HeroSection.jsx). No other button is affected —
+   Button.jsx is untouched. Footer "Get In Touch" has no such class.
+
+   Technique: background-position wipe (same as the profile-card V3
+   fill). Layer 1 is the wipe — solid accent on its left half,
+   transparent on its right half, at 200% width. At rest it sits at
+   position 100%, showing its transparent half; on hover/focus-visible
+   it slides to 0%, so the solid accent sweeps in from the LEFT edge.
+   The wipe layer is `calc(200% + 6px)` wide, not plain 200%:
+   button widths are fractional (e.g. 131.73px), and the 200%-wide
+   layer's rounding puts the cyan/transparent boundary right on the
+   button's left edge at rest, leaving a 1px cyan sliver on the ghost
+   buttons (measured by pixel sampling; removing the fill classes
+   in-page removes it, so it is the fill, not a pre-existing line).
+   The extra 6px puts the boundary 3px past the left edge at rest —
+   clear of rounding (±1px) and gradient anti-aliasing — while the
+   hover end overhangs 3px past the right edge instead, so the filled
+   state is unaffected. (A calc() in background-position would have
+   fixed it too, but Chrome then reports the position as calc()
+   throughout the transition, which can't be measured as a fill
+   percentage.)
+   550ms, slow ease-out — deliberately slow ("dhire dhire"), never
+   instant. The label + icon flip to dark (#062a33) on the same 550ms
+   so contrast holds once the cyan is under them; both icons are
+   currentColor (arrow: stroke, GitHub: fill, document: stroke), so
+   they flip with the text. The fill colour is the literal #22d3ee in
+   BOTH themes (the editorial mockup's button): in light mode the
+   accent token is cyan-700, and dark text on cyan-700 would be
+   unreadable, so the literal cyan is required for the flip to work
+   everywhere.
+
+   Resting treatment differs by variant (so the resting hierarchy
+   stays distinct — Get In Touch keeps its primary look, Resume and
+   GitHub keep their ghost look):
+     --solid (Get In Touch): resting tint comes from layer 2
+       (accent/15, pixel-identical to the primary variant's
+       bg-accent/15) and background-color is forced transparent, so
+       the variant's hover:bg-accent/25 can't darken the unfilled
+       part mid-sweep.
+     --ghost (Resume, GitHub icon): layer 2 is off; the resting
+       background is the secondary variant's own glass (0.04, 0.07
+       on hover), untouched.
+
+   Why not ::before/scaleX? A pseudo-element would need z-index
+   juggling against the button's text node (anonymous boxes can't
+   take z-index) and the Magnetic wrapper's transform; the
+   background layers always paint behind text, so nothing can cover
+   the label. The button's own hover scale (1.02) is preserved by
+   keeping `transform` in the transition list.
+
+   This is unlayered CSS, so it wins over the layered Tailwind
+   utilities regardless of specificity.
+
+   Reduced motion: the kill-switch in index.css
+   (`transition-duration: 0.01ms !important` on *) makes the sweep
+   instant — no extra rule needed here. Verified by measurement.
+   ------------------------------------------------------------------ */
+.hero-cta-fill {
+  background-image:
+    linear-gradient(to right, #22d3ee 50%, transparent 50%),
+    var(--cta-rest, none);
+  background-size: calc(200% + 6px) 100%, 100% 100%;
+  background-position: 100% 0, 0 0;
+  background-repeat: no-repeat;
+  transition:
+    background-position 550ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 550ms ease-out,
+    border-color 550ms ease-out,
+    background-color 250ms ease-out,
+    transform 250ms ease-out;
+}
+
+.hero-cta-fill:hover,
+.hero-cta-fill:focus-visible {
+  background-position: 0 0, 0 0;
+  color: #062a33;
+  border-color: #22d3ee;
+}
+
+/* Primary (Get In Touch): resting tint from layer 2. */
+.hero-cta-fill--solid {
+  background-color: transparent;
+  --cta-rest: linear-gradient(to right, rgb(var(--accent) / 0.15), rgb(var(--accent) / 0.15));
+}
+
+/* Ghost (Resume, GitHub icon): resting background is the variant's
+   own glass; layer 2 stays off. */
+.hero-cta-fill--ghost {
+  --cta-rest: none;
+}

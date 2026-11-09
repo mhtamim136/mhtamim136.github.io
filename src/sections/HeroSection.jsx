@@ -10,6 +10,7 @@ import { BlurWords } from '../components/BlurWords';
 import { NavIcon } from '../components/icons/NavIcons';
 import { externalLinkProps } from '../utils/links';
 import { useProfileImage } from '../hooks/useProfileImage';
+import './HeroCtaFill.css';
 import heroManifest from 'virtual:hero-image-manifest';
 
 /**
@@ -212,7 +213,13 @@ export function HeroSection() {
             same height/padding as its siblings, with aria-label +
             title so it stays discoverable. */}
         <Magnetic>
-          <Button href="#contact" variant="primary">
+          {/* hero-cta-fill: slow left-to-right cyan wipe on hover /
+              focus-visible — all three hero buttons share it
+              (see HeroCtaFill.css). --solid keeps the primary's
+              resting tint; --ghost keeps the secondary's glass, so
+              the resting hierarchy stays distinct. Footer
+              "Get In Touch" has no such class — untouched. */}
+          <Button href="#contact" variant="primary" className="hero-cta-fill hero-cta-fill--solid">
             Get In Touch
             <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">
               <NavIcon name="arrow-right" className="h-4 w-4" />
@@ -220,7 +227,7 @@ export function HeroSection() {
           </Button>
         </Magnetic>
         <Magnetic>
-          <Button {...externalLinkProps(resumeLink)} variant="secondary">
+          <Button {...externalLinkProps(resumeLink)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
             <NavIcon name="document" className="h-4 w-4" />
             Resume
           </Button>
@@ -229,6 +236,7 @@ export function HeroSection() {
           <Button
             {...externalLinkProps(githubProfile)}
             variant="secondary"
+            className="hero-cta-fill hero-cta-fill--ghost"
             aria-label="View GitHub profile"
             title="View GitHub profile"
           >
