@@ -47,11 +47,14 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   propagation — clicking it closes without zooming — and it is a
  *   real <button> with a visible focus ring.
  * - Rectangular variant (Tier 4, `shape="rect"`): project
- *   screenshots open in a 16:9 rectangle (up to 900px wide) instead
- *   of the portrait circle, with a centred crop. Same zoom, same
- *   close behaviour (tap closes on touch, click zooms on desktop),
- *   same Tab cycle. The circle stays the default — the hero
- *   portrait is untouched.
+ *   screenshots open in a 16:9 rectangle (up to 900px wide)
+ *   instead of the portrait circle, showing the whole image
+ *   (object-contain over a blurred copy of the same image —
+ *   a tall or small screenshot is never cropped or over-zoomed).
+ *   Same zoom, same close behaviour (tap closes on touch, click
+ *   zooms on desktop), same Tab cycle. The circle stays the
+ *   default — the hero portrait is untouched (its cover crop
+ *   and frame zoom are exactly as before).
  * - Keyboard navigation (project screenshots only, 2026-11-09):
  *   when `images` + `index` + `onNavigate` are passed, ArrowLeft /
  *   ArrowRight move to the previous / next screenshot (wrapping
@@ -622,6 +625,17 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     shape === 'rect'
       ? 'relative aspect-video w-[min(92vw,900px)] cursor-zoom-in overflow-hidden rounded-2xl shadow-2xl'
       : 'relative aspect-square w-[min(92vw,80vh,560px)] cursor-zoom-in overflow-hidden rounded-full shadow-2xl';
+  /* Fit (2026-11-09, rect variant only): the WHOLE screenshot
+     always shows — object-contain over a blurred, enlarged copy
+     of the SAME image filling the frame (same URL, so no extra
+     fetch — the browser cache serves the backdrop). A tall or
+     small screenshot used to be over-zoomed and heavily cropped
+     by object-cover in this fixed 16:9 frame; now it shows fully
+     and the backdrop fills the bands — the premium gallery
+     look, same fit as the slideshow. The backdrop is
+     presentational (aria-hidden, pointer-events-none). The hero
+     circle is untouched — it keeps its face-filling cover crop
+     and its frame zoom. */
   const photo =
     manifest && !manifest.dev ? (
       <picture className="block h-full w-full">
@@ -648,15 +662,27 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         />
       </picture>
     ) : (
-      <img
-        src={manifest?.src || src}
-        alt={alt}
-        loading="eager"
-        decoding="async"
-        draggable={false}
-        className="h-full w-full object-cover"
-        style={{ objectPosition }}
-      />
+      <div className="relative h-full w-full overflow-hidden">
+        <img
+          src={manifest?.src || src}
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          draggable={false}
+          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
+          style={{ objectPosition }}
+        />
+        <img
+          src={manifest?.src || src}
+          alt={alt}
+          loading="eager"
+          decoding="async"
+          draggable={false}
+          className="relative h-full w-full object-contain"
+          style={{ objectPosition }}
+        />
+      </div>
     );
 
   /* Drag-track cells (project lightbox only): the same plain
@@ -672,15 +698,27 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     ? images[(index + 1) % images.length]
     : null;
   const cellPhoto = (srcUrl) => (
-    <img
-      src={srcUrl}
-      alt=""
-      loading="eager"
-      decoding="async"
-      draggable={false}
-      className="h-full w-full object-cover"
-      style={{ objectPosition }}
-    />
+    <div className="relative h-full w-full overflow-hidden">
+      <img
+        src={srcUrl}
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        decoding="async"
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
+        style={{ objectPosition }}
+      />
+      <img
+        src={srcUrl}
+        alt=""
+        loading="eager"
+        decoding="async"
+        draggable={false}
+        className="relative h-full w-full object-contain"
+        style={{ objectPosition }}
+      />
+    </div>
   );
 
   return createPortal(

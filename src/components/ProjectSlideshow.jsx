@@ -23,7 +23,10 @@ const COMMIT_FRACTION = 0.5;
 /**
  * Professional project-image carousel (Airbnb / Behance style).
  *
- * - 16:9 cover image; ONE carousel behaviour everywhere: a
+ * - 16:9 box; the whole image always shows (object-contain
+ *   over a blurred copy of the same image filling the box —
+ *   a tall or small screenshot is never cropped or over-zoomed,
+ *   same fit as the lightbox); ONE carousel behaviour everywhere: a
  *   three-cell track (previous / current / next, each exactly the
  *   box width) that follows the finger 1:1 on a drag, commits past
  *   half the box width, and springs back below it — exactly like
@@ -324,20 +327,41 @@ export function ProjectSlideshow({ images, repoName }) {
         </div>
       );
     }
+    /* Fit (2026-11-09): the WHOLE image is always visible —
+       object-contain over a blurred, enlarged copy of the SAME
+       image filling the box (same URL, so no extra fetch — the
+       browser cache serves the backdrop). A tall or small
+       screenshot used to be over-zoomed and heavily cropped by
+       object-cover in this fixed 16:9 box; now it shows fully
+       and the backdrop fills the bands — the premium gallery
+       look, same as the lightbox. The backdrop is presentational
+       (aria-hidden, pointer-events-none) and never intercepts
+       pointer events: the drag handlers live on the cell div. */
     return (
-      <img
-        src={src}
-        alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
-        loading="eager"
-        decoding="async"
-        draggable={false}
-        onError={() =>
-          setFailed((prev) =>
-            prev[src] ? prev : { ...prev, [src]: true },
-          )
-        }
-        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-      />
+      <div className="relative h-full w-full overflow-hidden">
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          draggable={false}
+          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
+        />
+        <img
+          src={src}
+          alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
+          loading="eager"
+          decoding="async"
+          draggable={false}
+          onError={() =>
+            setFailed((prev) =>
+              prev[src] ? prev : { ...prev, [src]: true },
+            )
+          }
+          className="relative h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
+        />
+      </div>
     );
   };
 
