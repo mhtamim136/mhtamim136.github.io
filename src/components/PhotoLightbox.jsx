@@ -56,13 +56,39 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   touch, and a counter shows "n / total". The hero portrait
  *   passes none of those props, so it is unchanged — no arrows, no
  *   buttons, no counter. Zoom resets to 1 on every navigation.
+ * - Swipe to navigate (project screenshots only, 2026-11-09): a
+ *   horizontal swipe (≥ 50px, horizontal-dominant) on the photo
+ *   moves to the next (swipe left) / previous (swipe right)
+ *   screenshot, same direction and same 50px threshold as the
+ *   slideshow's own swipe. A light tap is NOT a swipe: touch tap
+ *   still closes, desktop click still zooms. The swipe is tracked
+ *   with plain pointer events on the photo div (see onPhotoClick):
+ *   a drag sets `swipedRef`, which the click that follows the
+ *   drag must check first — otherwise the release click would
+ *   close (touch) or zoom (desktop) right after navigating.
+ *   No drag-follow animation: the photo sits inside a zoom
+ *   scale() transform, so navigation happens on release only.
+ *   Two platform gotchas, both fixed here: (1) touch needs
+ *   `touch-none` on the photo div, or the browser takes over
+ *   the touch for panning and fires pointercancel mid-swipe;
+ *   (2) mouse needs `draggable={false}` on the <img>, or the
+ *   browser starts a native image drag and fires pointercancel
+ *   after the first move. Both are scoped to navigation
+ *   (touch-none) / harmless no-ops (draggable) for the hero.
  */
+const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
   const prevRef = useRef(null);
   const nextRef = useRef(null);
+  /* Swipe tracking (same pattern as the slideshow's swipe guard):
+     downPointRef records where the pointer went down (first pointer
+     only); swipedRef marks a drag, so the click that follows it can
+     be told apart from a plain tap. */
+  const downPointRef = useRef(null);
+  const swipedRef = useRef(false);
 
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
@@ -156,11 +182,72 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         exit: { opacity: 0, scale: 0.96 },
       };
 
+  /* Swipe to navigate. Plain pointer events on the photo div:
+     pointerdown records the start (first pointer only) and
+     captures the pointer so move/up keep firing if the finger
+     slides off the photo; a move of ≥ SWIPE_THRESHOLD marks a
+     drag; on release a horizontal-dominant drag navigates
+     (left = next, right = prev — same as the slideshow) and
+     leaves swipedRef true so the click that follows the drag is
+     suppressed. Navigation only when canNavigate — for the hero
+     a swipe navigates nowhere but still suppresses the click, so
+     a drag never closes or zooms by accident. */
+  const onPhotoPointerDown = (e) => {
+    if (downPointRef.current) return; /* First pointer only. */
+    downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    swipedRef.current = false;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* Capture is best-effort (already-released pointer, old
+         browser) — move/up still fire while over the photo. */
+    }
+  };
+  const onPhotoPointerMove = (e) => {
+    const p = downPointRef.current;
+    if (!p || e.pointerId !== p.pointerId) return;
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) >= SWIPE_THRESHOLD) {
+      swipedRef.current = true;
+    }
+  };
+  const onPhotoPointerUp = (e) => {
+    const p = downPointRef.current;
+    downPointRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* Not captured (see pointerdown) — nothing to release. */
+    }
+    if (!p || e.pointerId !== p.pointerId || !swipedRef.current) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+    /* swipedRef stays true on purpose: the click that follows
+       this release must be suppressed (see onPhotoClick). */
+  };
+  const onPhotoPointerCancel = (e) => {
+    if (downPointRef.current?.pointerId === e.pointerId) {
+      downPointRef.current = null;
+    }
+    /* No navigation, no click suppression: a cancelled gesture
+       is neither a tap nor a swipe. */
+  };
+
   /* Desktop: click the photo zooms in a step; at max it resets to 1.
      Touch: tap the photo closes (v1 behaviour — zoom needs a mouse).
-     stopPropagation keeps the overlay's click-to-close from firing. */
+     stopPropagation keeps the overlay's click-to-close from firing.
+     A drag is NOT a tap: if the pointer moved ≥ SWIPE_THRESHOLD,
+     swipedRef is true and this click (the release click of the
+     swipe) must do nothing — not zoom, not close. */
   const onPhotoClick = (e) => {
     e.stopPropagation();
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
     if (!finePointer) {
       onClose();
       return;
@@ -223,6 +310,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
           height={manifest.height}
           loading="eager"
           decoding="async"
+          draggable={false}
           className="h-full w-full object-cover"
           style={{ objectPosition }}
         />
@@ -233,6 +321,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         alt={alt}
         loading="eager"
         decoding="async"
+        draggable={false}
         className="h-full w-full object-cover"
         style={{ objectPosition }}
       />
@@ -307,8 +396,17 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         <div
           onClick={onPhotoClick}
           onWheel={onPhotoWheel}
+          onPointerDown={onPhotoPointerDown}
+          onPointerMove={onPhotoPointerMove}
+          onPointerUp={onPhotoPointerUp}
+          onPointerCancel={onPhotoPointerCancel}
           style={{ transform: `scale(${zoom})` }}
-          className={`${photoFrameClass} ${zoomTransition}`}
+          /* touch-none when navigation is on: without it the
+             browser takes over the touch stream for panning and
+             fires pointercancel mid-swipe, so pointerup (and the
+             navigation) never arrives. The hero keeps the default
+             touch behaviour — a tap still closes it. */
+          className={`${photoFrameClass} ${zoomTransition}${canNavigate ? ' touch-none' : ''}`}
         >
           {photo}
         </div>
