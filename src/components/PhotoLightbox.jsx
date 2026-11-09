@@ -24,8 +24,11 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   source (mild 1.27x upscale, acceptable). Beyond 2x it would
  *   visibly blur. If Tamim ever provides a higher-res photo the cap
  *   can rise.
- * - TOUCH (coarse pointer): zoom controls OFF — tap the photo closes,
- *   exactly as v1. Only the shape changes to round.
+ * - TOUCH (coarse pointer): tap the photo closes (v1 behaviour),
+ *   but zoom is available through the two standard mobile gestures
+ *   — pinch to zoom and double-tap to toggle zoom (2026-11-09, see
+ *   below). A single tap waits 250 ms before closing so a second
+ *   tap can still be recognised as a double-tap.
  * - Behaviour change vs v1: click-on-photo NO LONGER closes on
  *   desktop (it zooms now). Close is backdrop click / backdrop wheel /
  *   Escape.
@@ -75,8 +78,27 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   browser starts a native image drag and fires pointercancel
  *   after the first move. Both are scoped to navigation
  *   (touch-none) / harmless no-ops (draggable) for the hero.
+ * - Pinch + double-tap zoom (touch, 2026-11-09): pinch with two
+ *   fingers scales the zoom continuously, clamped [1, 2] like
+ *   desktop (centre zoom only, no pan); double-tap toggles 1 ↔ 2.
+ *   The photo div is `touch-none` ALWAYS now (pinch needs it on
+ *   the hero photo too, or the browser takes over the touch stream
+ *   and fires pointercancel mid-pinch — the same gotcha as the
+ *   swipe work). Tap-to-close still works: it is a click, which
+ *   touch-action does not affect. A pinch never navigates and
+ *   never closes; its release click(s) are suppressed by the same
+ *   swipedRef the swipe uses — and swipedRef is cleared only by
+ *   the next pointerdown, because a two-finger gesture can fire
+ *   one click per finger.
  */
 const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
+/* Touch tap timing: a single tap waits this long before closing, so
+   a second tap landing nearby can still be recognised as a
+   double-tap (the standard gallery tradeoff — every gallery app
+   waits). The second tap must land within DOUBLE_TAP_SLOP of the
+   first to count. */
+const DOUBLE_TAP_DELAY = 250; /* ms */
+const DOUBLE_TAP_SLOP = 30; /* px */
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
@@ -89,6 +111,30 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      be told apart from a plain tap. */
   const downPointRef = useRef(null);
   const swipedRef = useRef(false);
+  /* Pinch tracking: every pointer currently down on the photo
+     (pointerId → { x, y }). Two pointers = a pinch; the pinch
+     itself (the two ids, the finger distance when it started, the
+     zoom then) lives in pinchRef. */
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
+  /* Touch tap bookkeeping (see onPhotoClick): a pending close
+     timer — a single tap waits DOUBLE_TAP_DELAY before closing so
+     a second tap can become a double-tap; whether the tap that
+     just ended is the second of a double-tap; where/when the last
+     tap landed. */
+  const tapTimerRef = useRef(null);
+  const doubleTapRef = useRef(false);
+  const lastTapRef = useRef(null);
+
+  /* Clears a pending tap-close timer, if any. Called when a swipe
+     or pinch starts, when a double-tap is recognised, and before a
+     fresh timer is scheduled. */
+  const clearTapTimer = () => {
+    if (tapTimerRef.current !== null) {
+      clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = null;
+    }
+  };
 
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
@@ -135,6 +181,11 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     dialogRef.current?.focus();
     return () => {
       document.body.style.overflow = prevOverflow;
+      /* A pending tap-close must not fire after unmount. */
+      if (tapTimerRef.current !== null) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -182,7 +233,8 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         exit: { opacity: 0, scale: 0.96 },
       };
 
-  /* Swipe to navigate. Plain pointer events on the photo div:
+  /* Swipe to navigate + pinch to zoom. Plain pointer events on the
+     photo div (pointer-type-agnostic — any two pointers pinch):
      pointerdown records the start (first pointer only) and
      captures the pointer so move/up keep firing if the finger
      slides off the photo; a move of ≥ SWIPE_THRESHOLD marks a
@@ -191,33 +243,122 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      leaves swipedRef true so the click that follows the drag is
      suppressed. Navigation only when canNavigate — for the hero
      a swipe navigates nowhere but still suppresses the click, so
-     a drag never closes or zooms by accident. */
+     a drag never closes or zooms by accident.
+     A second pointer down starts a PINCH instead: the finger
+     distance and the zoom at that moment are recorded, and the
+     zoom then tracks the distance ratio, clamped [1, 2] like
+     desktop. A pinch never navigates and never closes; its
+     release click(s) are suppressed by the same swipedRef.
+     Touch tap timing lives here too: a pointerdown landing near
+     the last tap in time and space, while a close timer is
+     pending, is the second tap of a double-tap — it cancels the
+     close and the click toggles the zoom (see onPhotoClick). */
   const onPhotoPointerDown = (e) => {
-    if (downPointRef.current) return; /* First pointer only. */
-    downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
-    swipedRef.current = false;
+    /* Track every pointer down on the photo, and capture it so
+       move/up keep firing off the photo. */
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
       /* Capture is best-effort (already-released pointer, old
          browser) — move/up still fire while over the photo. */
     }
+
+    /* Two pointers = pinch start: record the finger distance and
+       the zoom at that moment. A pinch is neither a tap nor a
+       swipe: suppress the release click(s), cancel any swipe,
+       forget any double-tap in progress, and cancel a pending
+       tap-close (the first tap is now part of a pinch). */
+    if (pointersRef.current.size === 2) {
+      const ids = [...pointersRef.current.keys()];
+      const [a, b] = [...pointersRef.current.values()];
+      pinchRef.current = {
+        ids,
+        startDist: Math.max(
+          1,
+          Math.hypot(b.x - a.x, b.y - a.y),
+        ),
+        startZoom: zoom,
+      };
+      swipedRef.current = true;
+      downPointRef.current = null;
+      doubleTapRef.current = false;
+      clearTapTimer();
+      return;
+    }
+    if (pointersRef.current.size > 2) return; /* Third finger: ignore. */
+
+    /* One pointer — the single-pointer behaviour. */
+    downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    swipedRef.current = false;
+    /* Touch only: is this the second tap of a double-tap? The
+       first tap scheduled a close DOUBLE_TAP_DELAY out; a second
+       tap landing near it in time and space cancels that close
+       and becomes a zoom toggle (see onPhotoClick). */
+    if (!finePointer && tapTimerRef.current !== null && lastTapRef.current) {
+      const last = lastTapRef.current;
+      if (
+        Date.now() - last.time <= DOUBLE_TAP_DELAY &&
+        Math.hypot(e.clientX - last.x, e.clientY - last.y) <= DOUBLE_TAP_SLOP
+      ) {
+        clearTapTimer();
+        doubleTapRef.current = true;
+      }
+    }
   };
   const onPhotoPointerMove = (e) => {
+    const pt = pointersRef.current.get(e.pointerId);
+    if (!pt) return;
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    /* Pinch: two pointers down — scale the zoom by the finger
+       distance relative to the pinch start, clamped [1, 2]. */
+    if (pinchRef.current) {
+      const [id1, id2] = pinchRef.current.ids;
+      const a = pointersRef.current.get(id1);
+      const b = pointersRef.current.get(id2);
+      if (a && b) {
+        const dist = Math.hypot(b.x - a.x, b.y - a.y);
+        setZoom(
+          Math.min(
+            2,
+            Math.max(1, (pinchRef.current.startZoom * dist) / pinchRef.current.startDist),
+          ),
+        );
+      }
+      return;
+    }
+    /* Single pointer — the swipe tracking. */
     const p = downPointRef.current;
     if (!p || e.pointerId !== p.pointerId) return;
-    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) >= SWIPE_THRESHOLD) {
+    if (
+      !swipedRef.current &&
+      Math.hypot(e.clientX - p.x, e.clientY - p.y) >= SWIPE_THRESHOLD
+    ) {
       swipedRef.current = true;
+      /* A drag is not a tap: cancel a pending tap-close and
+         forget any double-tap in progress. */
+      doubleTapRef.current = false;
+      clearTapTimer();
     }
   };
   const onPhotoPointerUp = (e) => {
-    const p = downPointRef.current;
-    downPointRef.current = null;
+    pointersRef.current.delete(e.pointerId);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       /* Not captured (see pointerdown) — nothing to release. */
     }
+    /* A pinch finger lifting ends the pinch: keep the final zoom,
+       navigate nowhere, close nothing. The remaining finger's
+       later pointerup finds downPointRef null (no navigation) and
+       its release click is suppressed by swipedRef. */
+    if (pinchRef.current?.ids.includes(e.pointerId)) {
+      pinchRef.current = null;
+      return;
+    }
+    const p = downPointRef.current;
+    downPointRef.current = null;
     if (!p || e.pointerId !== p.pointerId || !swipedRef.current) return;
     const dx = e.clientX - p.x;
     const dy = e.clientY - p.y;
@@ -225,31 +366,53 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       if (dx < 0) goNext();
       else goPrev();
     }
-    /* swipedRef stays true on purpose: the click that follows
-       this release must be suppressed (see onPhotoClick). */
+    /* swipedRef stays true on purpose: the click(s) that follow
+       this release must be suppressed (see onPhotoClick). A
+       two-finger gesture can fire one click per finger, so
+       swipedRef is cleared only by the next pointerdown — never
+       here and never in the click handler. */
   };
   const onPhotoPointerCancel = (e) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pinchRef.current?.ids.includes(e.pointerId)) {
+      pinchRef.current = null;
+    }
     if (downPointRef.current?.pointerId === e.pointerId) {
       downPointRef.current = null;
     }
-    /* No navigation, no click suppression: a cancelled gesture
-       is neither a tap nor a swipe. */
+    /* No navigation, no click suppression change: a cancelled
+       gesture is neither a tap nor a swipe. (swipedRef is left
+       as-is — the next pointerdown resets it.) */
   };
 
   /* Desktop: click the photo zooms in a step; at max it resets to 1.
-     Touch: tap the photo closes (v1 behaviour — zoom needs a mouse).
-     stopPropagation keeps the overlay's click-to-close from firing.
-     A drag is NOT a tap: if the pointer moved ≥ SWIPE_THRESHOLD,
-     swipedRef is true and this click (the release click of the
-     swipe) must do nothing — not zoom, not close. */
+     Touch: tap the photo closes (v1 behaviour) — but only after
+     DOUBLE_TAP_DELAY, so a second tap landing nearby in time can
+     still be recognised as a double-tap, which toggles the zoom
+     instead (1 ↔ 2). stopPropagation keeps the overlay's
+     click-to-close from firing.
+     A drag or a pinch is NOT a tap: if the pointer moved
+     ≥ SWIPE_THRESHOLD, swipedRef is true and this click (the
+     release click of the swipe, or either finger's release click
+     after a pinch) must do nothing — not zoom, not close.
+     swipedRef is deliberately NOT cleared here: a two-finger
+     gesture can fire one click per finger, and clearing it on the
+     first click would let the second close the lightbox. The next
+     pointerdown resets it. */
   const onPhotoClick = (e) => {
     e.stopPropagation();
     if (swipedRef.current) {
-      swipedRef.current = false;
       return;
     }
     if (!finePointer) {
-      onClose();
+      if (doubleTapRef.current) {
+        doubleTapRef.current = false;
+        setZoom((z) => (z > 1 ? 1 : 2));
+        return;
+      }
+      lastTapRef.current = { time: Date.now(), x: e.clientX, y: e.clientY };
+      clearTapTimer();
+      tapTimerRef.current = setTimeout(onClose, DOUBLE_TAP_DELAY);
       return;
     }
     setZoom((z) => (z >= 2 ? 1 : Math.min(2, z + 0.5)));
@@ -401,12 +564,14 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
           onPointerUp={onPhotoPointerUp}
           onPointerCancel={onPhotoPointerCancel}
           style={{ transform: `scale(${zoom})` }}
-          /* touch-none when navigation is on: without it the
-             browser takes over the touch stream for panning and
-             fires pointercancel mid-swipe, so pointerup (and the
-             navigation) never arrives. The hero keeps the default
-             touch behaviour — a tap still closes it. */
-          className={`${photoFrameClass} ${zoomTransition}${canNavigate ? ' touch-none' : ''}`}
+          /* touch-none ALWAYS now: without it the browser takes
+             over the touch stream for panning and fires
+             pointercancel mid-swipe or mid-pinch, so pointerup
+             (and the navigation / zoom) never arrives. Tap-to-
+             close still works — it is a click, which touch-action
+             does not affect — and body scroll is locked while the
+             lightbox is open, so the hero loses nothing. */
+          className={`${photoFrameClass} ${zoomTransition} touch-none`}
         >
           {photo}
         </div>
