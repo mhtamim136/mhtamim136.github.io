@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GITHUB_PAGES_HOST } from '../utils/siteConstants';
+import { GITHUB_PAGES_HOST } from '../utils/githubShared';
 
 const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
 
