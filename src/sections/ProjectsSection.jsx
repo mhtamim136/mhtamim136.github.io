@@ -6,6 +6,11 @@ import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
 import { YearDropdown } from '../components/YearDropdown';
 import { Button } from '../components/Button';
+/* Shared hover fill: the card buttons reuse the hero/footer
+   left-to-right cyan wipe (HeroCtaFill.css) — Live demo (primary)
+   is --solid, GitHub (secondary) is --ghost, exactly like the
+   hero's three buttons. Same 550ms, same #22D3EE, same #062A33 flip. */
+import './HeroCtaFill.css';
 import { Tag } from '../components/Tag';
 import { portfolio } from '../data/portfolio';
 import { normalizeKey, getRepoKeys, findSkillByKey } from '../utils/skillProjectCounts';
@@ -463,13 +468,13 @@ function FeaturedProjectCard({ repo, index }) {
             <Button
               {...externalLinkProps(repo.homepage)}
               variant="primary"
-              className="flex-1 sm:flex-none"
+              className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
             >
               <ExternalLink className="h-3.5 w-3.5" aria-hidden />
               Live demo
             </Button>
           )}
-          <Button {...externalLinkProps(repo.url)} variant="secondary">
+          <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
             <Github className="h-3.5 w-3.5" aria-hidden />
             GitHub
           </Button>
@@ -1029,13 +1034,13 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                         <Button
                           {...externalLinkProps(repo.homepage)}
                           variant="primary"
-                          className="flex-1 sm:flex-none"
+                          className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
                         >
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                           Live demo
                         </Button>
                       )}
-                      <Button {...externalLinkProps(repo.url)} variant="secondary">
+                      <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
                         <Github className="h-3.5 w-3.5" aria-hidden />
                         GitHub
                       </Button>
