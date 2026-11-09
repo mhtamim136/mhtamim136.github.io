@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { Tag } from '../components/Tag';
 import { skillCounts, normalizeKey } from '../utils/skillProjectCounts';
+import { smoothScrollTo } from '../utils/smoothScroll';
 
 const labels = {
   languages: 'Languages',
@@ -17,7 +18,6 @@ const labels = {
 export function SkillsSection({ repos, activeFilter, onFilterChange }) {
   const { skills, highlightedSkills } = portfolio;
   const highlightSet = new Set(highlightedSkills);
-  const reduceMotion = useReducedMotion();
 
   /* Live counts per skill, derived from the same repo data the
      Projects grid reads — a future project auto-raises its
@@ -38,7 +38,9 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
     const el = document.getElementById('projects');
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - 96;
-    window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+    /* Lenis when active, native smooth scroll otherwise (instant
+       under reduced motion — the helper applies the same check). */
+    smoothScrollTo(top);
   };
 
   return (

@@ -173,6 +173,15 @@
     scroll-behavior: smooth;
   }
 
+  /* While Lenis owns scrolling it must be the only smoother:
+     the browser's native smooth-scroll would race its animation
+     on anchor jumps. The `lenis` class exists only while the
+     instance is alive (never under reduced motion), so native
+     smooth scrolling returns automatically when Lenis is off. */
+  html.lenis {
+    scroll-behavior: auto;
+  }
+
   body {
     @apply bg-surface font-sans text-body antialiased;
     transition: background-color 0.4s ease, color 0.3s ease;

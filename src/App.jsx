@@ -12,6 +12,7 @@ import { Footer } from './components/Footer';
 import { HeroSection } from './sections/HeroSection';
 import { useActiveSection } from './hooks/useActiveSection';
 import { useGitHubRepos } from './hooks/useGitHubRepos';
+import { useLenis } from './hooks/useLenis';
 import { useTheme } from './hooks/useTheme';
 
 const AboutSection = lazy(() =>
@@ -46,6 +47,8 @@ function Divider() {
 }
 
 export default function App() {
+  /* Lenis smooth scroll (off entirely under reduced motion). */
+  useLenis();
   const sectionIds = useMemo(() => portfolio.nav.map((n) => n.id), []);
   const activeId = useActiveSection(sectionIds);
   const { isDark, toggle } = useTheme();

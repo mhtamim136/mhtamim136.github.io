@@ -1,18 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from './icons/NavIcons';
 import { useScrollTop } from '../hooks/useScrollTop';
+import { smoothScrollTo } from '../utils/smoothScroll';
 
 export function ScrollToTop() {
   const visible = useScrollTop(480);
 
-  /* An explicit behavior overrides the CSS `scroll-behavior: auto`
-     under prefers-reduced-motion, so check the preference here —
-     same pattern as ProjectsSection's handleShowLess. */
+  /* Routes through Lenis when it is active, native smooth scroll
+     otherwise (instant under reduced motion — same check the
+     helper applies on the fallback path). */
   const scrollUp = () => {
-    const reduced = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    smoothScrollTo(0);
   };
 
   return (
