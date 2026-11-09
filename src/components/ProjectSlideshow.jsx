@@ -396,13 +396,20 @@ export function ProjectSlideshow({ images, repoName }) {
     </motion.div>
 
     {/* Full-size view — the existing photo lightbox in its rectangular
-        variant (same zoom/close/Tab behaviour as the hero portrait).
-        Mounted only while open, so no extra image request happens
-        before the first tap. */}
+        variant (same zoom/close/Tab behaviour as the hero portrait),
+        plus keyboard navigation: ArrowLeft / ArrowRight and the
+        on-screen prev/next buttons move between screenshots while
+        it stays open. Navigation routes through manualNav, so the
+        7s manual pause applies after the lightbox closes, exactly
+        like the slideshow's own arrows and dots. Mounted only while
+        open, so no extra image request happens before the first tap. */}
     <AnimatePresence>
       {lightboxOpen && (
         <PhotoLightbox
           shape="rect"
+          images={images}
+          index={index}
+          onNavigate={(i) => manualNav(() => setIndex(i))}
           src={images[index]}
           alt={`${repoName} screenshot ${index + 1} of ${count}`}
           onClose={() => setLightboxOpen(false)}

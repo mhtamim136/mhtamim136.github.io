@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 /**
  * Minimal photo lightbox for the hero portrait (Instagram-style).
@@ -49,11 +49,20 @@ import { X } from 'lucide-react';
  *   close behaviour (tap closes on touch, click zooms on desktop),
  *   same Tab cycle. The circle stays the default — the hero
  *   portrait is untouched.
+ * - Keyboard navigation (project screenshots only, 2026-11-09):
+ *   when `images` + `index` + `onNavigate` are passed, ArrowLeft /
+ *   ArrowRight move to the previous / next screenshot (wrapping
+ *   around), visible prev/next buttons do the same for mouse and
+ *   touch, and a counter shows "n / total". The hero portrait
+ *   passes none of those props, so it is unchanged — no arrows, no
+ *   buttons, no counter. Zoom resets to 1 on every navigation.
  */
-export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle' }) {
+export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
+  const prevRef = useRef(null);
+  const nextRef = useRef(null);
 
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
@@ -67,28 +76,70 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle' })
       window.matchMedia('(pointer: fine)').matches,
   );
 
-  /* Escape closes; Tab cycles between the dialog and the close
-     button (the two focusable stops) so a keyboard user can reach
-     Close; focus never escapes to the page behind. Body scroll
-     locks while open; focus moves into the dialog on mount. */
+  /* Navigation is opt-in: only when the caller passes the whole
+     image list, the current position and a navigate callback (the
+     project slideshow does; the hero portrait does not, so it
+     behaves exactly as before — no arrows, no buttons, no
+     counter). Single-image lists navigate nowhere. */
+  const canNavigate =
+    Array.isArray(images) &&
+    images.length > 1 &&
+    typeof index === 'number' &&
+    typeof onNavigate === 'function';
+  const goPrev = useCallback(() => {
+    if (canNavigate) onNavigate((index - 1 + images.length) % images.length);
+  }, [canNavigate, images, index, onNavigate]);
+  const goNext = useCallback(() => {
+    if (canNavigate) onNavigate((index + 1) % images.length);
+  }, [canNavigate, images, index, onNavigate]);
+
+  /* Navigating to another image resets the zoom, so the user is
+     never stuck zoomed on the next image. */
+  useEffect(() => {
+    setZoom(1);
+  }, [index]);
+
+  /* Focus moves into the dialog on open and body scroll locks while
+     open; both are restored on unmount. Mount-only: navigating
+     between images must NOT re-run this (it would yank focus back
+     to the dialog). */
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  /* Escape closes; Tab cycles the focus stops (dialog → prev →
+     next → close → dialog, Shift+Tab backwards); ArrowLeft /
+     ArrowRight move to the previous / next image when navigation
+     is on. The prev/next stops exist only then — without them
+     this is the same two-stop cycle as before. Body scroll is
+     locked while open, so the arrow keys scroll nothing. */
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'Tab') {
         e.preventDefault();
-        if (document.activeElement === closeRef.current) dialogRef.current?.focus();
-        else closeRef.current?.focus();
+        const stops = [
+          dialogRef.current,
+          prevRef.current,
+          nextRef.current,
+          closeRef.current,
+        ].filter(Boolean);
+        const at = stops.indexOf(document.activeElement);
+        const dir = e.shiftKey ? -1 : 1;
+        const target = stops[(at + dir + stops.length) % stops.length];
+        target?.focus();
       }
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'ArrowRight') goNext();
     };
     document.addEventListener('keydown', onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    dialogRef.current?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose, goPrev, goNext]);
 
   /* Gentle scale 0.96→1 + fade; instant when reduced motion is on. */
   const transition = reduceMotion
@@ -203,6 +254,39 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle' })
       {...overlayAnim}
       transition={transition}
     >
+      {/* Prev / next — only when navigation is on (project
+          screenshots). Same dark-glass style as the × button.
+          stopPropagation keeps the overlay's click-to-close from
+          firing; the click navigates and never zooms (the buttons
+          sit outside the photo). */}
+      {canNavigate && (
+        <>
+          <button
+            type="button"
+            ref={prevRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
+            aria-label="Previous image"
+            className="absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 motion-reduce:transition-none"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            ref={nextRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
+            aria-label="Next image"
+            className="absolute right-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 motion-reduce:transition-none"
+          >
+            <ChevronRight className="h-5 w-5" aria-hidden />
+          </button>
+        </>
+      )}
       {/* Visible close button (top-right). stopPropagation keeps the
           overlay's click-to-close from firing too — the click closes
           via this button only, and never zooms (it sits outside the
@@ -229,6 +313,13 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle' })
           {photo}
         </div>
       </motion.div>
+      {/* Counter — only when navigation is on. Same pill as the
+          slideshow's counter chip. */}
+      {canNavigate && (
+        <span className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/55 px-2 py-0.5 text-[0.6875rem] font-medium tabular-nums text-white backdrop-blur-sm">
+          {index + 1} / {images.length}
+        </span>
+      )}
     </motion.div>,
     document.body,
   );
