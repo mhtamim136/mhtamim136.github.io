@@ -127,12 +127,15 @@ export function parseReadmeSections(markdown) {
 
 /**
  * Details from a parsed README. Overview text doubles as the
- * intro/problem text (his READMEs have Overview, not Problem).
+ * intro/problem text (his READMEs have Overview, not Problem); an
+ * About section is the next-best intro when neither exists.
  * Returns null when the README yields nothing usable.
  */
 export function detailsFromReadme(sections) {
   const problem =
-    firstParagraph(sections.problem) || firstParagraph(sections.overview);
+    firstParagraph(sections.problem) ||
+    firstParagraph(sections.overview) ||
+    firstParagraph(sections.about);
   const solution = firstParagraph(sections.solution);
   const features = sectionBullets(sections.features);
   if (!problem && !solution && features.length === 0) return null;
@@ -184,6 +187,9 @@ function repoNameFromGithubUrl(url) {
  * Details from the restored curated data (src/data/portfolio.js).
  * Matched by repo name (from the entry's github URL). Curated
  * entries have problem/solution/description/tech — no features list.
+ * A curated `description` stands in as the intro (problem) text
+ * when the entry has no problem statement — otherwise a
+ * description-only entry would resolve to tech pills alone.
  */
 export function detailsFromCurated(repoName, curatedProjects) {
   const entry = (curatedProjects || []).find(
@@ -194,7 +200,7 @@ export function detailsFromCurated(repoName, curatedProjects) {
   const tech = Array.isArray(entry.tech)
     ? entry.tech.filter((x) => typeof x === 'string' && x.trim())
     : [];
-  const problem = text(entry.problem);
+  const problem = text(entry.problem) || text(entry.description);
   const solution = text(entry.solution);
   if (!problem && !solution && tech.length === 0) return null;
   return {

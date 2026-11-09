@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { X } from 'lucide-react';
 
 /**
  * Minimal photo lightbox for the hero portrait (Instagram-style).
@@ -35,12 +36,18 @@ import { motion, useReducedMotion } from 'framer-motion';
  *   scale/fade/transition at all.
  * - Accessibility: role="dialog" aria-modal, Escape closes, focus moves
  *   into the dialog on open (Avatar.jsx returns it to the avatar on
- *   close), Tab is held on the dialog (the single focusable stop), body
- *   scroll locks while open and is restored on unmount.
+ *   close), Tab cycles between the dialog and the close button (the
+ *   two focusable stops), body scroll locks while open and is restored
+ *   on unmount.
+ * - Close button (Tier 2): a visible × in the top-right corner, so
+ *   mouse users don't have to discover click-anywhere. It stops
+ *   propagation — clicking it closes without zooming — and it is a
+ *   real <button> with a visible focus ring.
  */
 export function PhotoLightbox({ manifest, src, alt, onClose }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
+  const closeRef = useRef(null);
 
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
@@ -54,12 +61,18 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
       window.matchMedia('(pointer: fine)').matches,
   );
 
-  /* Escape closes; Tab stays on the dialog; body scroll locks while
-     open; focus moves into the dialog on mount. */
+  /* Escape closes; Tab cycles between the dialog and the close
+     button (the two focusable stops) so a keyboard user can reach
+     Close; focus never escapes to the page behind. Body scroll
+     locks while open; focus moves into the dialog on mount. */
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'Tab') e.preventDefault();
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (document.activeElement === closeRef.current) dialogRef.current?.focus();
+        else closeRef.current?.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -176,6 +189,22 @@ export function PhotoLightbox({ manifest, src, alt, onClose }) {
       {...overlayAnim}
       transition={transition}
     >
+      {/* Visible close button (top-right). stopPropagation keeps the
+          overlay's click-to-close from firing too — the click closes
+          via this button only, and never zooms (it sits outside the
+          photo, so the photo's click/wheel handlers don't apply). */}
+      <button
+        type="button"
+        ref={closeRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label="Close"
+        className="absolute right-4 top-4 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 motion-reduce:transition-none"
+      >
+        <X className="h-5 w-5" aria-hidden />
+      </button>
       <motion.div className="flex justify-center" {...photoAnim} transition={transition}>
         <div
           onClick={onPhotoClick}

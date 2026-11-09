@@ -188,10 +188,30 @@ function formatUpdated(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+/* Whole-word replacements after title-casing: acronyms and brand
+   spellings that plain title-casing mangles ("Ai" -> "AI").
+   Keys are the title-cased words; values are the proven spellings
+   (repo descriptions, READMEs, curated titles). A replacement may
+   be more than one word ("AIUB Live"). Only words in this map
+   change — everything else keeps the plain title-case rule. */
+const NAME_WORD_FIXES = {
+  Ai: 'AI',
+  Aiub: 'AIUB',
+  Aiublive: 'AIUB Live',
+  Php: 'PHP',
+  Github: 'GitHub',
+  Eda: 'EDA',
+  ItFirmHub: 'ITFirmHub',
+  DataBaseLabTask: 'Database Lab Task',
+};
+
 function formatName(name) {
   return name
     .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .split(' ')
+    .map((w) => NAME_WORD_FIXES[w] ?? w)
+    .join(' ');
 }
 
 /* ── Date helpers (sort + year filter) ────────────────────────── */

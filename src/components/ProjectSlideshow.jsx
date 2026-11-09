@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 
 const AUTO_ADVANCE_MS = 3500;
 const SWIPE_THRESHOLD = 50;
@@ -42,6 +42,12 @@ export function ProjectSlideshow({ images, repoName }) {
     typeof document === 'undefined' ? true : !document.hidden,
   );
   const [reducedMotion, setReducedMotion] = useState(false);
+  /* Image URLs whose <img> failed to load (bad URL, offline host,
+     blocked origin). A failed slide shows a themed placeholder
+     instead of a black void + huge broken-image alt text; the badge,
+     arrows and dots keep working, and a slide that loads is
+     unaffected. Keyed by URL so each slide fails independently. */
+  const [failed, setFailed] = useState({});
   const containerRef = useRef(null);
   const resumeTimer = useRef(null);
   const slideVariants = {
@@ -180,14 +186,39 @@ export function ProjectSlideshow({ images, repoName }) {
           }}
           className="absolute inset-0"
         >
-          <img
-            src={images[index]}
-            alt={`${repoName} screenshot ${index + 1} of ${count}`}
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-          />
+          {/* A failed slide shows a themed placeholder (same 16:9
+              box, no layout shift) instead of the broken image. */}
+          {failed[images[index]] ? (
+            <div
+              role="img"
+              aria-label={`${repoName} screenshot ${index + 1} of ${count} unavailable`}
+              className="flex h-full w-full flex-col items-center justify-center gap-2 bg-glass/[0.04] px-4 text-center"
+            >
+              <ImageOff className="h-8 w-8 text-muted-dim" aria-hidden />
+              <p className="text-sm font-medium text-muted">
+                Screenshot unavailable
+              </p>
+              <p className="text-xs text-muted-dim">
+                This image failed to load
+              </p>
+            </div>
+          ) : (
+            <img
+              src={images[index]}
+              alt={`${repoName} screenshot ${index + 1} of ${count}`}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              onError={() =>
+                setFailed((prev) =>
+                  prev[images[index]]
+                    ? prev
+                    : { ...prev, [images[index]]: true },
+                )
+              }
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            />
+          )}
         </motion.div>
       </AnimatePresence>
 
