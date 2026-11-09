@@ -77,6 +77,10 @@ export function useContactForm() {
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
+      /* Already sending (e.g. a second Enter while the first
+         request is in flight) — the submit button is disabled,
+         but implicit form submission can still fire. */
+      if (status === 'sending') return;
       if (!validate()) return;
 
       /* Capture the form data synchronously — the fallback below
@@ -167,7 +171,7 @@ export function useContactForm() {
 
       await submitViaWeb3Forms();
     },
-    [validate, accessKey, fields],
+    [validate, accessKey, fields, status],
   );
 
   /* ── Reset to allow sending another message ── */

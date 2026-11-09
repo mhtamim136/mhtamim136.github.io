@@ -1,9 +1,10 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaGithub, FaInstagram, FaFacebook, FaDiscord } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { FiGlobe } from 'react-icons/fi';
 import { MdEmail } from 'react-icons/md';
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Loader2, Copy, Check } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Magnetic } from '../components/Magnetic';
@@ -114,6 +115,72 @@ function FloatingTextarea({ id, name, label, value, onChange, error }) {
   );
 }
 
+/* ── Copy-email button ──────────────────────────────────────────
+   Copies the address via the Clipboard API with a textarea +
+   execCommand fallback for older browsers. Shows "Copied" for
+   ~2s, then reverts. A real <button> with a focus-visible ring;
+   the label sits in an aria-live region so screen readers
+   announce the copy. */
+function CopyEmailButton({ email }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  const copy = useCallback(async () => {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(email);
+      ok = true;
+    } catch {
+      /* Clipboard API unavailable (older browser / non-secure
+         context) — fall back to the classic execCommand path. */
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = email;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'absolute';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
+    }
+    if (!ok) return;
+    setCopied(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
+  }, [email]);
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={copied ? 'Email address copied' : 'Copy email address'}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+        copied
+          ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
+          : 'border-glass/10 bg-glass/[0.04] text-muted hover:border-accent/25 hover:text-accent'
+      }`}
+    >
+      {copied ? (
+        <Check className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <Copy className="h-3.5 w-3.5" aria-hidden />
+      )}
+      <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  );
+}
+
 /* ── Main section ─────────────────────────────────────────────── */
 export function ContactSection() {
   const { contacts } = portfolio;
@@ -144,15 +211,20 @@ export function ContactSection() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
+                role="status"
                 className="flex min-h-[280px] flex-col items-center justify-center text-center"
               >
-                <CheckCircle className="h-12 w-12 text-emerald-400" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
+                  <CheckCircle className="h-8 w-8 text-emerald-400" aria-hidden />
+                </div>
                 <h3 className="mt-4 text-lg font-semibold text-heading">Message sent!</h3>
-                <p className="mt-2 text-sm text-muted">{serverMsg}</p>
+                <p className="mt-2 max-w-sm text-sm text-muted">
+                  Thanks for reaching out — I&apos;ll get back to you.
+                </p>
                 <button
                   type="button"
                   onClick={reset}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <ArrowLeft className="h-4 w-4" aria-hidden />
                   Send another message
@@ -223,6 +295,7 @@ export function ContactSection() {
                   <motion.button
                     type="submit"
                     disabled={status === 'sending'}
+                    aria-busy={status === 'sending'}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
@@ -258,16 +331,19 @@ export function ContactSection() {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">
               Email
             </p>
-            <a
-              href={`mailto:${contacts.email}`}
-              className="group mt-3 inline-flex items-center gap-2 text-sm font-medium text-body transition-all duration-300 hover:text-accent sm:text-base"
-            >
-              <MdEmail
-                className="h-5 w-5 shrink-0 text-muted transition-colors duration-300 group-hover:text-accent"
-                aria-hidden
-              />
-              {contacts.email}
-            </a>
+            <div className="mt-3 flex items-center gap-2">
+              <a
+                href={`mailto:${contacts.email}`}
+                className="group inline-flex min-w-0 items-center gap-2 text-sm font-medium text-body transition-all duration-300 hover:text-accent sm:text-base"
+              >
+                <MdEmail
+                  className="h-5 w-5 shrink-0 text-muted transition-colors duration-300 group-hover:text-accent"
+                  aria-hidden
+                />
+                <span className="truncate">{contacts.email}</span>
+              </a>
+              <CopyEmailButton email={contacts.email} />
+            </div>
           </div>
 
           {/* Socials card */}
