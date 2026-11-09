@@ -18,7 +18,7 @@ import '../sections/HeroCtaFill.css';
  * the hero) + one Magnetic "Get In Touch" → #contact + a curated
  * bottom bar (GitHub, X, email only; the full list lives in Contact).
  * Full duplicate/build rationale: README "Footer CTA rationale".
- * Entrance is a single fade + 16px rise, gated with useReducedMotion
+ * Entrance is a single fade + 8px rise, gated with useReducedMotion
  * so under reduced motion the footer renders in its final state
  * instantly (MotionConfig stops transforms, not opacity — the
  * explicit gate is required, same pattern HeroSection uses).

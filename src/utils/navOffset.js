@@ -5,9 +5,5 @@
  * sites used 96px, so programmatic scrolls landed 8px lower than
  * native anchor jumps. Use this constant everywhere instead of a
  * magic number.
- *
- * NOTE: src/sections/ProjectsSection.jsx still uses a literal 96
- * (same computation) — it belongs to the data-track work in
- * progress; it should import this constant too when that lands.
  */
 export const NAV_OFFSET_PX = 88;

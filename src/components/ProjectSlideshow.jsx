@@ -2,23 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { animate, motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { PhotoLightbox } from './PhotoLightbox';
+import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE } from '../utils/dragTrack';
 
 const AUTO_ADVANCE_MS = 3500;
-const SWIPE_THRESHOLD = 50;
 /* After the user changes a slide by hand, auto-advance stays paused
    for a while so it never yanks the slide away mid-look. */
 const MANUAL_PAUSE_MS = 7000;
-/* Drag-follow: a horizontal drag latches as a drag once it is
-   horizontal-dominant and at least this far — below it the gesture
-   is still a tap (the track does not move, the release click opens
-   the lightbox as before). 10px keeps the follow feeling glued to
-   the finger; SWIPE_THRESHOLD still distinguishes tap vs drag for
-   click suppression in general. Same values as the lightbox. */
-const DRAG_LATCH = 10;
-/* Drag-follow commit: a drag must pass a third of the box width to commit
-   to the next/previous slide (the gallery rule); anything less
-   springs back. Same as the lightbox. */
-const COMMIT_FRACTION = 0.33;
 
 /**
  * Professional project-image carousel (Airbnb / Behance style).
@@ -165,10 +154,7 @@ export function ProjectSlideshow({ images, repoName }) {
       animatingRef.current = true;
       try {
         if (!reducedMotion) {
-          trackAnimRef.current = animate(trackX, dir > 0 ? -width : width, {
-            duration: 0.22,
-            ease: [0.32, 0.72, 0, 1],
-          });
+          trackAnimRef.current = animate(trackX, dir > 0 ? -width : width, COMMIT_SLIDE);
           await trackAnimRef.current;
         }
         setIndex(norm);
@@ -453,11 +439,7 @@ export function ProjectSlideshow({ images, repoName }) {
           if (reducedMotion) {
             trackX.set(0);
           } else {
-            trackAnimRef.current = animate(trackX, 0, {
-              type: 'spring',
-              stiffness: 400,
-              damping: 32,
-            });
+            trackAnimRef.current = animate(trackX, 0, SPRING_BACK);
             await trackAnimRef.current;
           }
         } catch {

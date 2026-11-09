@@ -1,9 +1,11 @@
 /* ── Hero buttons hover fill ────────────────────────────────────────
-   Scope: the THREE hero buttons, the Footer "Get In Touch" CTA and
-   the Contact "Send message" submit button (all --solid, 550ms),
-   plus the three footer icon buttons (--ghost + --quick, 220ms —
-   see below). No other button is affected — Button.jsx is untouched,
-   and the Contact social rows keep their own hover (SocialButton).
+   Scope: the THREE hero buttons, the Footer "Get In Touch" CTA,
+   the Contact "Send message" submit button and the Projects card
+   buttons ("Live demo" --solid + "GitHub" --ghost, added in
+   076262c, 550ms), plus the three footer icon buttons (--ghost +
+   --quick, 220ms — see below). No other button is affected —
+   Button.jsx is untouched, and the Contact social rows keep their
+   own hover (SocialButton).
    Tier 4, items 21-22: the wipe used to be hero-only; the footer
    CTA and Send reuse the exact same classes/tokens, and the icon
    buttons reuse the same wipe at a faster speed because 550ms feels

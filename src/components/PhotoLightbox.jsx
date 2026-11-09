@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE } from '../utils/dragTrack';
 
 /**
  * Minimal photo lightbox for the hero portrait (Instagram-style).
@@ -72,8 +73,6 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   a drag sets `swipedRef`, which the click that follows the
  *   drag must check first — otherwise the release click would
  *   close (touch) or zoom (desktop) right after navigating.
- *   No drag-follow animation: the photo sits inside a zoom
- *   scale() transform, so navigation happens on release only.
  *   Two platform gotchas, both fixed here: (1) touch needs
  *   `touch-none` on the photo div, or the browser takes over
  *   the touch for panning and fires pointercancel mid-swipe;
@@ -116,7 +115,6 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   as before. Keyboard arrows and the prev/next buttons still
  *   navigate instantly, with no drag animation.
  */
-const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
 /* Touch tap timing: a single tap waits this long before closing, so
    a second tap landing nearby can still be recognised as a
    double-tap (the standard gallery tradeoff — every gallery app
@@ -124,17 +122,6 @@ const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
    first to count. */
 const DOUBLE_TAP_DELAY = 250; /* ms */
 const DOUBLE_TAP_SLOP = 30; /* px */
-/* Drag-follow: a horizontal drag latches as a drag once it is
-   horizontal-dominant and at least this far — below it the
-   gesture is still a tap (the track does not move, the release
-   click closes/zooms as before). 10px keeps the follow feeling
-   glued to the finger; the old 50px SWIPE_THRESHOLD still
-   distinguishes tap vs drag for click suppression in general. */
-const DRAG_LATCH = 10; /* px */
-/* Drag-follow commit: a drag must pass a third of the container width
-   to commit to the next/previous photo (the gallery rule);
-   anything less springs back. */
-const COMMIT_FRACTION = 0.33;
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
@@ -501,11 +488,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
           if (reduceMotion) {
             trackX.set(0);
           } else {
-            trackAnimRef.current = animate(trackX, 0, {
-              type: 'spring',
-              stiffness: 400,
-              damping: 32,
-            });
+            trackAnimRef.current = animate(trackX, 0, SPRING_BACK);
             await trackAnimRef.current;
           }
           return;
@@ -514,10 +497,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         if (reduceMotion) {
           trackX.set(target);
         } else {
-          trackAnimRef.current = animate(trackX, target, {
-            duration: 0.22,
-            ease: [0.32, 0.72, 0, 1],
-          });
+          trackAnimRef.current = animate(trackX, target, COMMIT_SLIDE);
           await trackAnimRef.current;
         }
         if (pinchRef.current) return; /* Pinch started mid-slide: cancel. */

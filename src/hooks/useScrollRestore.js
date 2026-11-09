@@ -54,9 +54,10 @@ import { NAV_OFFSET_PX } from '../utils/navOffset';
  *    at 602). A re-check 1s / 2.5s after the restore re-applies
  *    the intended offset if the page grew underneath it and the
  *    user has not scrolled since.
- * 4. If the user scrolls (wheel / touch / scroll keys) before
- *    the restore fires, the restore is cancelled — the user took
- *    over, and the hook must not yank the page back.
+ * 4. If the user scrolls (wheel / touch / scroll keys) or
+ *    presses/clicks (pointerdown / click — a nav or anchor click
+ *    included) before the restore fires, the restore is cancelled
+ *    — the user took over, and the hook must not yank the page back.
  */
 const SAVE_KEY = 'portfolio_scroll_y';
 const SETTLE_POLL_MS = 100;
@@ -105,12 +106,22 @@ export function useScrollRestore(sectionIds = []) {
     /* The user took over before the restore fired — do not yank
        the page back. Wheel / touch are the scroll inputs; the
        key list is the keys that scroll (Tab and friends must not
-       cancel a restore). One-shot: only the first input matters. */
+       cancel a restore). A pointer press or a click cancels too:
+       a nav/anchor click inside the recheck window is the user
+       choosing a section, not a restore to override. One-shot:
+       only the first input matters. The keydown listener is NOT
+       one-shot: a first non-scroll key (e.g. Tab) must not consume
+       it, so it deregisters itself only after a scroll key. */
     window.addEventListener('wheel', cancel, { passive: true, once: true });
     window.addEventListener('touchstart', cancel, {
       passive: true,
       once: true,
     });
+    window.addEventListener('pointerdown', cancel, {
+      passive: true,
+      once: true,
+    });
+    window.addEventListener('click', cancel, { once: true });
     const onKeyDown = (e) => {
       if (
         e.key === 'ArrowDown' ||
@@ -122,9 +133,10 @@ export function useScrollRestore(sectionIds = []) {
         e.key === ' '
       ) {
         cancel();
+        window.removeEventListener('keydown', onKeyDown);
       }
     };
-    window.addEventListener('keydown', onKeyDown, { once: true });
+    window.addEventListener('keydown', onKeyDown);
 
     /* What kind of load is this? Only a reload / back-forward has
        a position worth restoring from the saved offset. A fresh
@@ -204,8 +216,8 @@ export function useScrollRestore(sectionIds = []) {
          back to the clamped offset: if the intended offset is now
          reachable and the page sits more than 10px away from it,
          re-apply it. The only guard is `cancelled` — set by any
-         wheel / touch / scroll-key input, which covers every
-         normal way a user takes over. (An earlier version also
+         wheel / touch / pointer / click / scroll-key input, which
+         covers every normal way a user takes over. (An earlier version also
          required the page not to have moved since the restore,
          but that guard blocked recovery from exactly the late
          yank this net exists for: a yank and a user scroll look
@@ -287,6 +299,8 @@ export function useScrollRestore(sectionIds = []) {
       window.removeEventListener('pagehide', onHide);
       window.removeEventListener('wheel', cancel);
       window.removeEventListener('touchstart', cancel);
+      window.removeEventListener('pointerdown', cancel);
+      window.removeEventListener('click', cancel);
       window.removeEventListener('keydown', onKeyDown);
       if (saveRaf) cancelAnimationFrame(saveRaf);
     };

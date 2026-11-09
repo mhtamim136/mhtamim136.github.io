@@ -7,6 +7,10 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 /* How long the function gets before we give up and use the snapshot. */
 const API_TIMEOUT_MS = 6000;
 
+/* Friendly error shown whenever the projects data cannot be loaded
+   from any source. */
+const LOAD_ERROR = 'Projects could not be loaded. Please try again later.';
+
 /**
  * Fetches all public repos for a GitHub user.
  * - On GitHub Pages (mhtamim136.github.io): loads the build-time
@@ -103,11 +107,11 @@ export function useGitHubRepos() {
           if (snapshot) {
             applyData(snapshot);
           } else {
-            setError('Projects could not be loaded. Please try again later.');
+            setError(LOAD_ERROR);
           }
         } catch (err) {
           if (err.name !== 'AbortError') {
-            setError('Projects could not be loaded. Please try again later.');
+            setError(LOAD_ERROR);
           }
         } finally {
           setLoading(false);
@@ -167,11 +171,11 @@ export function useGitHubRepos() {
           }
           applyData(data);
         } else {
-          setError('Projects could not be loaded. Please try again later.');
+          setError(LOAD_ERROR);
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setError('Projects could not be loaded. Please try again later.');
+          setError(LOAD_ERROR);
         }
       } finally {
         setLoading(false);

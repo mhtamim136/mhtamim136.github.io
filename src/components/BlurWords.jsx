@@ -74,7 +74,7 @@ function BlurWord({ text, className, delay }) {
 
   return (
     <motion.span
-      className={`inline-block will-change-transform ${className ?? ''}`}
+      className={`inline-block ${className ?? ''}`}
       style={{ willChange: 'transform, filter', filter }}
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}

@@ -59,7 +59,7 @@ function FloatingField({ id, name, type = 'text', label, value, onChange, error,
       : 'border-glass/[0.08] hover:border-glass/[0.14]'
   }`;
   const labelClass = `pointer-events-none absolute left-4 top-2 origin-[0] text-[0.6875rem] font-medium uppercase tracking-wider transition-all duration-200 ${
-    filled || 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
+    filled ? '' : 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
   } peer-focus:top-2 peer-focus:text-[0.6875rem] peer-focus:uppercase peer-focus:tracking-wider peer-focus:font-medium ${
     error ? 'text-red-400' : 'text-muted-dim peer-focus:text-accent'
   }`;

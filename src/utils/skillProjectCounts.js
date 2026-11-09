@@ -52,8 +52,8 @@ export function normalizeKey(value) {
 
 /**
  * The set of canonical keys a repo matches under: its languages
- * (or the runtime-fetched `extraLanguages` for that repo, when the
- * caller passes them) plus its topics.
+ * (or the `extraLanguages` for that repo from ProjectsSection's
+ * langMap, when the caller passes them) plus its topics.
  */
 export function getRepoKeys(repo, extraLanguages) {
   const keys = new Set();

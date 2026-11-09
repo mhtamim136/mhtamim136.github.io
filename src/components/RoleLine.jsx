@@ -61,7 +61,7 @@ export function RoleLine({ roles = ROLES }) {
       setIndex(next);
     }, 3000);
     return () => window.clearInterval(id);
-  }, [reduceMotion, roles.length]);
+  }, [reduceMotion, roles, roles.length]);
 
   if (reduceMotion) {
     return <span>{roles[0]}</span>;
