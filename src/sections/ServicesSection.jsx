@@ -3,10 +3,14 @@ import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { ServiceIcon } from '../components/icons/NavIcons';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export function ServicesSection() {
   const { services } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only (S4) — same gate as the project cards: a touch
+     tap must not leave the card lifted. */
+  const finePointer = useMediaQuery('(pointer: fine)');
 
   return (
     <SectionWrapper
@@ -22,7 +26,7 @@ export function ServicesSection() {
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: '-30px' }}
             transition={{ delay: idx * 0.06, duration: 0.35 }}
-            whileHover={{ y: -4 }}
+            whileHover={reduceMotion || !finePointer ? undefined : { y: -4 }}
           >
             <Card className="group flex gap-4 p-5 sm:p-6">
               {/* Icon chip answers the hover: deeper tint + the icon

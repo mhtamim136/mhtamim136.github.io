@@ -37,9 +37,11 @@ const MANUAL_PAUSE_MS = 7000;
  *   entering slide mounting off-viewport with a lazy <img> that
  *   had never been fetched, showing the near-white card background
  *   as a band sweeping in. Here all three cells are mounted at
- *   once with eager <img>s once the card is on screen (inView),
- *   and the incoming slide is already on screen (as the adjacent
- *   cell) before the index swaps — so a swap never lands on an
+ *   once with eager <img>s once the card has been on screen
+ *   (latched — see hasBeenInView), and the incoming slide is
+ *   already on screen (as the adjacent cell) before the index
+ *   swaps — and auto-advance does not start until the current and
+ *   next slides have fired onLoad, so a swap never lands on an
  *   image that still has to be fetched. The outgoing image covers
  *   the background until the incoming one has taken its place:
  *   the same guarantee the crossfade gave, with the slide Tamim
@@ -67,12 +69,13 @@ const MANUAL_PAUSE_MS = 7000;
  *   full-size — on a phone the slideshow is ~350px wide and there
  *   was no way to enlarge it at all (Tier 4).
  * - Only the current slide ±1 neighbour ever loads: the three
- *   track cells mount eager <img>s, but only once the card is on
- *   screen (inView) — an off-screen card fetches nothing, and
- *   there is no preload-all any more (it used to fetch every
- *   slide the moment a card scrolled into view). A swap never
- *   lands on an image that still has to be fetched, because the
- *   entering slide is always the adjacent cell, already mounted.
+ *   track cells mount eager <img>s, but only once the card has been
+ *   on screen (latched — see hasBeenInView) — an off-screen card
+ *   fetches nothing, and there is no preload-all any more (it used
+ *   to fetch every slide the moment a card scrolled into view). A
+ *   swap never lands on an image that still has to be fetched,
+ *   because the entering slide is always the adjacent cell, already
+ *   mounted, and auto-advance waits for its onLoad besides.
  *   The image area has a fixed 16:9 ratio, so cards never change
  *   height.
  * - Rendered only when a repo actually has images — repos without a
@@ -84,6 +87,12 @@ function ProjectSlideshowInner({ images, repoName }) {
   const [hoverPaused, setHoverPaused] = useState(false);
   const [manualPaused, setManualPaused] = useState(false);
   const [inView, setInView] = useState(false);
+  /* Latched twin of inView (M1 fix, 2026-11-10): once the card has
+     been on screen, its images stay mounted for good. inView alone
+     unmounts them every time the card scrolls out (they would reload
+     with a pop-in on every scroll-back). inView stays live — it is
+     still the auto-advance pause below. */
+  const [hasBeenInView, setHasBeenInView] = useState(false);
   const [tabVisible, setTabVisible] = useState(
     typeof document === 'undefined' ? true : !document.hidden
   );
@@ -95,6 +104,14 @@ function ProjectSlideshowInner({ images, repoName }) {
      arrows and dots keep working, and a slide that loads is
      unaffected. Keyed by URL so each slide fails independently. */
   const [failed, setFailed] = useState({});
+  /* Image URLs whose <img> has fired onLoad (same keying as
+     `failed`). The auto-advance gate below waits for the current
+     and next slides to be loaded before the first tick, so a
+     slow-connection advance never sweeps in an empty box (S1).
+     A failed slide counts as ready too — its placeholder is
+     already renderable, and a failed load must not stall the
+     carousel forever. */
+  const [loaded, setLoaded] = useState({});
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const containerRef = useRef(null);
   const resumeTimer = useRef(null);
@@ -215,17 +232,24 @@ function ProjectSlideshowInner({ images, repoName }) {
      cells below render no <img> for cards the user never scrolls
      to (lazy-load); the observer corrects it on the first frame. Without
      IntersectionObserver (very old browsers) assume in view, as
-     before, so auto-advance still runs. */
+     before, so auto-advance still runs. The mount gate is the
+     LATCHED hasBeenInView below — inView going false again must
+     never unmount the images (see M1). */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
     if (typeof IntersectionObserver === 'undefined') {
       setInView(true);
+      setHasBeenInView(true);
       return undefined;
     }
-    const obs = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
-      threshold: 0.15,
-    });
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+        if (entry.isIntersecting) setHasBeenInView(true);
+      },
+      { threshold: 0.15 }
+    );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -236,32 +260,6 @@ function ProjectSlideshowInner({ images, repoName }) {
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
-
-  /* Auto-advance (slides, same track animation as a manual change). */
-  useEffect(() => {
-    if (
-      count <= 1 ||
-      hoverPaused ||
-      manualPaused ||
-      !inView ||
-      !tabVisible ||
-      reducedMotion ||
-      lightboxOpen
-    ) {
-      return undefined;
-    }
-    const id = window.setInterval(slideNext, AUTO_ADVANCE_MS);
-    return () => window.clearInterval(id);
-  }, [
-    count,
-    hoverPaused,
-    manualPaused,
-    inView,
-    tabVisible,
-    reducedMotion,
-    lightboxOpen,
-    slideNext,
-  ]);
 
   /* No preload-all any more (2026-11-10): the old effect fetched
      EVERY slide the moment a card scrolled into view — BuyTrust
@@ -295,24 +293,76 @@ function ProjectSlideshowInner({ images, repoName }) {
   const prevShown = prevOverride ? prevOverride.index : prevIndex;
   const nextShown = nextOverride ? nextOverride.index : nextIndex;
 
+  /* Auto-advance (slides, same track animation as a manual change).
+     The interval does NOT start until the current slide AND the
+     next slide have both loaded (or failed — a failed slide shows
+     its placeholder, which is already renderable). Before this
+     gate, the first tick 3.5s after inView could land before a
+     multi-MB screenshot had loaded, sweeping in an empty box
+     (S1). The gate holds for every tick, not just the first: after
+     an advance the new next cell has only just mounted, so the
+     interval re-arms only once it loads — auto-advance effectively
+     waits 3.5s after the upcoming slide is ready. Manual arrows /
+     dots / drag are never gated (a user-initiated swap may pop in
+     just after the 220ms slide on a slow connection, as before).
+     Lives here, after the prev/next computation, because the gate
+     reads nextSrc. */
+  useEffect(() => {
+    const currentSrc = images[index];
+    const currentReady = loaded[currentSrc] || failed[currentSrc];
+    const nextReady = loaded[nextSrc] || failed[nextSrc];
+    if (
+      count <= 1 ||
+      hoverPaused ||
+      manualPaused ||
+      !inView ||
+      !tabVisible ||
+      reducedMotion ||
+      lightboxOpen ||
+      !currentReady ||
+      !nextReady
+    ) {
+      return undefined;
+    }
+    const id = window.setInterval(slideNext, AUTO_ADVANCE_MS);
+    return () => window.clearInterval(id);
+  }, [
+    count,
+    hoverPaused,
+    manualPaused,
+    inView,
+    tabVisible,
+    reducedMotion,
+    lightboxOpen,
+    slideNext,
+    images,
+    index,
+    nextSrc,
+    loaded,
+    failed,
+  ]);
+
   /* One cell's content: a failed slide shows a themed placeholder
      (same 16:9 box, no layout shift); otherwise the image, eager
      (the track cells are the visible/adjacent slides — the only
      three that ever load). The current cell keeps the real alt
      text; adjacent cells are presentational. Nothing renders
-     before the card is in view (see the inView gate above). */
+     before the card has been in view once (see the hasBeenInView
+     gate below). */
   const cellContent = (src, shownIndex, isCurrent) => {
     /* Lazy-load (2026-11-10): the three track cells render their
-       <img>s only once the card is in view (the IntersectionObserver
-       above, same gate auto-advance already used). Before that the
-       16:9 box stays empty — fixed ratio, so no layout shift — and
-       no image is fetched. Previously the cells mounted eager
-       <img>s at once, so every Featured card fetched 3 images on
-       page load whether or not the user ever scrolled to Projects
-       (measured: 12 images / 2,683 KiB for Featured alone, plus 12
-       more / 2,925 KiB from the More grid's mount-then-collapse
-       transient — 24 images / 5,608 KiB on initial load). */
-    if (!inView) return null;
+       <img>s only once the card has been in view (the LATCHED
+       hasBeenInView gate above — not the live inView, which goes
+       false again off-screen and must never unmount the images,
+       see M1). Before that the 16:9 box stays empty — fixed ratio,
+       so no layout shift — and no image is fetched. Previously the
+       cells mounted eager <img>s at once, so every Featured card
+       fetched 3 images on page load whether or not the user ever
+       scrolled to Projects (measured: 12 images / 2,683 KiB for
+       Featured alone, plus 12 more / 2,925 KiB from the More grid's
+       mount-then-collapse transient — 24 images / 5,608 KiB on
+       initial load). */
+    if (!hasBeenInView) return null;
     if (failed[src]) {
       return (
         <div
@@ -342,6 +392,7 @@ function ProjectSlideshowInner({ images, repoName }) {
         alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
         imgClassName="transition-transform duration-500 ease-out group-hover:scale-105"
         onError={() => setFailed((prev) => (prev[src] ? prev : { ...prev, [src]: true }))}
+        onLoad={() => setLoaded((prev) => (prev[src] ? prev : { ...prev, [src]: true }))}
       />
     );
   };

@@ -28,6 +28,7 @@ import { normalizeKey, getRepoKeys, findSkillByKey } from '../utils/skillProject
 import { externalLinkProps } from '../utils/links';
 import { smoothScrollTo } from '../utils/smoothScroll';
 import { NAV_OFFSET_PX } from '../utils/navOffset';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /* Pagination — two states, one shared list (`filtered`):
    - ALL (no filter): Featured first, More collapsed (0 visible).
@@ -392,6 +393,12 @@ const RepoActions = memo(function RepoActions({ homepage, url }) {
 const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
   const details = repo.details || {};
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only (S4): the hover lift below must not fire on a
+     touch tap — the emulated mouse never leaves, so a tap would
+     leave the card lifted until the next tap elsewhere. Same gate
+     Card.jsx uses for its tilt, via the shared useMediaQuery hook
+     (PhotoLightbox freezes the same query at open). */
+  const finePointer = useMediaQuery('(pointer: fine)');
   const updated = formatUpdated(repo.pushedAt);
   const introLabel =
     details.detailsSource === 'readme'
@@ -421,7 +428,7 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
       <Card
         spotlight
         className="featured-card flex h-full flex-col overflow-hidden p-6 sm:p-7"
-        whileHover={{ y: -6, scale: 1 }}
+        whileHover={reduceMotion || !finePointer ? undefined : { y: -6, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
         {Array.isArray(repo.images) && repo.images.length > 0 && (
@@ -530,6 +537,9 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
    component in the map below, not here. */
 const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) {
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only (S4) — same gate as FeaturedProjectCard above:
+     a touch tap must not leave the card lifted. */
+  const finePointer = useMediaQuery('(pointer: fine)');
   const updated = formatUpdated(repo.pushedAt);
   return (
     <motion.div
@@ -543,7 +553,7 @@ const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) 
       <Card
         spotlight
         className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
-        whileHover={{ y: -6, scale: 1 }}
+        whileHover={reduceMotion || !finePointer ? undefined : { y: -6, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
         {/* Slideshow — only when the repo has a `Project_Card`
@@ -893,7 +903,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
         <div className="rounded-2xl border border-card bg-card p-8 text-center">
           <p className="text-sm text-muted">{error}</p>
           <p className="mt-2 text-xs text-muted-dim">
-            Projects are cached — they'll appear on your next visit.
+            Projects couldn&apos;t be loaded right now. Please try again later.
           </p>
         </div>
       )}

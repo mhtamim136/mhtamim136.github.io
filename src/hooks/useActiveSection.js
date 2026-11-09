@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { NAV_OFFSET_PX } from '../utils/navOffset';
 
+/* Scroll-spy tolerance (P1 fix, 2026-11-10): the scroll landing —
+   scroll-margin-top = NAV_OFFSET_PX, honoured identically by native
+   fragment jumps, Lenis scrollTo (it subtracts the element's
+   scroll-margin-top) and the restore hook — sits EXACTLY on the
+   comparison boundary below. A sub-pixel excess (fractional rects,
+   a rounded scroll offset) then makes the target section fail the
+   test, and the hash stays one section behind until the next
+   scroll — because nothing re-runs the spy once the scroll has
+   settled. Sections are hundreds of px apart, so 1px can never
+   mis-assign; it only absorbs the knife-edge at the landing. */
+const SPY_TOLERANCE_PX = 1;
+
 /**
  * Scroll spy aligned with nav order. Works with lazy-mounted sections: we
  * recompute when <main> gains nodes (Suspense) and on scroll/resize.
@@ -42,7 +54,7 @@ export function useActiveSection(sectionIds, options = {}) {
         const el = document.getElementById(id);
         if (!el) continue;
         const top = el.getBoundingClientRect().top;
-        if (top <= offset) current = id;
+        if (top <= offset + SPY_TOLERANCE_PX) current = id;
       }
 
       const lastId = sectionIds[sectionIds.length - 1];

@@ -67,7 +67,7 @@ export function imagesFromTree(tree, repoName, defaultBranch) {
       .filter((t) => t.type === 'blob' && t.path.startsWith(prefix))
       .map((t) => t.path)
       .filter((p) => IMAGE_EXTS.has(p.split('.').pop().toLowerCase()))
-      .sort((a, b) => baseName(a).localeCompare(baseName(b)));
+      .sort((a, b) => baseName(a).localeCompare(baseName(b), undefined, { numeric: true }));
     if (files.length > 0) {
       return files.map(
         (p) =>

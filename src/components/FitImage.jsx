@@ -18,12 +18,15 @@
  *   lightbox passes 'center'); `imgClassName` adds call-site
  *   classes to the main image (the slideshow's hover zoom);
  * - `onError` reports a failed load (slideshow only — a failed
- *   slide swaps to the placeholder there).
+ *   slide swaps to the placeholder there); `onLoad` reports a
+ *   successful load of the MAIN image only (slideshow only — the
+ *   auto-advance gate waits on it; the backdrop is the same URL,
+ *   so its load adds nothing).
  *
  * The hero circle does NOT use this component — it keeps its
  * face-filling object-cover <picture> (srcset, center 20% crop).
  */
-export function FitImage({ src, alt, objectPosition, imgClassName = '', onError }) {
+export function FitImage({ src, alt, objectPosition, imgClassName = '', onError, onLoad }) {
   const style = objectPosition ? { objectPosition } : undefined;
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -44,6 +47,7 @@ export function FitImage({ src, alt, objectPosition, imgClassName = '', onError 
         decoding="async"
         draggable={false}
         onError={onError}
+        onLoad={onLoad}
         className={`relative h-full w-full object-contain${imgClassName ? ` ${imgClassName}` : ''}`}
         style={style}
       />

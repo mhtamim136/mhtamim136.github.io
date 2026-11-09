@@ -49,8 +49,10 @@ export function useGitHubRepos() {
     const controller = new AbortController();
 
     /* A payload is usable ONLY in the new shape: an object with a
-       non-empty `repos` array AND a `featured` array. The check is
-       on the SHAPE, not on emptiness — a legitimately empty
+       `repos` array AND a `featured` array. The check is on the
+       SHAPE, not on emptiness — a legitimately empty `repos` (an
+       account with no public repos) is a valid payload and the
+       section's empty state renders for it; a legitimately empty
        `featured` (e.g. the GraphQL pins query failed) is a valid
        payload and renders the old grid on purpose.
        The old code cached a BARE repos array under the same key;
@@ -62,7 +64,7 @@ export function useGitHubRepos() {
        below), so this rule changes nothing for them. */
     function applyData(data) {
       if (!data || Array.isArray(data)) return false;
-      if (!Array.isArray(data.repos) || data.repos.length === 0) return false;
+      if (!Array.isArray(data.repos)) return false;
       if (!Array.isArray(data.featured)) return false;
       setRepos(data.repos);
       setFeatured(data.featured);
@@ -91,7 +93,7 @@ export function useGitHubRepos() {
         const res = await fetch('/projects.json', { signal: controller.signal });
         if (!res.ok) return null;
         const snapshot = await res.json();
-        if (Array.isArray(snapshot.repos) && snapshot.repos.length > 0) {
+        if (Array.isArray(snapshot.repos)) {
           return {
             repos: snapshot.repos,
             featured: Array.isArray(snapshot.featured) ? snapshot.featured : [],
@@ -136,7 +138,7 @@ export function useGitHubRepos() {
           clearTimeout(timerId);
           if (res.ok) {
             const payload = await res.json();
-            if (Array.isArray(payload.repos) && payload.repos.length > 0) {
+            if (Array.isArray(payload.repos)) {
               data = {
                 repos: payload.repos,
                 featured: Array.isArray(payload.featured) ? payload.featured : [],

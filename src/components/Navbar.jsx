@@ -47,7 +47,11 @@ const navItemIdle = 'text-muted-dim';
  * px-1 on the pill, px-2 on the header. With eight items the pill
  * no longer fits — 8×44 + divider 17 + toggle 44 + pill padding 8
  * = 421px > 382px available (390 − header px-2) — so it scrolls
- * horizontally (overflow-x-auto). The 44px tap targets stay, so
+ * horizontally (overflow-x-auto). The nav uses justify-safe-center
+ * (see index.css — Tailwind 3.4 has no such utility): when the pill
+ * overflows, the items align to the start instead of centering, so
+ * the Home icon can never be clipped past the scroll origin the way
+ * plain justify-center would clip it. The 44px tap targets stay, so
  * the scroll is the tradeoff for the eighth item; overflow-x-auto
  * remains only as a safety net for narrower screens otherwise.
  */
@@ -85,7 +89,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
           the transition to 0.01ms, so hide/show becomes instant
           instead of sliding. */}
       <nav
-        className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
+        className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-safe-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
         aria-label="Primary"
       >
         {items.map(({ id, label, icon }) => {

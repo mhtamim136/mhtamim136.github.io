@@ -250,6 +250,18 @@
     background: radial-gradient(ellipse 55% 60% at 85% 0%, var(--projects-glow), transparent 70%);
   }
 
+  /* Safe centering — Tailwind 3.4 has no justify-safe-* utility, so
+     this one-line rule supplies it: `justify-content: safe center`
+     centers when the content fits and falls back to start-alignment
+     when it overflows, so the first item can never be clipped past
+     the scroll origin inside an overflow-x-auto container. Used by
+     the nav pill (Navbar.jsx), whose 8 items overflow a 390px
+     viewport. (Tailwind v4 ships this utility natively; this rule
+     can go when the project upgrades.) */
+  .justify-safe-center {
+    justify-content: safe center;
+  }
+
   /* Cursor spotlight — one fixed soft light following the pointer.
      Positioned by JS (transform only); fades in on first move and
      out when the pointer leaves the window. z-index 1 sits above
