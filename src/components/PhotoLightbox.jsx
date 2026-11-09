@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 /**
@@ -90,6 +90,23 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   swipedRef the swipe uses — and swipedRef is cleared only by
  *   the next pointerdown, because a two-finger gesture can fire
  *   one click per finger.
+ * - Gallery drag-follow (project screenshots only, 2026-11-09):
+ *   the photo container holds a three-cell track (previous /
+ *   current / next, each exactly the container width, at -100% /
+ *   0 / +100% via a -100% margin on the track) and a horizontal
+ *   drag moves the track WITH the finger, 1:1 — pull halfway and
+ *   you see half the old photo and half the next one, exactly
+ *   like a phone gallery. The old 50px navigate-on-release is
+ *   gone: on release a drag past ~50% of the container width
+ *   commits (the track slides fully to the adjacent photo, THEN
+ *   it navigates and the track resets to 0) and anything less
+ *   springs back. The zoom lives on each CELL now (same scale on
+ *   all three, so a drag while zoomed shows the next photo at
+ *   the same zoom), each cell clips its own image
+ *   (overflow-hidden), so the split stays clean at any zoom.
+ *   The hero portrait has no track — a drag there does nothing,
+ *   as before. Keyboard arrows and the prev/next buttons still
+ *   navigate instantly, with no drag animation.
  */
 const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
 /* Touch tap timing: a single tap waits this long before closing, so
@@ -99,6 +116,17 @@ const SWIPE_THRESHOLD = 50; /* Same value as the slideshow's swipe. */
    first to count. */
 const DOUBLE_TAP_DELAY = 250; /* ms */
 const DOUBLE_TAP_SLOP = 30; /* px */
+/* Drag-follow: a horizontal drag latches as a drag once it is
+   horizontal-dominant and at least this far — below it the
+   gesture is still a tap (the track does not move, the release
+   click closes/zooms as before). 10px keeps the follow feeling
+   glued to the finger; the old 50px SWIPE_THRESHOLD still
+   distinguishes tap vs drag for click suppression in general. */
+const DRAG_LATCH = 10; /* px */
+/* Drag-follow commit: a drag must pass half the container width
+   to commit to the next/previous photo (the gallery rule);
+   anything less springs back. */
+const COMMIT_FRACTION = 0.5;
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
@@ -125,6 +153,30 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   const tapTimerRef = useRef(null);
   const doubleTapRef = useRef(false);
   const lastTapRef = useRef(null);
+  /* Drag-follow tracking (project lightbox only): the track's
+     horizontal offset as a Framer Motion value — written in the
+     pointermove handler, so the photos follow the finger with no
+     re-render per move. containerRef measures the photo frame at
+     drag start (the commit threshold is half that width);
+     dragRef holds the width for the gesture in progress;
+     draggingRef latches once the gesture is a horizontal drag;
+     animatingRef guards the commit/spring-back animation in
+     flight (a new pointer gesture is ignored until it settles);
+     trackAnimRef holds the running animation controls so a pinch
+     can stop it. */
+  const trackX = useMotionValue(0);
+  const containerRef = useRef(null);
+  const dragRef = useRef(null);
+  const draggingRef = useRef(false);
+  const animatingRef = useRef(false);
+  const trackAnimRef = useRef(null);
+
+  /* Stops a running track animation, if any. Called before the
+     track is set directly (pinch start, pointer cancel). */
+  const stopTrackAnim = () => {
+    trackAnimRef.current?.stop();
+    trackAnimRef.current = null;
+  };
 
   /* Clears a pending tap-close timer, if any. Called when a swipe
      or pinch starts, when a double-tap is recognised, and before a
@@ -233,22 +285,27 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         exit: { opacity: 0, scale: 0.96 },
       };
 
-  /* Swipe to navigate + pinch to zoom. Plain pointer events on the
-     photo div (pointer-type-agnostic — any two pointers pinch):
+  /* Swipe to navigate + pinch to zoom + gallery drag-follow.
+     Plain pointer events on the photo div (pointer-type-agnostic
+     — any two pointers pinch):
      pointerdown records the start (first pointer only) and
      captures the pointer so move/up keep firing if the finger
      slides off the photo; a move of ≥ SWIPE_THRESHOLD marks a
-     drag; on release a horizontal-dominant drag navigates
-     (left = next, right = prev — same as the slideshow) and
+     drag; on release a horizontal-dominant drag that passed half
+     the container width COMMITS — the track slides fully to the
+     adjacent photo and only then does it navigate — while a
+     shorter drag springs back (see onPhotoPointerUp). The drag
      leaves swipedRef true so the click that follows the drag is
      suppressed. Navigation only when canNavigate — for the hero
-     a swipe navigates nowhere but still suppresses the click, so
-     a drag never closes or zooms by accident.
+     a swipe navigates nowhere and the track never moves, so a
+     drag never closes or zooms by accident.
      A second pointer down starts a PINCH instead: the finger
      distance and the zoom at that moment are recorded, and the
      zoom then tracks the distance ratio, clamped [1, 2] like
      desktop. A pinch never navigates and never closes; its
-     release click(s) are suppressed by the same swipedRef.
+     release click(s) are suppressed by the same swipedRef. A
+     pinch also cancels any drag-follow in progress — the track
+     resets to 0 with no animation.
      Touch tap timing lives here too: a pointerdown landing near
      the last tap in time and space, while a close timer is
      pending, is the second tap of a double-tap — it cancels the
@@ -268,7 +325,9 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
        the zoom at that moment. A pinch is neither a tap nor a
        swipe: suppress the release click(s), cancel any swipe,
        forget any double-tap in progress, and cancel a pending
-       tap-close (the first tap is now part of a pinch). */
+       tap-close (the first tap is now part of a pinch). It also
+       cancels any drag-follow in progress — the track resets to
+       0 with no animation, and the drag state is forgotten. */
     if (pointersRef.current.size === 2) {
       const ids = [...pointersRef.current.keys()];
       const [a, b] = [...pointersRef.current.values()];
@@ -284,6 +343,10 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       downPointRef.current = null;
       doubleTapRef.current = false;
       clearTapTimer();
+      stopTrackAnim();
+      trackX.set(0);
+      draggingRef.current = false;
+      dragRef.current = null;
       return;
     }
     if (pointersRef.current.size > 2) return; /* Third finger: ignore. */
@@ -291,6 +354,14 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     /* One pointer — the single-pointer behaviour. */
     downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
     swipedRef.current = false;
+    /* Drag-follow setup (project lightbox only): measure the
+       frame once — the commit threshold is half this width. The
+       drag latches as a horizontal drag in the move handler. */
+    if (canNavigate) {
+      const width = containerRef.current?.getBoundingClientRect().width ?? 0;
+      dragRef.current = width > 0 ? { width } : null;
+      draggingRef.current = false;
+    }
     /* Touch only: is this the second tap of a double-tap? The
        first tap scheduled a close DOUBLE_TAP_DELAY out; a second
        tap landing near it in time and space cancels that close
@@ -331,9 +402,11 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     /* Single pointer — the swipe tracking. */
     const p = downPointRef.current;
     if (!p || e.pointerId !== p.pointerId) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
     if (
       !swipedRef.current &&
-      Math.hypot(e.clientX - p.x, e.clientY - p.y) >= SWIPE_THRESHOLD
+      Math.hypot(dx, dy) >= SWIPE_THRESHOLD
     ) {
       swipedRef.current = true;
       /* A drag is not a tap: cancel a pending tap-close and
@@ -341,8 +414,37 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       doubleTapRef.current = false;
       clearTapTimer();
     }
+    /* Drag-follow (project lightbox only): once the gesture is
+       horizontal-dominant, the track follows the finger 1:1,
+       clamped to one container width either way. Latching also
+       marks the gesture a drag (swipedRef), so the release click
+       is suppressed even for a short drag that springs back —
+       otherwise the spring-back would be followed by a close
+       (touch) or a zoom (desktop). A drag in flight while a
+       commit/spring-back animation runs is ignored. */
+    if (
+      canNavigate &&
+      dragRef.current &&
+      !pinchRef.current &&
+      !animatingRef.current
+    ) {
+      if (
+        !draggingRef.current &&
+        Math.abs(dx) > Math.abs(dy) &&
+        Math.abs(dx) >= DRAG_LATCH
+      ) {
+        draggingRef.current = true;
+        swipedRef.current = true;
+        doubleTapRef.current = false;
+        clearTapTimer();
+      }
+      if (draggingRef.current) {
+        const width = dragRef.current.width;
+        trackX.set(Math.max(-width, Math.min(width, dx)));
+      }
+    }
   };
-  const onPhotoPointerUp = (e) => {
+  const onPhotoPointerUp = async (e) => {
     pointersRef.current.delete(e.pointerId);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -359,13 +461,71 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     }
     const p = downPointRef.current;
     downPointRef.current = null;
-    if (!p || e.pointerId !== p.pointerId || !swipedRef.current) return;
-    const dx = e.clientX - p.x;
-    const dy = e.clientY - p.y;
-    if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
-      if (dx < 0) goNext();
-      else goPrev();
+    if (!p || e.pointerId !== p.pointerId) return;
+    /* A commit/spring-back animation already in flight owns the
+       track — a second pointerup in that window does nothing. */
+    if (animatingRef.current) return;
+    /* Drag-follow release (project lightbox only): the gallery
+       rule. A horizontal-dominant drag past half the container
+       width COMMITS — the track slides fully to the adjacent
+       photo (left = next, right = prev) and only then does it
+       navigate, and the track resets to 0 in the same handler
+       (the new photo mounts at centre; zoom resets via the
+       existing index-change effect). Anything less springs back
+       to 0 with no navigation. The navigation MUST wait for the
+       slide-out to finish — otherwise the new photo appears at
+       centre instantly and the slide is lost. Under reduced
+       motion the release animations are instant (set directly,
+       no spring). If a pinch starts mid-slide it stops the
+       animation and the navigation is cancelled (the track was
+       already reset by the pinch). */
+    if (canNavigate && draggingRef.current && dragRef.current) {
+      draggingRef.current = false;
+      const width = dragRef.current.width;
+      dragRef.current = null;
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      const commit =
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
+      animatingRef.current = true;
+      try {
+        if (!commit) {
+          if (reduceMotion) {
+            trackX.set(0);
+          } else {
+            trackAnimRef.current = animate(trackX, 0, {
+              type: 'spring',
+              stiffness: 400,
+              damping: 32,
+            });
+            await trackAnimRef.current;
+          }
+          return;
+        }
+        const target = dx < 0 ? -width : width;
+        if (reduceMotion) {
+          trackX.set(target);
+        } else {
+          trackAnimRef.current = animate(trackX, target, {
+            duration: 0.22,
+            ease: [0.32, 0.72, 0, 1],
+          });
+          await trackAnimRef.current;
+        }
+        if (pinchRef.current) return; /* Pinch started mid-slide: cancel. */
+        if (dx < 0) goNext();
+        else goPrev();
+        stopTrackAnim();
+        trackX.set(0);
+      } catch {
+        /* Stopped mid-flight (pinch) — the track was already
+           reset by the pinch; nothing more to do. */
+      } finally {
+        animatingRef.current = false;
+      }
+      return;
     }
+    dragRef.current = null;
     /* swipedRef stays true on purpose: the click(s) that follow
        this release must be suppressed (see onPhotoClick). A
        two-finger gesture can fire one click per finger, so
@@ -379,6 +539,15 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     }
     if (downPointRef.current?.pointerId === e.pointerId) {
       downPointRef.current = null;
+      /* An interrupted drag is neither a tap nor a swipe: the
+         track returns to 0 at once (no animation — the gesture
+         is dead) and the drag state is forgotten. */
+      if (draggingRef.current) {
+        draggingRef.current = false;
+        dragRef.current = null;
+        stopTrackAnim();
+        trackX.set(0);
+      }
     }
     /* No navigation, no click suppression change: a cancelled
        gesture is neither a tap nor a swipe. (swipedRef is left
@@ -490,6 +659,30 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       />
     );
 
+  /* Drag-track cells (project lightbox only): the same plain
+     <img> the rect variant renders today — the slideshow passes
+     URL strings, so prev/next are just images[i]. Navigation
+     wraps, so both neighbours always exist. Adjacent cells are
+     presentational (empty alt) — the current cell keeps the real
+     alt, so a screen reader hears the photo once. */
+  const prevSrc = canNavigate
+    ? images[(index - 1 + images.length) % images.length]
+    : null;
+  const nextSrc = canNavigate
+    ? images[(index + 1) % images.length]
+    : null;
+  const cellPhoto = (srcUrl) => (
+    <img
+      src={srcUrl}
+      alt=""
+      loading="eager"
+      decoding="async"
+      draggable={false}
+      className="h-full w-full object-cover"
+      style={{ objectPosition }}
+    />
+  );
+
   return createPortal(
     <motion.div
       ref={dialogRef}
@@ -557,13 +750,17 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       </button>
       <motion.div className="flex justify-center" {...photoAnim} transition={transition}>
         <div
+          ref={containerRef}
           onClick={onPhotoClick}
           onWheel={onPhotoWheel}
           onPointerDown={onPhotoPointerDown}
           onPointerMove={onPhotoPointerMove}
           onPointerUp={onPhotoPointerUp}
           onPointerCancel={onPhotoPointerCancel}
-          style={{ transform: `scale(${zoom})` }}
+          /* Hero: the zoom scales the whole frame, exactly as
+             before. Project: the frame stays fixed and the zoom
+             lives on the track's cells instead (see below). */
+          style={canNavigate ? undefined : { transform: `scale(${zoom})` }}
           /* touch-none ALWAYS now: without it the browser takes
              over the touch stream for panning and fires
              pointercancel mid-swipe or mid-pinch, so pointerup
@@ -571,9 +768,46 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
              close still works — it is a click, which touch-action
              does not affect — and body scroll is locked while the
              lightbox is open, so the hero loses nothing. */
-          className={`${photoFrameClass} ${zoomTransition} touch-none`}
+          className={`${photoFrameClass} ${canNavigate ? '' : zoomTransition} touch-none`}
         >
-          {photo}
+          {canNavigate ? (
+            /* Drag track: three cells in a row — previous /
+               current / next — each exactly the container width.
+               The track is shifted left by one container width
+               (marginLeft -100%), so the current cell sits in
+               the frame and the neighbours wait just outside it;
+               the track's x (a motion value, written by the
+               pointer handlers) then slides them through. Each
+               cell clips its own image, so the split between the
+               outgoing and incoming photo stays clean at any
+               zoom — the zoomed neighbour never bleeds into the
+               current cell's half. */
+            <motion.div
+              style={{ x: trackX, marginLeft: '-100%' }}
+              className="flex h-full w-full"
+            >
+              <div
+                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
+                style={{ transform: `scale(${zoom})` }}
+              >
+                {cellPhoto(prevSrc)}
+              </div>
+              <div
+                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
+                style={{ transform: `scale(${zoom})` }}
+              >
+                {photo}
+              </div>
+              <div
+                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
+                style={{ transform: `scale(${zoom})` }}
+              >
+                {cellPhoto(nextSrc)}
+              </div>
+            </motion.div>
+          ) : (
+            photo
+          )}
         </div>
       </motion.div>
       {/* Counter — only when navigation is on. Same pill as the
