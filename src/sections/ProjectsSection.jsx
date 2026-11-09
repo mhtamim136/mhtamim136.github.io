@@ -754,7 +754,11 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
               collapse). FILTERED: every matching repo (featured +
               more) as a regular grid card. */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <AnimatePresence mode="popLayout">
+            {/* mode="sync" on purpose: popLayout makes Framer Motion
+                inject a <style> element per mounted card, which the
+                Content-Security-Policy blocks (4 console errors on
+                every load). Sync keeps the same enter/exit animation. */}
+            <AnimatePresence mode="sync">
               {visible.map((repo, idx) => {
                 const updated = formatUpdated(repo.pushedAt);
                 return (
