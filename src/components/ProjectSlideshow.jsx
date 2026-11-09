@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { animate, motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { PhotoLightbox } from './PhotoLightbox';
@@ -29,13 +29,13 @@ const MANUAL_PAUSE_MS = 7000;
  *   entering slide mounting off-viewport with a lazy <img> that
  *   had never been fetched, showing the near-white card background
  *   as a band sweeping in. Here all three cells are mounted at
- *   once with eager <img>s, every slide is preloaded once the card
- *   is on screen, and the incoming slide is already on screen (as
- *   the adjacent cell) before the index swaps — so a swap never
- *   lands on an image that still has to be fetched. The outgoing
- *   image covers the background until the incoming one has taken
- *   its place: the same guarantee the crossfade gave, with the
- *   slide Tamim asked for.
+ *   once with eager <img>s once the card is on screen (inView),
+ *   and the incoming slide is already on screen (as the adjacent
+ *   cell) before the index swaps — so a swap never lands on an
+ *   image that still has to be fetched. The outgoing image covers
+ *   the background until the incoming one has taken its place:
+ *   the same guarantee the crossfade gave, with the slide Tamim
+ *   asked for.
  * - The WHOLE BOX leaning (the card itself tilting and sticking
  *   after a tap) is a different cause — Card.jsx's pointer-tracking
  *   tilt reacting to the tap's emulated mouse — fixed there by
@@ -58,15 +58,19 @@ const MANUAL_PAUSE_MS = 7000;
  *   lightbox in its rectangular variant, so a screenshot can be seen
  *   full-size — on a phone the slideshow is ~350px wide and there
  *   was no way to enlarge it at all (Tier 4).
- * - Every slide is preloaded once the card is on screen, so a swap
- *   never lands on an image that still has to be fetched. Images
- *   load eagerly in the track cells; the preload is gated on the
- *   card being in view so off-screen cards fetch nothing. The image
- *   area has a fixed 16:9 ratio, so cards never change height.
+ * - Only the current slide ±1 neighbour ever loads: the three
+ *   track cells mount eager <img>s, but only once the card is on
+ *   screen (inView) — an off-screen card fetches nothing, and
+ *   there is no preload-all any more (it used to fetch every
+ *   slide the moment a card scrolled into view). A swap never
+ *   lands on an image that still has to be fetched, because the
+ *   entering slide is always the adjacent cell, already mounted.
+ *   The image area has a fixed 16:9 ratio, so cards never change
+ *   height.
  * - Rendered only when a repo actually has images — repos without a
  *   `Project_Card` folder keep the text-only card (see ProjectsSection).
  */
-export function ProjectSlideshow({ images, repoName }) {
+function ProjectSlideshowInner({ images, repoName }) {
   const count = images.length;
   const [index, setIndex] = useState(0);
   const [hoverPaused, setHoverPaused] = useState(false);
@@ -214,8 +218,8 @@ export function ProjectSlideshow({ images, repoName }) {
   }, []);
 
   /* Pause when the card scrolls off-screen. Starts false so the
-     preload below does not fetch for cards the user never scrolls
-     to; the observer corrects it on the first frame. Without
+     cells below render no <img> for cards the user never scrolls
+     to (lazy-load); the observer corrects it on the first frame. Without
      IntersectionObserver (very old browsers) assume in view, as
      before, so auto-advance still runs. */
   useEffect(() => {
@@ -256,19 +260,17 @@ export function ProjectSlideshow({ images, repoName }) {
     return () => window.clearInterval(id);
   }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, slideNext]);
 
-  /* Preload every slide once the card is on screen, so a swap never
-     lands on an image that still has to be fetched — the old
-     "next slide only" preload left manual prev/dot jumps (and the
-     first auto-advance on a slow connection) fetching mid-swap.
-     Gated on inView so off-screen cards fetch nothing. */
-  useEffect(() => {
-    if (count <= 1 || !inView) return undefined;
-    images.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-    });
-    return undefined;
-  }, [images, count, inView]);
+  /* No preload-all any more (2026-11-10): the old effect fetched
+     EVERY slide the moment a card scrolled into view — BuyTrust
+     15 images / 18.9 MB, online-quiz 17 / 1.8 MB — images the
+     visitor may never look at. Only the current slide ±1 neighbour
+     ever loads, via the eager track cells below: the entering slide
+     is always the adjacent cell, already mounted, so the no-blink
+     guarantee survives without preloading the rest. A dot jump to
+     a far slide mounts its image as the adjacent cell first, so it
+     starts fetching before the slide settles — on a slow
+     connection it may pop in just after the 220ms slide, the
+     same behaviour as any standard carousel. */
 
   const showControls = count > 1;
 
@@ -292,10 +294,22 @@ export function ProjectSlideshow({ images, repoName }) {
 
   /* One cell's content: a failed slide shows a themed placeholder
      (same 16:9 box, no layout shift); otherwise the image, eager
-     (the track cells are the visible/adjacent slides, and the
-     preload has already fetched them). The current cell keeps the
-     real alt text; adjacent cells are presentational. */
+     (the track cells are the visible/adjacent slides — the only
+     three that ever load). The current cell keeps the real alt
+     text; adjacent cells are presentational. Nothing renders
+     before the card is in view (see the inView gate above). */
   const cellContent = (src, shownIndex, isCurrent) => {
+    /* Lazy-load (2026-11-10): the three track cells render their
+       <img>s only once the card is in view (the IntersectionObserver
+       above, same gate auto-advance already used). Before that the
+       16:9 box stays empty — fixed ratio, so no layout shift — and
+       no image is fetched. Previously the cells mounted eager
+       <img>s at once, so every Featured card fetched 3 images on
+       page load whether or not the user ever scrolled to Projects
+       (measured: 12 images / 2,683 KiB for Featured alone, plus 12
+       more / 2,925 KiB from the More grid's mount-then-collapse
+       transient — 24 images / 5,608 KiB on initial load). */
+    if (!inView) return null;
     if (failed[src]) {
       return (
         <div
@@ -643,3 +657,11 @@ export function ProjectSlideshow({ images, repoName }) {
     </>
   );
 }
+
+/* Memoized (P7): the parent re-renders on every scroll-spy change,
+   and this slideshow's props — the repo's images array and name —
+   are referentially stable across those renders, so a parent
+   re-render must not re-run this component's render. Memo only
+   skips the render; the component's own state (index, observers,
+   timers, drag refs) is untouched. */
+export const ProjectSlideshow = memo(ProjectSlideshowInner);

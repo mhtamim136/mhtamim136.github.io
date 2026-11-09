@@ -14,8 +14,20 @@
  */
 let lenisInstance = null;
 
+/* Demand-loop kick (P8): useLenis registers the function that wakes
+   its rAF loop; smoothScrollTo calls it after a programmatic
+   scrollTo, so an anchor / scroll-to animation actually advances.
+   Null when no Lenis instance exists (reduced motion) — the same
+   shape as the instance registry above, and for the same reason:
+   any component can scroll through Lenis without prop-drilling. */
+let rafKick = null;
+
 export function setLenis(instance) {
   lenisInstance = instance;
+}
+
+export function setLenisRafKick(fn) {
+  rafKick = fn;
 }
 
 export function getLenis() {
@@ -25,6 +37,7 @@ export function getLenis() {
 export function smoothScrollTo(top) {
   if (lenisInstance) {
     lenisInstance.scrollTo(top);
+    rafKick?.();
     return;
   }
   const reduced = window.matchMedia(

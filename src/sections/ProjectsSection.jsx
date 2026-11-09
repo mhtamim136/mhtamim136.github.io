@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, memo, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
@@ -80,7 +80,10 @@ const pillClass =
 /* Languages come from the repos data itself (snapshot + /api/projects
    both carry a `languages` array per repo) — no runtime fetch. A repo
    without a languages array falls back to its primary language. */
-function LanguagePills({ repoName, fallbackLanguage, langMap }) {
+/* Memoized (P7): a parent re-render (scroll-spy, theme) passes the
+   same repoName / fallbackLanguage / langMap, so the pills must not
+   re-render for it. */
+const LanguagePills = memo(function LanguagePills({ repoName, fallbackLanguage, langMap }) {
   const reduceMotion = useReducedMotion() ?? false;
   const langs = langMap[repoName];
 
@@ -115,7 +118,7 @@ function LanguagePills({ repoName, fallbackLanguage, langMap }) {
       )}
     </motion.div>
   );
-}
+});
 
 /* ── Language filter chip ─────────────────────────────────────── */
 /* These ARE interactive (unlike the pills, which are labels), so the
@@ -125,11 +128,14 @@ function LanguagePills({ repoName, fallbackLanguage, langMap }) {
    The old hover (text #475569 → #334155, border 10% → 25%) was so
    faint it read as no effect at all. The active chip already has
    shadow-accent-glow, so it stays distinct; it just deepens a touch. */
-function FilterChip({ label, active, onClick }) {
+/* Memoized (P7) — with a stable onClick: the parent passes one
+   useCallback'd handler plus the chip's own key (filterKey), never
+   a fresh inline arrow, so the memo comparison can actually hit. */
+const FilterChip = memo(function FilterChip({ label, active, filterKey, onClick }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => onClick(filterKey)}
       aria-pressed={active}
       className={`shrink-0 rounded-lg border px-4 py-3.5 text-xs font-medium transition-all duration-200 sm:text-sm ${
         active
@@ -140,13 +146,15 @@ function FilterChip({ label, active, onClick }) {
       {label}
     </button>
   );
-}
+});
 
 /* ── Show-more button ─────────────────────────────────────────── */
 /* One shared button for both pager spots (Tier 4, S3 — the markup
    was written twice: once under Featured, once below the grid).
    Same label, same classes, same handler in both places. */
-function ShowMoreButton({ remaining, onClick }) {
+/* Memoized (P7) — the parent passes the stable handleShowMore
+   callback, never a fresh inline arrow. */
+const ShowMoreButton = memo(function ShowMoreButton({ remaining, onClick }) {
   return (
     <button
       type="button"
@@ -157,7 +165,7 @@ function ShowMoreButton({ remaining, onClick }) {
       <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
     </button>
   );
-}
+});
 
 /* ── Sort toggle ──────────────────────────────────────────────── */
 /* One pill, THREE states, cycled on each click (Tamim, 2026-11-09):
@@ -183,7 +191,9 @@ function ShowMoreButton({ remaining, onClick }) {
    (h-3.5) as the Year chevron and the direction arrows. */
 const SORT_CYCLE = { off: 'newest', newest: 'oldest', oldest: 'off' };
 
-function SortToggle({ sortMode, onToggle }) {
+/* Memoized (P7) — the parent passes the stable handleSortToggle
+   callback, never a fresh inline arrow. */
+const SortToggle = memo(function SortToggle({ sortMode, onToggle }) {
   const isOldest = sortMode === 'oldest';
   const isOff = sortMode === 'off';
   const active = sortMode !== 'off';
@@ -215,7 +225,7 @@ function SortToggle({ sortMode, onToggle }) {
       )}
     </button>
   );
-}
+});
 
 /* ── Format repo name ─────────────────────────────────────────── */
 
@@ -318,7 +328,11 @@ const cardAnim = {
    GitHub description (github fallback) — or a curated `description`
    standing in as the intro (curated-description) — is shown
    unlabeled, exactly like the grid card's description. */
-function FeaturedProjectCard({ repo, index }) {
+/* Memoized (P7): a parent re-render passes the same repo object
+   (the memoized featured list) and index, so the rich card — and
+   the slideshow inside it — must not re-render for a scroll-spy
+   or theme change. */
+const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
   const details = repo.details || {};
   const reduceMotion = useReducedMotion() ?? false;
   const updated = formatUpdated(repo.pushedAt);
@@ -482,14 +496,124 @@ function FeaturedProjectCard({ repo, index }) {
       </Card>
     </motion.div>
   );
-}
+});
+
+/* ── Grid project card ────────────────────────────────────────── */
+/* Extracted from the visible.map inline JSX (P7) so it can be
+   memoized: the parent re-renders on every scroll-spy change, and
+   each card carries a slideshow — re-rendering all of them on
+   every scroll tick was the whole-tree cost. Props are
+   referentially stable (the repo object from the memoized
+   filtered list, the memoized langMap), so a parent re-render
+   skips every card whose repo did not move; a filter change
+   re-renders only the cards that enter, leave or move (index is
+   a prop, so a reorder still re-renders the moved card — the
+   stagger delay depends on it). Internal state (the slideshow's
+   index, observers) is untouched by memo. The key lives on the
+   component in the map below, not here. */
+const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) {
+  const reduceMotion = useReducedMotion() ?? false;
+  const updated = formatUpdated(repo.pushedAt);
+  return (
+    <motion.div
+      custom={index}
+      variants={cardAnim}
+      initial={reduceMotion ? false : 'hidden'}
+      animate="show"
+      exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
+      layout
+    >
+      <Card
+        spotlight
+        className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
+        whileHover={{ y: -6, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Slideshow — only when the repo has a `Project_Card`
+            folder (images come from the build-time snapshot).
+            Without images the card renders exactly as before:
+            text-only, same layout, no empty image box. */}
+        {Array.isArray(repo.images) && repo.images.length > 0 && (
+          <ProjectSlideshow images={repo.images} repoName={repo.name} />
+        )}
+
+        {/* Title + language pills */}
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <h3 className="text-lg font-semibold text-heading sm:text-xl">
+            {formatName(repo.name)}
+          </h3>
+          <LanguagePills
+            repoName={repo.name}
+            fallbackLanguage={repo.language}
+            langMap={langMap}
+          />
+        </div>
+
+        {/* Description — clamped to 3 lines so cards with a
+            slideshow stay equal height. No description means
+            no line at all (never invent one). */}
+        {repo.description && (
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
+            {repo.description}
+          </p>
+        )}
+
+        {/* Topics as tags */}
+        {repo.topics.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {repo.topics.slice(0, 6).map((t) => (
+              <Tag key={t}>{t}</Tag>
+            ))}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
+          {updated && (
+            <span>Updated {updated}</span>
+          )}
+          {repo.stars > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" aria-hidden />
+              {repo.stars}
+            </span>
+          )}
+          {repo.forks > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <GitFork className="h-3.5 w-3.5" aria-hidden />
+              {repo.forks}
+            </span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto flex flex-wrap gap-3 pt-6">
+          {repo.homepage && (
+            <Button
+              {...externalLinkProps(repo.homepage)}
+              variant="primary"
+              className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              Live demo
+            </Button>
+          )}
+          <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
+            <Github className="h-3.5 w-3.5" aria-hidden />
+            GitHub
+          </Button>
+        </div>
+      </Card>
+    </motion.div>
+  );
+});
 
 /* ── Main component ───────────────────────────────────────────── */
 /* Repos + loading/error come from App (single useGitHubRepos call,
    shared with the Skills section so the counts and the grid read
    the same data), as does the filter: a normalized skill/language
    key, or null for "All". */
-export function ProjectsSection({ repos, featured, loading, error, activeFilter, onFilterChange }) {
+function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, onFilterChange }) {
   const reduceMotion = useReducedMotion() ?? false;
   /* Persisted "Show more" expansion (Tamim, 2026-11-09): the number
      of More projects shown survives a reload, so a refresh no longer
@@ -751,10 +875,24 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
   const shown = isFiltered ? visible.length : featuredRepos.length + visible.length;
   const total = isFiltered ? filtered.length : repos.length;
 
+  /* Stable callbacks for the memoized controls (P7): a fresh
+     inline arrow on every render would defeat their memo, so the
+     chips, the sort toggle and the show-more button all receive
+     one useCallback'd handler each. onFilterChange is App's
+     setProjectFilter — stable by itself. */
+  const handleFilterChip = useCallback(
+    (key) => onFilterChange(key),
+    [onFilterChange],
+  );
+  const handleSortToggle = useCallback(
+    () => setSortMode((m) => SORT_CYCLE[m]),
+    [],
+  );
+
   /* +4 per click, never past the end. */
-  const handleShowMore = () => {
+  const handleShowMore = useCallback(() => {
     setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
-  };
+  }, [filtered.length]);
 
   /* "Show less" removes whole rows below, but the browser keeps the
      same absolute scroll position — which then points at Experience /
@@ -846,7 +984,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
             <div className="mb-4 flex justify-end">
               <div className="flex items-center gap-2">
                 <YearDropdown years={yearOptions} value={activeYear} onChange={setActiveYear} />
-                <SortToggle sortMode={sortMode} onToggle={() => setSortMode((m) => SORT_CYCLE[m])} />
+                <SortToggle sortMode={sortMode} onToggle={handleSortToggle} />
               </div>
             </div>
             {/* Language chips — MOBILE (below sm): one horizontally
@@ -880,7 +1018,8 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                         key={lang}
                         label={lang}
                         active={activeFilter === key}
-                        onClick={() => onFilterChange(key)}
+                        filterKey={key}
+                        onClick={handleFilterChip}
                       />
                     );
                   })}
@@ -888,7 +1027,8 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                     <FilterChip
                       label={activeSkillChip}
                       active
-                      onClick={() => onFilterChange(null)}
+                      filterKey={null}
+                      onClick={handleFilterChip}
                     />
                   )}
                 </>
@@ -953,102 +1093,14 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                 Content-Security-Policy blocks (4 console errors on
                 every load). Sync keeps the same enter/exit animation. */}
             <AnimatePresence mode="sync">
-              {visible.map((repo, idx) => {
-                const updated = formatUpdated(repo.pushedAt);
-                return (
-                <motion.div
+              {visible.map((repo, idx) => (
+                <GridProjectCard
                   key={repo.id}
-                  custom={idx}
-                  variants={cardAnim}
-                  initial={reduceMotion ? false : 'hidden'}
-                  animate="show"
-                  exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
-                  layout
-                >
-                  <Card
-                    spotlight
-                    className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
-                    whileHover={{ y: -6, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Slideshow — only when the repo has a `Project_Card`
-                        folder (images come from the build-time snapshot).
-                        Without images the card renders exactly as before:
-                        text-only, same layout, no empty image box. */}
-                    {Array.isArray(repo.images) && repo.images.length > 0 && (
-                      <ProjectSlideshow images={repo.images} repoName={repo.name} />
-                    )}
-
-                    {/* Title + language pills */}
-                    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                      <h3 className="text-lg font-semibold text-heading sm:text-xl">
-                        {formatName(repo.name)}
-                      </h3>
-                      <LanguagePills
-                        repoName={repo.name}
-                        fallbackLanguage={repo.language}
-                        langMap={langMap}
-                      />
-                    </div>
-
-                    {/* Description — clamped to 3 lines so cards with a
-                        slideshow stay equal height. No description means
-                        no line at all (never invent one). */}
-                    {repo.description && (
-                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
-                        {repo.description}
-                      </p>
-                    )}
-
-                    {/* Topics as tags */}
-                    {repo.topics.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {repo.topics.slice(0, 6).map((t) => (
-                          <Tag key={t}>{t}</Tag>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Stats row */}
-                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-                      {updated && (
-                        <span>Updated {updated}</span>
-                      )}
-                      {repo.stars > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5" aria-hidden />
-                          {repo.stars}
-                        </span>
-                      )}
-                      {repo.forks > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <GitFork className="h-3.5 w-3.5" aria-hidden />
-                          {repo.forks}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                      {repo.homepage && (
-                        <Button
-                          {...externalLinkProps(repo.homepage)}
-                          variant="primary"
-                          className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                          Live demo
-                        </Button>
-                      )}
-                      <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
-                        <Github className="h-3.5 w-3.5" aria-hidden />
-                        GitHub
-                      </Button>
-                    </div>
-                  </Card>
-                </motion.div>
-                );
-              })}
+                  repo={repo}
+                  langMap={langMap}
+                  index={idx}
+                />
+              ))}
             </AnimatePresence>
           </div>
 
@@ -1107,3 +1159,14 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
     </SectionWrapper>
   );
 }
+
+/* Memoized (P7): App re-renders on every scroll-spy change and
+   theme toggle, and this section's props — the repos + featured
+   arrays (set once by useGitHubRepos, referentially stable after
+   load), loading / error, the filter, and the stable setProjectFilter
+   callback — do not change across those renders. So the whole
+   section, its cards and their slideshows, must not re-render
+   for a nav highlight change. Internal state (visibleCount, sort,
+   year) still re-renders on its own setState calls, exactly as
+   before — memo only skips parent-driven renders. */
+export const ProjectsSection = memo(ProjectsSectionInner);
