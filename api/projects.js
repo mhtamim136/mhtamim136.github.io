@@ -41,9 +41,7 @@
  */
 
 import { pickFeatured, resolveDetails } from '../scripts/featuredDetails.mjs';
-
-const GITHUB_USERNAME = 'mhtamim136';
-const MIN_PERCENT = 2; // hide languages below 2% of total bytes
+import { GITHUB_USERNAME, processLanguages } from '../src/utils/githubShared.js';
 
 const EXCLUDED_REPOS = new Set([
   'mhtamim136', // GitHub profile README repo
@@ -71,19 +69,6 @@ function encodePath(path) {
     .split('/')
     .map((seg) => encodeURIComponent(seg))
     .join('/');
-}
-
-function processLanguages(raw, fallbackLanguage) {
-  const entries = Object.entries(raw || {});
-  if (entries.length === 0) {
-    return fallbackLanguage ? [fallbackLanguage] : [];
-  }
-  const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0);
-  const langs = entries
-    .filter(([, bytes]) => (bytes / total) * 100 >= MIN_PERCENT)
-    .sort((a, b) => b[1] - a[1])
-    .map(([lang]) => lang);
-  return langs.length > 0 ? langs : fallbackLanguage ? [fallbackLanguage] : [];
 }
 
 export default async function handler(req, res) {

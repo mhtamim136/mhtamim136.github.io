@@ -7,7 +7,6 @@ import { ProjectSlideshow } from '../components/ProjectSlideshow';
 import { YearDropdown } from '../components/YearDropdown';
 import { Button } from '../components/Button';
 import { Tag } from '../components/Tag';
-import { useRepoLanguages } from '../hooks/useRepoLanguages';
 import { portfolio } from '../data/portfolio';
 import { normalizeKey, getRepoKeys, findSkillByKey } from '../utils/skillProjectCounts';
 import { externalLinkProps } from '../utils/links';
@@ -66,19 +65,11 @@ function SkeletonGrid() {
 const pillClass =
   'rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-[0.6875rem] font-medium text-accent transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:bg-accent/15';
 
-function LanguagePills({ repoName, fallbackLanguage, langMap, loadingSet }) {
-  const isLoading = loadingSet.has(repoName);
+/* Languages come from the repos data itself (snapshot + /api/projects
+   both carry a `languages` array per repo) — no runtime fetch. A repo
+   without a languages array falls back to its primary language. */
+function LanguagePills({ repoName, fallbackLanguage, langMap }) {
   const langs = langMap[repoName];
-
-  /* Skeleton shimmer while loading */
-  if (isLoading && !langs) {
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        <div className="h-5 w-12 animate-pulse rounded-md bg-glass/[0.08]" />
-        <div className="h-5 w-10 animate-pulse rounded-md bg-glass/[0.06]" />
-      </div>
-    );
-  }
 
   /* Resolved languages (or fallback) */
   const display = langs && langs.length > 0
@@ -139,10 +130,10 @@ function FilterChip({ label, active, onClick }) {
 
 /* ── Sort toggle ──────────────────────────────────────────────── */
 /* One pill, THREE states, cycled on each click (Tamim, 2026-11-09):
-   'off' — label "Newest ↓", UNCOLOURED: the curated Featured view
-   (Featured on top, More collapsed). The label is the section's
-   default order, NOT an applied sort — clicking it APPLIES
-   newest-first. 'newest' — label "Newest ↓", COLOURED: flat list,
+   'off' — label "Featured", UNCOLOURED: the curated Featured view
+   (Featured on top, More collapsed). The label names what is shown
+   — clicking it APPLIES newest-first. No direction arrow: no sort
+   is applied. 'newest' — label "Newest ↓", COLOURED: flat list,
    newest-first, no Featured. 'oldest' — label "Oldest ↑", COLOURED:
    flat list, oldest-first, no Featured. A third click returns to
    'off'. The colour is the "a sort is applied" signal, in the same
@@ -155,6 +146,7 @@ const SORT_CYCLE = { off: 'newest', newest: 'oldest', oldest: 'off' };
 
 function SortToggle({ sortMode, onToggle }) {
   const isOldest = sortMode === 'oldest';
+  const isOff = sortMode === 'off';
   const active = sortMode !== 'off';
   const ariaLabel =
     sortMode === 'off'
@@ -174,12 +166,13 @@ function SortToggle({ sortMode, onToggle }) {
           : 'border-glass/15 bg-glass/[0.06] text-muted hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
       }`}
     >
-      {isOldest ? 'Oldest' : 'Newest'}
-      {isOldest ? (
-        <ArrowUp className="h-3.5 w-3.5" aria-hidden />
-      ) : (
-        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
-      )}
+      {isOff ? 'Featured' : isOldest ? 'Oldest' : 'Newest'}
+      {!isOff &&
+        (isOldest ? (
+          <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+        ) : (
+          <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+        ))}
     </button>
   );
 }
@@ -260,6 +253,7 @@ const cardAnim = {
    like the grid card's description. */
 function FeaturedProjectCard({ repo, index }) {
   const details = repo.details || {};
+  const updated = formatUpdated(repo.pushedAt);
   const introLabel =
     details.detailsSource === 'readme'
       ? 'Overview'
@@ -382,8 +376,8 @@ function FeaturedProjectCard({ repo, index }) {
 
         {/* Stats row */}
         <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-          {formatUpdated(repo.pushedAt) && (
-            <span>Updated {formatUpdated(repo.pushedAt)}</span>
+          {updated && (
+            <span>Updated {updated}</span>
           )}
           {repo.stars > 0 && (
             <span className="inline-flex items-center gap-1">
@@ -500,36 +494,17 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
     [repos, featuredNames],
   );
 
-  /* Determine the visible slice BEFORE filtering by language,
-     so we know which repos to fetch languages for: the cards
-     currently on screen — in ALL state the visible More repos, in
-     FILTERED state the visible matches (featured included). Matching
-     here uses each repo's own data (no langMap override yet) — the
-     hook's job is precisely to supply the override for repos that
-     lack a languages array. The year predicate and the sort are the
-     same as the grid's, so the fetched set is the displayed set. */
-  const hookCandidates = useMemo(() => {
-    const list = isFiltered
-      ? repos.filter((r) => {
-          if (activeFilter && !getRepoKeys(r).has(activeFilter)) return false;
-          if (activeYear !== null && yearOf(r.pushedAt) !== activeYear) return false;
-          return true;
-        })
-      : moreRepos;
-    return sortRepos(list, sortDir).slice(0, visibleCount);
-  }, [repos, moreRepos, isFiltered, activeFilter, activeYear, sortDir, visibleCount]);
-
-  /* Languages that already ship with the repos (build-time snapshot
-     `public/projects.json` carries a `languages` array per repo).
-     For those, no runtime GitHub call is needed at all. Covers ALL
-     repos now (featured included): the flat filtered grid shows
-     featured repos as regular cards, and their languages must match
-     filters without a fetch.
+  /* Languages ship with the repos data itself — the build-time
+     snapshot `public/projects.json` and `/api/projects` both carry a
+     `languages` array per repo — so no runtime GitHub call is ever
+     needed. (The old useRepoLanguages hook fetched any repo that
+     arrived without one, unauthenticated, straight from the
+     browser; it is deleted. A repo without a languages array now
+     falls back to its primary `language` inline — see LanguagePills
+     and getRepoKeys — instead of a network fetch.)
      NOTE: an EMPTY array is also complete — some repos (e.g. BuyTrust)
-     have no code language at all (primary: null, languages: []).
-     Treating [] as "missing" caused a runtime languages fetch that
-     403'd on a rate-limited IP and logged a console error. */
-  const staticLangMap = useMemo(() => {
+     have no code language at all (primary: null, languages: []). */
+  const langMap = useMemo(() => {
     const map = {};
     for (const r of repos) {
       if (Array.isArray(r.languages)) {
@@ -539,26 +514,6 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
     return map;
   }, [repos]);
 
-  /* Only fetch languages for visible repos that did NOT come with
-     languages (i.e. when the snapshot was missing and the live API
-     was used). The hook memoizes internally and won't re-fetch
-     already-loaded repos. */
-  const {
-    langMap: fetchedLangMap,
-    loading: langLoading,
-    allLangs: fetchedAllLangs,
-  } = useRepoLanguages(
-    hookCandidates
-      .filter((r) => !Array.isArray(r.languages))
-      .map((r) => ({ name: r.name, language: r.language })),
-  );
-
-  /* Merge: snapshot languages + any runtime-fetched ones. */
-  const langMap = useMemo(
-    () => ({ ...staticLangMap, ...fetchedLangMap }),
-    [staticLangMap, fetchedLangMap],
-  );
-
   /* Filter chips come from the union of ALL repos' languages —
      not just the visible slice — so a language that only exists in
      repos 7+ always has a chip (previously chips only covered the
@@ -567,12 +522,12 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
      real filter — it shows that featured repo as a regular card —
      not a dead end. */
   const allLangs = useMemo(() => {
-    const set = new Set(fetchedAllLangs);
-    for (const langs of Object.values(staticLangMap)) {
+    const set = new Set();
+    for (const langs of Object.values(langMap)) {
       langs.forEach((l) => set.add(l));
     }
     return Array.from(set).sort();
-  }, [staticLangMap, fetchedAllLangs]);
+  }, [langMap]);
 
   /* Build filter chip list from the union of all loaded languages */
   const languages = useMemo(() => {
@@ -777,22 +732,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                         <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
                       </button>
                     )}
-                    {expanded && (
-                      <button
-                        type="button"
-                        onClick={handleShowLess}
-                        className="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
-                      >
-                        Show less
-                        <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
-                      </button>
-                    )}
                   </div>
-                  {expanded && moreRepos.length > INITIAL_COUNT && (
-                    <p className="mt-3 text-xs text-muted-dim">
-                      Showing {visibleCount} of {moreRepos.length} projects
-                    </p>
-                  )}
                 </div>
               )}
             </>
@@ -814,7 +754,9 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
               more) as a regular grid card. */}
           <div className="grid gap-6 lg:grid-cols-2">
             <AnimatePresence mode="popLayout">
-              {visible.map((repo, idx) => (
+              {visible.map((repo, idx) => {
+                const updated = formatUpdated(repo.pushedAt);
+                return (
                 <motion.div
                   key={repo.id}
                   custom={idx}
@@ -847,7 +789,6 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                         repoName={repo.name}
                         fallbackLanguage={repo.language}
                         langMap={langMap}
-                        loadingSet={langLoading}
                       />
                     </div>
 
@@ -871,8 +812,8 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
 
                     {/* Stats row */}
                     <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-                      {formatUpdated(repo.pushedAt) && (
-                        <span>Updated {formatUpdated(repo.pushedAt)}</span>
+                      {updated && (
+                        <span>Updated {updated}</span>
                       )}
                       {repo.stars > 0 && (
                         <span className="inline-flex items-center gap-1">
@@ -907,7 +848,8 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                     </div>
                   </Card>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
           </div>
 

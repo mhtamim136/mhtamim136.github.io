@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
+import { GITHUB_USERNAME, GITHUB_PAGES_HOST } from '../utils/githubShared.js';
 
-const GITHUB_USERNAME = 'mhtamim136';
 const CACHE_KEY = `gh_repos_${GITHUB_USERNAME}`;
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
-/* Hostname where no serverless function exists — the site must use
-   the build-time snapshot only and never attempt /api/projects. */
-const GITHUB_PAGES_HOST = 'mhtamim136.github.io';
 /* How long the function gets before we give up and use the snapshot. */
 const API_TIMEOUT_MS = 6000;
 
@@ -174,7 +171,7 @@ export function useGitHubRepos() {
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setError(err.message);
+          setError('Projects could not be loaded. Please try again later.');
         }
       } finally {
         setLoading(false);

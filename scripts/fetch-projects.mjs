@@ -58,9 +58,7 @@ import {
   pickFeatured,
   resolveDetails,
 } from './featuredDetails.mjs';
-
-const GITHUB_USERNAME = 'mhtamim136';
-const MIN_PERCENT = 2; // hide languages below 2% of total bytes
+import { GITHUB_USERNAME, processLanguages } from '../src/utils/githubShared.js';
 
 const EXCLUDED_REPOS = new Set([
   'mhtamim136', // GitHub profile README repo
@@ -102,11 +100,18 @@ async function fetchText(url) {
 
 /**
  * Pinned repo names (in pin order) via the GraphQL API — REST has no
- * pin endpoint. Returns [] when there is no token or the query fails;
- * the site then degrades gracefully to the all-projects grid.
+ * pin endpoint. Returns null when the pins CANNOT be read (no token,
+ * or the query failed) — the caller must then keep the previous
+ * featured list instead of clobbering it with []. Returns [] only
+ * when the query succeeded and found no pins.
  */
 async function fetchPinnedRepoNames() {
-  if (!process.env.GITHUB_TOKEN) return [];
+  if (!process.env.GITHUB_TOKEN) {
+    console.warn(
+      '[fetch-projects] WARNING: no GITHUB_TOKEN — pinned repos cannot be read; keeping the previous featured list.',
+    );
+    return null;
+  }
   try {
     const res = await fetch('https://api.github.com/graphql', {
       method: 'POST',
@@ -118,28 +123,15 @@ async function fetchPinnedRepoNames() {
         query: `query { user(login: "${GITHUB_USERNAME}") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name } } } } }`,
       }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
     const nodes = data?.data?.user?.pinnedItems?.nodes;
-    if (!Array.isArray(nodes)) return [];
+    if (!Array.isArray(nodes)) return null;
     return nodes.map((n) => n?.name).filter((n) => typeof n === 'string');
   } catch (err) {
     console.warn(`[fetch-projects] pinned repos failed: ${err.message}`);
-    return [];
+    return null;
   }
-}
-
-function processLanguages(raw, fallbackLanguage) {
-  const entries = Object.entries(raw || {});
-  if (entries.length === 0) {
-    return fallbackLanguage ? [fallbackLanguage] : [];
-  }
-  const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0);
-  const langs = entries
-    .filter(([, bytes]) => (bytes / total) * 100 >= MIN_PERCENT)
-    .sort((a, b) => b[1] - a[1])
-    .map(([lang]) => lang);
-  return langs.length > 0 ? langs : fallbackLanguage ? [fallbackLanguage] : [];
 }
 
 /* File name (last path segment), for alphabetical sorting. */
@@ -245,10 +237,12 @@ async function main() {
   /* Previous snapshot (if any) — used only as a per-repo fallback so a
      partially-failed run never wipes data we already had. */
   let prevByName = {};
+  let prevFeatured = [];
   if (existsSync(outPath)) {
     try {
       const prev = JSON.parse(readFileSync(outPath, 'utf8'));
       for (const r of prev.repos || []) prevByName[r.name] = r;
+      if (Array.isArray(prev.featured)) prevFeatured = prev.featured;
     } catch {
       /* Corrupt/old snapshot — ignore, we rebuild below. */
     }
@@ -270,9 +264,20 @@ async function main() {
     .filter((r) => !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase()))
     .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
 
-  /* Pinned repos (GraphQL; [] without a token or on failure). */
+  /* Pinned repos (GraphQL; null when the pins could not be read).
+     A token-less or failed pins query must NEVER clobber a good
+     featured list with [] — keep the previous list instead. Only a
+     query that SUCCEEDED and found no pins yields featured = []. */
   const pinnedNames = await fetchPinnedRepoNames();
-  const featured = pickFeatured(pinnedNames, repos);
+  let featured;
+  if (pinnedNames === null) {
+    featured = prevFeatured;
+    console.warn(
+      `[fetch-projects] WARNING: pinned repos unreadable — keeping previous featured list (${featured.length} repos).`,
+    );
+  } else {
+    featured = pickFeatured(pinnedNames, repos);
+  }
 
   /* Languages: one call per repo, in parallel. A single repo failing
      must not fail the whole snapshot — fall back to its primary. */
@@ -285,6 +290,10 @@ async function main() {
         return processLanguages(raw, r.language);
       } catch (err) {
         console.warn(`[fetch-projects] languages failed for ${r.name}: ${err.message}`);
+        /* Keep the previous breakdown (e.g. ["C", "C++"]) instead of
+           collapsing to the primary language only. */
+        const prevLangs = prevByName[r.name]?.languages;
+        if (Array.isArray(prevLangs) && prevLangs.length > 0) return prevLangs;
         return r.language ? [r.language] : [];
       }
     }),
@@ -323,7 +332,15 @@ async function main() {
       if (idx === -1) return;
       const tree = treesList[idx];
       if (!tree) {
-        /* No tree — fall back to curated/GitHub only. */
+        /* No tree — keep the previous case-study details (if any)
+           instead of re-deriving a thinner set from curated/GitHub
+           only; fall back to the chain only when there is nothing
+           to keep. */
+        const prevDetails = prevByName[repos[idx].name]?.details;
+        if (prevDetails) {
+          detailsByName[repos[idx].name] = prevDetails;
+          return;
+        }
         detailsByName[repos[idx].name] = resolveDetails({
           portfolioJson: null,
           readmeText: null,

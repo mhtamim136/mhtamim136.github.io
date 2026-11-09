@@ -88,16 +88,6 @@ export function countReposForSkill(skill, repos, langMap) {
   return count;
 }
 
-/** The repos in `repos` that use `skill`, in repo order. */
-export function reposForSkill(skill, repos, langMap) {
-  const key = normalizeKey(skill);
-  if (!key) return [];
-  return (repos || []).filter((repo) => {
-    const extra = langMap ? langMap[repo.name] : undefined;
-    return getRepoKeys(repo, extra).has(key);
-  });
-}
-
 /**
  * Map of every curated skill → its live repo count. Keys are exactly
  * the skills in `skills` (the portfolio.js object) — a repo language

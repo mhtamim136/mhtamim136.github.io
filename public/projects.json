@@ -1,7 +1,32 @@
 {
-  "generatedAt": "2026-11-07T12:31:16.218Z",
+  "generatedAt": "2026-11-09T07:59:41.154Z",
   "source": "github-api",
+  "featured": [
+    "IdeaBid--Project-Request-Management-Platform",
+    "BuyTrust",
+    "online-quiz-and-exam-platform",
+    "2D-City-Disaster-Simulation-OpenGL"
+  ],
   "repos": [
+    {
+      "id": 1226010590,
+      "name": "profile-card",
+      "description": "A responsive profile card showcasing my websites, projects, and social links in one clean and accessible interface.",
+      "language": "CSS",
+      "languages": [
+        "CSS",
+        "HTML",
+        "JavaScript"
+      ],
+      "default_branch": "main",
+      "images": [],
+      "stars": 0,
+      "forks": 0,
+      "url": "https://github.com/mhtamim136/profile-card",
+      "homepage": null,
+      "pushedAt": "2026-11-09T02:51:29Z",
+      "topics": []
+    },
     {
       "id": 1361470996,
       "name": "2D-City-Disaster-Simulation-OpenGL",
@@ -35,7 +60,22 @@
         "cpp",
         "disaster-simulation",
         "opengl"
-      ]
+      ],
+      "details": {
+        "problem": "2D City Disaster Simulation is a fully interactive OpenGL-based simulation developed in C++ that renders a detailed 2D city environment and simulates six disaster scenarios in real time. The project features handcrafted graphics drawn entirely with OpenGL primitives, dynamic keyboard-driven controls, animated elements, day/evening/night lighting modes, and a modular codebase split across dedicated scene and UI modules.",
+        "solution": null,
+        "features": [
+          "🎮 6 Interactive Scenes — Normal City, Earthquake, Fire, Flood, Storm, Road Accident",
+          "🌅 3 Lighting Modes — Day, Evening (sunset), and Night mode for the Normal City scene",
+          "🚗 Real-time Animations — Moving cars, birds, boats, clouds, ambulances, and people",
+          "🔥 Disaster Effects — Flames, rising floodwater, earthquake tremors, storm rain/lightning",
+          "⌨️ Full Keyboard Controls — Scene switching, zoom, pause, lighting toggle, and more",
+          "🏗️ Handcrafted Graphics — Entirely drawn with OpenGL 2D primitives (no textures)"
+        ],
+        "contribution": null,
+        "tech": null,
+        "detailsSource": "readme"
+      }
     },
     {
       "id": 1386400488,
@@ -101,23 +141,6 @@
       ]
     },
     {
-      "id": 1226010590,
-      "name": "profile-card",
-      "description": "A responsive profile card showcasing my websites, projects, and social links in one clean and accessible interface.",
-      "language": "CSS",
-      "languages": [
-        "CSS"
-      ],
-      "default_branch": "main",
-      "images": [],
-      "stars": 0,
-      "forks": 0,
-      "url": "https://github.com/mhtamim136/profile-card",
-      "homepage": null,
-      "pushedAt": "2026-09-01T20:53:58Z",
-      "topics": []
-    },
-    {
       "id": 1129787746,
       "name": "BuyTrust",
       "description": "BuyTrust is a Software Engineering project for a secure and trustworthy e-commerce marketplace concept. The repository includes the project report, system design diagrams, and high-fidelity UI mockups for major flows such as user authentication, product browsing, cart, checkout, order tracking, chat, and dispute resolution.",
@@ -146,7 +169,22 @@
         "ui-ux",
         "uml",
         "use-case-diagram"
-      ]
+      ],
+      "details": {
+        "problem": "BuyTrust is a fully conceptualized and designed e-commerce platform built to provide a safe, trustworthy, and seamless online shopping experience. The platform bridges the gap between buyers and sellers by offering transparent product listings, real-time communication, secure order management, and a robust dispute resolution system.",
+        "solution": null,
+        "features": [
+          "Sign Up & Login — Secure account registration and authentication",
+          "User Profiles — Manage personal information and preferences",
+          "Admin User Control — Admin panel to manage and list all users",
+          "Home Page / Product Catalog — Browse all listed products",
+          "Product Details Page — View full product info, images, and seller details",
+          "Add Product — Sellers can list new products with images and pricing"
+        ],
+        "contribution": null,
+        "tech": null,
+        "detailsSource": "readme"
+      }
     },
     {
       "id": 1238499792,
@@ -175,7 +213,22 @@
         "quiz-system",
         "sessions",
         "web-application"
-      ]
+      ],
+      "details": {
+        "problem": null,
+        "solution": null,
+        "features": [
+          "Comprehensive dashboard with platform-wide statistics",
+          "User management: approve/reject instructors, manage students & TAs",
+          "Create and assign Teaching Assistants",
+          "Course & subject management with full details view",
+          "Quiz oversight and integrity reports",
+          "Institutional academic reports"
+        ],
+        "contribution": null,
+        "tech": null,
+        "detailsSource": "readme"
+      }
     },
     {
       "id": 1350652155,
@@ -259,7 +312,9 @@
       "description": "A web-based Governance Readiness Dashboard built from our research on AI governance in developing countries, implementing the DCAG framework to evaluate policy, institutional capacity, risk management, technical infrastructure, and ethical inclusion.",
       "language": "HTML",
       "languages": [
-        "HTML"
+        "HTML",
+        "CSS",
+        "JavaScript"
       ],
       "default_branch": "main",
       "images": [],
@@ -285,7 +340,9 @@
       "description": "PHP projects and practice code developed during learning.",
       "language": "PHP",
       "languages": [
-        "PHP"
+        "PHP",
+        "HTML",
+        "CSS"
       ],
       "default_branch": "main",
       "images": [],
@@ -353,7 +410,21 @@
         "software-engineering",
         "user-management",
         "windows-forms"
-      ]
+      ],
+      "details": {
+        "problem": "IdeaBid is a C# and SQL Server-based platform that connects project requesters with developers and administrators. Users can create requests, receive responses, make payments, and manage their project transactions efficiently.",
+        "solution": null,
+        "features": [
+          "User registration and login system",
+          "Role-based access control (Admin, Developer, User)",
+          "Project request and response management",
+          "Payment and transaction tracking",
+          "Category and status management"
+        ],
+        "contribution": null,
+        "tech": null,
+        "detailsSource": "readme"
+      }
     },
     {
       "id": 1007971338,
