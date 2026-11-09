@@ -101,16 +101,32 @@ skills: {
   /* Research papers, in Tamim's CV order (Navigating first,
      Evaluating second, Predicting third — his chosen order, not
      chronological). Titles, roles, venues and dates copied exactly
-     from the final CV; ResearchGate links only where verified —
-     the ICCA paper has none yet (publication forthcoming). */
+     from the final CV. `status` is shown only where it is set: the
+     ICCA paper is "Publication forthcoming"; papers 1 & 3 carry no
+     status pill (Tamim: no need to say whether they are published —
+     their ResearchGate links are his own uploads, not official
+     publisher links; official links will be added when he has
+     them). `links` is the paper's button list, in display order:
+     paper 1 carries BOTH the official AIUB student-research page
+     and ResearchGate (Tamim's explicit choice, AIUB first), paper 3
+     ResearchGate only, paper 2 none. */
   research: [
     {
       title: 'Navigating Academic Pressure and Skill Development: A Study on Coping Mechanisms Among Computer Science and Engineering Students in Bangladesh.',
       role: '1st Author & Corresponding Author',
       venue: 'ICSS, Begum Rokeya University, Rangpur',
       date: 'May 2025',
-      status: 'Published',
-      researchGate: 'https://www.researchgate.net/publication/397838805_Navigating_Academic_Pressure_and_Skill_Development_A_Study_on_Coping_Mechanisms_Among_Computer_Science_and_Engineering_Students_in_Bangladesh',
+      status: null,
+      links: [
+        {
+          label: 'AIUB',
+          url: 'https://www.aiub.edu/Files/student-research/Navigating_Academic_Pressure_and_Skill_Development_A_Study_on_Coping_Mechanisms_Among_Computer_Scien.html',
+        },
+        {
+          label: 'ResearchGate',
+          url: 'https://www.researchgate.net/publication/397838805_Navigating_Academic_Pressure_and_Skill_Development_A_Study_on_Coping_Mechanisms_Among_Computer_Science_and_Engineering_Students_in_Bangladesh',
+        },
+      ],
     },
     {
       title: 'Evaluating AI Governance and Regulation in Developing Countries: A Comparative Analysis with a Proposed Framework.',
@@ -118,15 +134,20 @@ skills: {
       venue: 'ICCA 2026 — 4th International Conference on Computing Advancements, AIUB, Dhaka',
       date: '15–16 Oct 2026',
       status: 'Publication forthcoming',
-      researchGate: null,
+      links: [],
     },
     {
       title: 'Predicting Sustainable Media Innovation Adoption: Multi-Model Analysis of AI Diffusion in Emerging Markets.',
       role: '4th Author',
       venue: 'ICCTASS 2025, AIUB, Dhaka',
       date: 'Dec 2025',
-      status: 'Published',
-      researchGate: 'https://www.researchgate.net/publication/398620391_Predicting_Sustainable_Media_Innovation_Adoption_Multi-Model_Analysis_of_AI_Diffusion_in_Emerging_Markets',
+      status: null,
+      links: [
+        {
+          label: 'ResearchGate',
+          url: 'https://www.researchgate.net/publication/398620391_Predicting_Sustainable_Media_Innovation_Adoption_Multi-Model_Analysis_of_AI_Diffusion_in_Emerging_Markets',
+        },
+      ],
     },
   ],
 

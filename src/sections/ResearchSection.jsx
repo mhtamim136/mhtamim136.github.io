@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { Check, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
@@ -11,12 +11,16 @@ import './HeroCtaFill.css';
  * Research & Publications — conference papers, in Tamim's CV order
  * (Navigating first, Evaluating second, Predicting third — his
  * chosen order, not chronological). Title + authorship + venue +
- * date + status per paper, copied exactly from the final CV;
- * nothing is paraphrased and no abstract or impact line is
- * invented. A ResearchGate button appears only where the link is
- * verified (Navigating, Predicting); the ICCA paper shows
- * "Publication forthcoming" instead — the CV marks it forthcoming,
- * so there is no link to show yet.
+ * date per paper, copied exactly from the final CV; nothing is
+ * paraphrased and no abstract or impact line is invented. A status
+ * pill appears only where one is set (the ICCA paper's
+ * "Publication forthcoming" — the CV marks it forthcoming, so
+ * there is no link to show yet); papers 1 & 3 carry no status
+ * pill by Tamim's call, since their ResearchGate links are his
+ * own uploads rather than official publisher links. One link
+ * button renders per entry in the paper's `links` array, in
+ * order: paper 1 carries BOTH the AIUB official student-research
+ * page (first) and ResearchGate, paper 3 ResearchGate only.
  */
 export function ResearchSection() {
   const { research } = portfolio;
@@ -52,14 +56,9 @@ export function ResearchSection() {
                     <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
                       {paper.role}
                     </span>
-                    {paper.status === 'Published' ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-glass/10 bg-glass/[0.04] px-2.5 py-0.5 text-xs font-medium text-muted">
-                        <Check className="h-3 w-3" aria-hidden />
-                        Published
-                      </span>
-                    ) : (
+                    {paper.status && (
                       <span className="rounded-full border border-glass/10 bg-glass/[0.04] px-2.5 py-0.5 text-xs font-medium text-muted">
-                        Publication forthcoming
+                        {paper.status}
                       </span>
                     )}
                   </div>
@@ -69,16 +68,19 @@ export function ResearchSection() {
                   <p className="mt-1.5 text-sm text-muted">
                     {paper.venue} · {paper.date}
                   </p>
-                  {paper.researchGate && (
-                    <div className="mt-4">
-                      <Button
-                        {...externalLinkProps(paper.researchGate)}
-                        variant="secondary"
-                        className="hero-cta-fill hero-cta-fill--ghost"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                        ResearchGate
-                      </Button>
+                  {paper.links.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {paper.links.map((paperLink) => (
+                        <Button
+                          key={paperLink.label}
+                          {...externalLinkProps(paperLink.url)}
+                          variant="secondary"
+                          className="hero-cta-fill hero-cta-fill--ghost"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                          {paperLink.label}
+                        </Button>
+                      ))}
                     </div>
                   )}
                 </div>
