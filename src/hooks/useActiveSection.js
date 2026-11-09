@@ -21,6 +21,16 @@ export function useActiveSection(sectionIds, options = {}) {
      opening #contact) never briefly syncs the wrong hash while lazy
      sections are still mounting. */
   const computedRef = useRef(false);
+  /* State twin of computedRef: the hash-sync effect below must run
+     once after the FIRST measurement even when activeId never
+     changes from its initial value ('hero'). Without this, a reload
+     that lands mid-page (scrollY where no section top has crossed
+     the offset line) leaves the URL hash stale at whatever the
+     navigation had — e.g. #projects while About is on screen —
+     because the effect only re-runs on an activeId change, and
+     there was none. The stale hash then feeds the next reload's
+     fragment jump with the wrong section. */
+  const [hasComputed, setHasComputed] = useState(false);
 
   useEffect(() => {
     let raf = 0;
@@ -49,7 +59,15 @@ export function useActiveSection(sectionIds, options = {}) {
         }
       }
 
-      computedRef.current = true;
+      /* First real measurement — flip the state twin so the
+         hash-sync effect below runs once even when activeId
+         never changes from its initial value. Guarded by the
+         ref so setState fires exactly once, not on every
+         scroll-driven compute. */
+      if (!computedRef.current) {
+        computedRef.current = true;
+        setHasComputed(true);
+      }
       setActiveId((prev) => (prev === current ? prev : current));
     };
 
@@ -81,15 +99,19 @@ export function useActiveSection(sectionIds, options = {}) {
 
   /* Sync the address bar with the section in view. replaceState does
      not fire hashchange/scroll events and adds no history entry, so
-     this can never fight with anchor clicks or the initial page load. */
+     this can never fight with anchor clicks or the initial page load.
+     hasComputed is a dependency on purpose: the effect must run once
+     after the FIRST measurement even when activeId never changed
+     from its initial value — otherwise a reload landing mid-page
+     leaves a stale hash in the URL (see hasComputed above). */
   useEffect(() => {
-    if (!computedRef.current || !activeId) return;
+    if (!hasComputed || !activeId) return;
     const homeId = sectionIds[0] ?? '';
     const nextHash = activeId === homeId ? '' : `#${activeId}`;
     if (window.location.hash === nextHash) return;
     const url = nextHash || window.location.pathname + window.location.search;
     window.history.replaceState(null, '', url);
-  }, [activeId, sectionIds]);
+  }, [activeId, sectionIds, hasComputed]);
 
   return activeId;
 }

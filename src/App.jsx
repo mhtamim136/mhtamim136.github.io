@@ -13,6 +13,7 @@ import { HeroSection } from './sections/HeroSection';
 import { useActiveSection } from './hooks/useActiveSection';
 import { useGitHubRepos } from './hooks/useGitHubRepos';
 import { useLenis } from './hooks/useLenis';
+import { useScrollRestore } from './hooks/useScrollRestore';
 import { useTheme } from './hooks/useTheme';
 
 const AboutSection = lazy(() =>
@@ -47,9 +48,15 @@ function Divider() {
 }
 
 export default function App() {
+  const sectionIds = useMemo(() => portfolio.nav.map((n) => n.id), []);
   /* Lenis smooth scroll (off entirely under reduced motion). */
   useLenis();
-  const sectionIds = useMemo(() => portfolio.nav.map((n) => n.id), []);
+  /* Manual scroll restoration after the layout settles — the
+     browser's own restore lands on the wrong section (see the
+     hook). Called after useLenis so the instance exists first.
+     sectionIds gates the restore on the lazy sections being
+     mounted, so it can never run against the hero-only layout. */
+  useScrollRestore(sectionIds);
   const activeId = useActiveSection(sectionIds);
   const { isDark, toggle } = useTheme();
   /* One GitHub data call + one filter value, shared by the Skills
