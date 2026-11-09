@@ -168,7 +168,7 @@ export function useContactForm() {
 
       await submitViaWeb3Forms();
     },
-    [validate, accessKey, fields, status],
+    [validate, accessKey, fields, status]
   );
 
   /* ── Reset to allow sending another message ── */

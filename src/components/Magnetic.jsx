@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /**
  * Magnetic wrapper — primary CTAs only (hero buttons, contact submit).
@@ -53,28 +54,23 @@ const CAP = 5; // px per axis — see overlap note above
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
-export function Magnetic({ children, className = 'inline-block', strength = STRENGTH, radius = RADIUS, cap = CAP }) {
+export function Magnetic({
+  children,
+  className = 'inline-block',
+  strength = STRENGTH,
+  radius = RADIUS,
+  cap = CAP,
+}) {
   const ref = useRef(null);
-  const [enabled, setEnabled] = useState(false);
+  /* Gate on fine pointer + no reduced-motion preference (live —
+     toggling the OS setting takes effect without a reload). */
+  const finePointer = useMediaQuery('(pointer: fine)');
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const enabled = finePointer && !reducedMotion;
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 250, damping: 22, mass: 0.5 });
   const sy = useSpring(y, { stiffness: 250, damping: 22, mass: 0.5 });
-
-  /* Gate on fine pointer + no reduced-motion preference. */
-  useEffect(() => {
-    const finePointer = window.matchMedia('(pointer: fine)');
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () =>
-      setEnabled(finePointer.matches && !reducedMotion.matches);
-    update();
-    finePointer.addEventListener('change', update);
-    reducedMotion.addEventListener('change', update);
-    return () => {
-      finePointer.removeEventListener('change', update);
-      reducedMotion.removeEventListener('change', update);
-    };
-  }, []);
 
   /* Pull toward the pointer while it is inside the radius, spring
      back to zero when it leaves. Motion values only — the spring

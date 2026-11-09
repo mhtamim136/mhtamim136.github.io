@@ -2,7 +2,15 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { animate, motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { PhotoLightbox } from './PhotoLightbox';
-import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE } from '../utils/dragTrack';
+import { FitImage } from './FitImage';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import {
+  SWIPE_THRESHOLD,
+  DRAG_LATCH,
+  COMMIT_FRACTION,
+  SPRING_BACK,
+  COMMIT_SLIDE,
+} from '../utils/dragTrack';
 
 const AUTO_ADVANCE_MS = 3500;
 /* After the user changes a slide by hand, auto-advance stays paused
@@ -77,9 +85,10 @@ function ProjectSlideshowInner({ images, repoName }) {
   const [manualPaused, setManualPaused] = useState(false);
   const [inView, setInView] = useState(false);
   const [tabVisible, setTabVisible] = useState(
-    typeof document === 'undefined' ? true : !document.hidden,
+    typeof document === 'undefined' ? true : !document.hidden
   );
-  const [reducedMotion, setReducedMotion] = useState(false);
+  /* prefers-reduced-motion: no auto-advance, no sliding. */
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   /* Image URLs whose <img> failed to load (bad URL, offline host,
      blocked origin). A failed slide shows a themed placeholder
      instead of a black void + huge broken-image alt text; the badge,
@@ -140,7 +149,7 @@ function ProjectSlideshowInner({ images, repoName }) {
       if (count <= 1 || animatingRef.current) return;
       if (downPointRef.current || draggingRef.current) return;
       const from = indexRef.current;
-      const norm = (((target % count) + count) % count);
+      const norm = ((target % count) + count) % count;
       if (norm === from) return;
       const width = containerRef.current?.getBoundingClientRect().width ?? 0;
       if (width <= 0) {
@@ -174,15 +183,12 @@ function ProjectSlideshowInner({ images, repoName }) {
         animatingRef.current = false;
       }
     },
-    [count, images, reducedMotion, trackX],
+    [count, images, reducedMotion, trackX]
   );
-  const slideNext = useCallback(
-    () => slideTo((indexRef.current + 1) % count, 1),
-    [slideTo, count],
-  );
+  const slideNext = useCallback(() => slideTo((indexRef.current + 1) % count, 1), [slideTo, count]);
   const slidePrev = useCallback(
     () => slideTo((indexRef.current - 1 + count) % count, -1),
-    [slideTo, count],
+    [slideTo, count]
   );
 
   /* Any manual change pauses auto-advance for a while. */
@@ -190,32 +196,20 @@ function ProjectSlideshowInner({ images, repoName }) {
     fn();
     setManualPaused(true);
     if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
-    resumeTimer.current = window.setTimeout(
-      () => setManualPaused(false),
-      MANUAL_PAUSE_MS,
-    );
+    resumeTimer.current = window.setTimeout(() => setManualPaused(false), MANUAL_PAUSE_MS);
   }, []);
 
   useEffect(
     () => () => {
       if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
     },
-    [],
+    []
   );
 
   /* Keep the index valid if the image list changes. */
   useEffect(() => {
     if (index >= count) setIndex(0);
   }, [index, count]);
-
-  /* prefers-reduced-motion: no auto-advance, no sliding. */
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mq.matches);
-    const onChange = (e) => setReducedMotion(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
 
   /* Pause when the card scrolls off-screen. Starts false so the
      cells below render no <img> for cards the user never scrolls
@@ -258,7 +252,16 @@ function ProjectSlideshowInner({ images, repoName }) {
     }
     const id = window.setInterval(slideNext, AUTO_ADVANCE_MS);
     return () => window.clearInterval(id);
-  }, [count, hoverPaused, manualPaused, inView, tabVisible, reducedMotion, lightboxOpen, slideNext]);
+  }, [
+    count,
+    hoverPaused,
+    manualPaused,
+    inView,
+    tabVisible,
+    reducedMotion,
+    lightboxOpen,
+    slideNext,
+  ]);
 
   /* No preload-all any more (2026-11-10): the old effect fetched
      EVERY slide the moment a card scrolled into view — BuyTrust
@@ -318,12 +321,8 @@ function ProjectSlideshowInner({ images, repoName }) {
           className="flex h-full w-full flex-col items-center justify-center gap-2 bg-glass/[0.04] px-4 text-center"
         >
           <ImageOff className="h-8 w-8 text-muted-dim" aria-hidden />
-          <p className="text-sm font-medium text-muted">
-            Screenshot unavailable
-          </p>
-          <p className="text-xs text-muted-dim">
-            This image failed to load
-          </p>
+          <p className="text-sm font-medium text-muted">Screenshot unavailable</p>
+          <p className="text-xs text-muted-dim">This image failed to load</p>
         </div>
       );
     }
@@ -338,30 +337,12 @@ function ProjectSlideshowInner({ images, repoName }) {
        (aria-hidden, pointer-events-none) and never intercepts
        pointer events: the drag handlers live on the cell div. */
     return (
-      <div className="relative h-full w-full overflow-hidden">
-        <img
-          src={src}
-          alt=""
-          aria-hidden="true"
-          loading="eager"
-          decoding="async"
-          draggable={false}
-          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
-        />
-        <img
-          src={src}
-          alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
-          loading="eager"
-          decoding="async"
-          draggable={false}
-          onError={() =>
-            setFailed((prev) =>
-              prev[src] ? prev : { ...prev, [src]: true },
-            )
-          }
-          className="relative h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
-        />
-      </div>
+      <FitImage
+        src={src}
+        alt={isCurrent ? `${repoName} screenshot ${shownIndex + 1} of ${count}` : ''}
+        imgClassName="transition-transform duration-500 ease-out group-hover:scale-105"
+        onError={() => setFailed((prev) => (prev[src] ? prev : { ...prev, [src]: true }))}
+      />
     );
   };
 
@@ -396,10 +377,7 @@ function ProjectSlideshowInner({ images, repoName }) {
     if (!p || e.pointerId !== p.pointerId) return;
     const dx = e.clientX - p.x;
     const dy = e.clientY - p.y;
-    if (
-      !draggedRef.current &&
-      Math.hypot(dx, dy) >= SWIPE_THRESHOLD
-    ) {
+    if (!draggedRef.current && Math.hypot(dx, dy) >= SWIPE_THRESHOLD) {
       draggedRef.current = true;
     }
     /* Drag-follow: once the gesture is horizontal-dominant, the
@@ -410,11 +388,7 @@ function ProjectSlideshowInner({ images, repoName }) {
        would be followed by the lightbox opening. A drag in flight
        while a slide animation runs is ignored. */
     if (dragRef.current && !animatingRef.current) {
-      if (
-        !draggingRef.current &&
-        Math.abs(dx) > Math.abs(dy) &&
-        Math.abs(dx) >= DRAG_LATCH
-      ) {
+      if (!draggingRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= DRAG_LATCH) {
         draggingRef.current = true;
         draggedRef.current = true;
       }
@@ -445,8 +419,7 @@ function ProjectSlideshowInner({ images, repoName }) {
       dragRef.current = null;
       const dx = e.clientX - p.x;
       const dy = e.clientY - p.y;
-      const commit =
-        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
+      const commit = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
       if (!commit) {
         animatingRef.current = true;
         try {
@@ -488,26 +461,26 @@ function ProjectSlideshowInner({ images, repoName }) {
 
   return (
     <>
-    <div
-      ref={containerRef}
-      role="region"
-      aria-roledescription="carousel"
-      aria-label={`${repoName} screenshots`}
-      className="group relative -mx-6 -mt-6 mb-6 aspect-[16/9] touch-pan-y overflow-hidden sm:-mx-7 sm:-mt-7"
-      /* Hover-pause is mouse-only: a touch tap fires an emulated
+      <div
+        ref={containerRef}
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={`${repoName} screenshots`}
+        className="group relative -mx-6 -mt-6 mb-6 aspect-[16/9] touch-pan-y overflow-hidden sm:-mx-7 sm:-mt-7"
+        /* Hover-pause is mouse-only: a touch tap fires an emulated
          mousemove that never leaves, so onMouseEnter would stick
          hoverPaused on and auto-advance would never resume until
          the user taps elsewhere (measured: counter stuck 2/8 for
          12s+ after a touch arrow tap). A real mouse still pauses
          on hover and resumes on leave. */
-      onPointerEnter={(e) => {
-        if (e.pointerType !== 'touch') setHoverPaused(true);
-      }}
-      onPointerLeave={(e) => {
-        if (e.pointerType !== 'touch') setHoverPaused(false);
-      }}
-    >
-      {/* Drag track: three cells in a row — previous / current /
+        onPointerEnter={(e) => {
+          if (e.pointerType !== 'touch') setHoverPaused(true);
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType !== 'touch') setHoverPaused(false);
+        }}
+      >
+        {/* Drag track: three cells in a row — previous / current /
           next — each exactly the box width. The track is shifted
           left by one box width (marginLeft -100%), so the current
           cell sits in the frame and the neighbours wait just
@@ -515,125 +488,120 @@ function ProjectSlideshowInner({ images, repoName }) {
           pointer handlers) then slides them through. Each cell
           clips its own image, so the split between the outgoing
           and incoming slide stays clean. */}
-      <motion.div
-        style={{ x: trackX, marginLeft: '-100%' }}
-        className="flex h-full w-full"
-      >
-        <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
-          {cellContent(prevSrc, prevShown, false)}
-        </div>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={`View ${repoName} screenshot ${index + 1} of ${count} full screen`}
-          className="h-full w-full shrink-0 cursor-zoom-in overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
-          onPointerDown={onSlidePointerDown}
-          onPointerMove={onSlidePointerMove}
-          onPointerUp={onSlidePointerUp}
-          onPointerCancel={onSlidePointerCancel}
-          onClick={() => {
-            /* A swipe just ended — its click must not open the
+        <motion.div style={{ x: trackX, marginLeft: '-100%' }} className="flex h-full w-full">
+          <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
+            {cellContent(prevSrc, prevShown, false)}
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={`View ${repoName} screenshot ${index + 1} of ${count} full screen`}
+            className="h-full w-full shrink-0 cursor-zoom-in overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
+            onPointerDown={onSlidePointerDown}
+            onPointerMove={onSlidePointerMove}
+            onPointerUp={onSlidePointerUp}
+            onPointerCancel={onSlidePointerCancel}
+            onClick={() => {
+              /* A swipe just ended — its click must not open the
                lightbox. A real tap wobbles only a few px, so it
                opens. See the header comment for why this is a
                plain onClick and not framer's onTap. */
-            if (draggedRef.current) {
-              draggedRef.current = false;
-              return;
-            }
-            openLightbox();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+              if (draggedRef.current) {
+                draggedRef.current = false;
+                return;
+              }
               openLightbox();
-            }
-          }}
-        >
-          {cellContent(images[index], index, true)}
-        </div>
-        <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
-          {cellContent(nextSrc, nextShown, false)}
-        </div>
-      </motion.div>
-
-      {/* Bottom gradient so the dots stay readable on bright photos. */}
-      {showControls && (
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/55 to-transparent"
-          aria-hidden
-        />
-      )}
-
-      {/* Counter chip, top-right. */}
-      {showControls && (
-        <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[0.6875rem] font-medium tabular-nums text-white backdrop-blur-sm">
-          {index + 1} / {count}
-        </span>
-      )}
-
-      {/* Prev / next arrows — hover-reveal on desktop, always visible on touch. */}
-      {showControls && (
-        <>
-          <button
-            type="button"
-            onClick={() => manualNav(slidePrev)}
-            aria-label="Previous image"
-            className="absolute left-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openLightbox();
+              }
+            }}
           >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => manualNav(slideNext)}
-            aria-label="Next image"
-            className="absolute right-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
-          >
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </button>
-        </>
-      )}
+            {cellContent(images[index], index, true)}
+          </div>
+          <div aria-hidden="true" className="h-full w-full shrink-0 overflow-hidden">
+            {cellContent(nextSrc, nextShown, false)}
+          </div>
+        </motion.div>
 
-      {/* Dots — the active one stretches and takes the accent colour.
+        {/* Bottom gradient so the dots stay readable on bright photos. */}
+        {showControls && (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/55 to-transparent"
+            aria-hidden
+          />
+        )}
+
+        {/* Counter chip, top-right. */}
+        {showControls && (
+          <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[0.6875rem] font-medium tabular-nums text-white backdrop-blur-sm">
+            {index + 1} / {count}
+          </span>
+        )}
+
+        {/* Prev / next arrows — hover-reveal on desktop, always visible on touch. */}
+        {showControls && (
+          <>
+            <button
+              type="button"
+              onClick={() => manualNav(slidePrev)}
+              aria-label="Previous image"
+              className="absolute left-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => manualNav(slideNext)}
+              aria-label="Next image"
+              className="absolute right-2.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </button>
+          </>
+        )}
+
+        {/* Dots — the active one stretches and takes the accent colour.
           The button is 24×24 (WCAG target size) while the visible dot
           stays 6px, so the look is unchanged but every dot is tappable. */}
-      {showControls && (
-        <div
-          className="absolute inset-x-0 bottom-1 flex justify-center gap-0.5"
-          aria-label="Choose image"
-        >
-          {images.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              aria-current={i === index}
-              aria-label={`Go to image ${i + 1}`}
-              onClick={() => {
-                /* Tapping the active dot changes nothing — it only
+        {showControls && (
+          <div
+            className="absolute inset-x-0 bottom-1 flex justify-center gap-0.5"
+            aria-label="Choose image"
+          >
+            {images.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                aria-current={i === index}
+                aria-label={`Go to image ${i + 1}`}
+                onClick={() => {
+                  /* Tapping the active dot changes nothing — it only
                    pauses auto-advance, as before. Any other dot
                    slides the track to exactly that slide. */
-                if (i === index) {
-                  manualNav(() => {});
-                  return;
-                }
-                manualNav(() => slideTo(i, i > index ? 1 : -1));
-              }}
-              className="group flex h-6 w-6 items-center justify-center"
-            >
-              <span
-                aria-hidden
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === index
-                    ? 'w-4 bg-accent'
-                    : 'w-1.5 bg-white/60 group-hover:bg-white'
-                }`}
-              />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+                  if (i === index) {
+                    manualNav(() => {});
+                    return;
+                  }
+                  manualNav(() => slideTo(i, i > index ? 1 : -1));
+                }}
+                className="group flex h-6 w-6 items-center justify-center"
+              >
+                <span
+                  aria-hidden
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === index ? 'w-4 bg-accent' : 'w-1.5 bg-white/60 group-hover:bg-white'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-    {/* Full-size view — the existing photo lightbox in its rectangular
+      {/* Full-size view — the existing photo lightbox in its rectangular
         variant (same zoom/close/Tab behaviour as the hero portrait),
         plus keyboard navigation: ArrowLeft / ArrowRight and the
         on-screen prev/next buttons move between screenshots while
@@ -641,19 +609,19 @@ function ProjectSlideshowInner({ images, repoName }) {
         7s manual pause applies after the lightbox closes, exactly
         like the slideshow's own arrows and dots. Mounted only while
         open, so no extra image request happens before the first tap. */}
-    <AnimatePresence>
-      {lightboxOpen && (
-        <PhotoLightbox
-          shape="rect"
-          images={images}
-          index={index}
-          onNavigate={(i) => manualNav(() => setIndex(i))}
-          src={images[index]}
-          alt={`${repoName} screenshot ${index + 1} of ${count}`}
-          onClose={() => setLightboxOpen(false)}
-        />
-      )}
-    </AnimatePresence>
+      <AnimatePresence>
+        {lightboxOpen && (
+          <PhotoLightbox
+            shape="rect"
+            images={images}
+            index={index}
+            onNavigate={(i) => manualNav(() => setIndex(i))}
+            src={images[index]}
+            alt={`${repoName} screenshot ${index + 1} of ${count}`}
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

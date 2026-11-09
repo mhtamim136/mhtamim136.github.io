@@ -45,13 +45,17 @@ export function pickFeatured(pinnedNames, repos) {
 }
 
 /**
- * Normalise a Markdown heading for matching: strip leading emoji /
- * punctuation / spaces, lowercase, trim. Turns "## 📘 Overview",
- * "## 🧰 Features" and "## ✨ Features" into "overview" / "features".
+ * Normalise a Markdown heading for matching: strip leading AND
+ * trailing emoji / punctuation / spaces, lowercase, trim. Turns
+ * "## 📘 Overview", "## Overview 📘" and "## 🧰 Features" into
+ * "overview" / "features". (The old version stripped leading
+ * characters only, so a trailing emoji — "Overview 📘" — never
+ * matched anything.)
  */
 export function normalizeHeading(raw) {
   return (raw || '')
     .replace(/^[^\p{L}\p{N}]+/u, '')
+    .replace(/[^\p{L}\p{N}]+$/u, '')
     .trim()
     .toLowerCase();
 }
@@ -134,6 +138,10 @@ export function parseReadmeSections(markdown) {
 export function detailsFromReadme(sections) {
   const problem =
     firstParagraph(sections.problem) ||
+    /* "## Problem Statement" is the heading real READMEs use for
+       this section — it normalises to "problem statement", a
+       different key from "problem", so check it too. */
+    firstParagraph(sections['problem statement']) ||
     firstParagraph(sections.overview) ||
     firstParagraph(sections.about);
   const solution = firstParagraph(sections.solution);
@@ -159,9 +167,7 @@ export function detailsFromPortfolioJson(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
   const list = (v) =>
-    Array.isArray(v)
-      ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim())
-      : [];
+    Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : [];
   const details = {
     problem: text(data.problem),
     solution: text(data.solution),
@@ -199,7 +205,7 @@ function repoNameFromGithubUrl(url) {
  */
 export function detailsFromCurated(repoName, curatedProjects) {
   const entry = (curatedProjects || []).find(
-    (p) => repoNameFromGithubUrl(p.github)?.toLowerCase() === repoName.toLowerCase(),
+    (p) => repoNameFromGithubUrl(p.github)?.toLowerCase() === repoName.toLowerCase()
   );
   if (!entry) return null;
   const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -240,8 +246,7 @@ export function resolveDetails({ portfolioJson, readmeText, curated, repo }) {
   if (fromCurated) return fromCurated;
 
   return {
-    problem:
-      repo.description && repo.description.trim() ? repo.description.trim() : null,
+    problem: repo.description && repo.description.trim() ? repo.description.trim() : null,
     solution: null,
     features: [],
     contribution: null,

@@ -78,85 +78,92 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="relative min-h-screen">
-      {/* Skip link (Tier 4, X-2) — the first Tab stop on the page.
+      <div className="relative min-h-screen">
+        {/* Skip link (Tier 4, X-2) — the first Tab stop on the page.
           Visually hidden until keyboard focus (sr-only until
           :focus-visible), then a small themed pill at the top-left.
           Zero visual change otherwise; no animation, so reduced
           motion needs no handling. */}
-      <a
-        href="#main"
-        onClick={skipToContent}
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[70] focus-visible:rounded-lg focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-      >
-        Skip to content
-      </a>
-      {/* Background layers */}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-surface bg-grid-pattern bg-grid"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-radial-glow"
-        aria-hidden
-      />
-      <BackgroundBlobs />
+        <a
+          href="#main"
+          onClick={skipToContent}
+          className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[70] focus-visible:rounded-lg focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Skip to content
+        </a>
+        {/* Background layers */}
+        <div
+          className="pointer-events-none fixed inset-0 -z-10 bg-surface bg-grid-pattern bg-grid"
+          aria-hidden
+        />
+        <div className="pointer-events-none fixed inset-0 -z-10 bg-radial-glow" aria-hidden />
+        <BackgroundBlobs />
 
-      {/* Cursor spotlight — soft light following the pointer (fine
+        {/* Cursor spotlight — soft light following the pointer (fine
           pointers only, disabled under reduced motion). */}
-      <Spotlight />
+        <Spotlight />
 
-      {/* Scroll progress bar */}
-      <ScrollProgress />
+        {/* Scroll progress bar */}
+        <ScrollProgress />
 
-      <Navbar
-        items={portfolio.nav}
-        activeId={activeId}
-        isDark={isDark}
-        onThemeToggle={toggle}
-      />
+        <Navbar items={portfolio.nav} activeId={activeId} isDark={isDark} onThemeToggle={toggle} />
 
-      {/* tabIndex -1: the skip-link target. The ring is suppressed
+        {/* tabIndex -1: the skip-link target. The ring is suppressed
           here on purpose — a ring around the whole page content
           would be noise; the skip link itself carries the ring. */}
-      <main id="main" tabIndex={-1} className="pt-20 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:pt-[5.25rem]">
-        <HeroSection />
+        <main
+          id="main"
+          tabIndex={-1}
+          className="pt-20 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:pt-[5.25rem]"
+        >
+          <HeroSection />
 
-        {/* One boundary for all seven lazy sections — the fallback is
+          {/* One boundary for all seven lazy sections — the fallback is
             identical for each, so separate wrappers only repeated
             the same spinner. */}
-        <Suspense fallback={<SectionFallback />}>
-          <Divider />
-          <AboutSection />
+          <Suspense fallback={<SectionFallback />}>
+            <Divider />
+            <AboutSection />
 
-          <Divider />
-          <SkillsSection repos={repos} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
+            <Divider />
+            <SkillsSection
+              repos={repos}
+              activeFilter={projectFilter}
+              onFilterChange={setProjectFilter}
+            />
 
-          <Divider />
-          <ProjectsSection repos={repos} featured={featured} loading={loading} error={error} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
+            <Divider />
+            <ProjectsSection
+              repos={repos}
+              featured={featured}
+              loading={loading}
+              error={error}
+              activeFilter={projectFilter}
+              onFilterChange={setProjectFilter}
+            />
 
-          <Divider />
-          <ResearchSection />
+            <Divider />
+            <ResearchSection />
 
-          <Divider />
-          <ExperienceSection />
+            <Divider />
+            <ExperienceSection />
 
-          <Divider />
-          <ServicesSection />
+            <Divider />
+            <ServicesSection />
 
-          <Divider />
-          <ContactSection />
-        </Suspense>
-      </main>
+            <Divider />
+            <ContactSection />
+          </Suspense>
+        </main>
 
-      <Footer />
+        <Footer />
 
-      <ScrollToTop />
+        <ScrollToTop />
 
-      {/* Vercel Analytics (visitors) + Speed Insights (Core Web Vitals) */}
-      <Analytics />
-      <SpeedInsights />
-    </div>
+        {/* Vercel Analytics (visitors) + Speed Insights (Core Web Vitals) */}
+        <Analytics />
+        <SpeedInsights />
+      </div>
     </MotionConfig>
   );
 }

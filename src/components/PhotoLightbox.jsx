@@ -2,7 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { SWIPE_THRESHOLD, DRAG_LATCH, COMMIT_FRACTION, SPRING_BACK, COMMIT_SLIDE } from '../utils/dragTrack';
+import {
+  SWIPE_THRESHOLD,
+  DRAG_LATCH,
+  COMMIT_FRACTION,
+  SPRING_BACK,
+  COMMIT_SLIDE,
+} from '../utils/dragTrack';
+import { FitImage } from './FitImage';
 
 /**
  * Minimal photo lightbox for the hero portrait (Instagram-style).
@@ -148,7 +155,16 @@ const clampPan = (x, y, zoom, width, height) => {
     y: Math.max(-maxY, Math.min(maxY, y)),
   };
 };
-export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
+export function PhotoLightbox({
+  manifest,
+  src,
+  alt,
+  onClose,
+  shape = 'circle',
+  images,
+  index,
+  onNavigate,
+}) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -233,9 +249,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      live pointer. Headless Chrome reports (pointer: none), so zoom
      tests must run in headed Chrome under Xvfb. */
   const [finePointer] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(pointer: fine)').matches,
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches
   );
 
   /* Navigation is opt-in: only when the caller passes the whole
@@ -332,9 +346,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   }, [onClose, goPrev, goNext]);
 
   /* Gentle scale 0.96→1 + fade; instant when reduced motion is on. */
-  const transition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.25, ease: 'easeOut' };
+  const transition = reduceMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' };
   const overlayAnim = reduceMotion
     ? { initial: false }
     : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
@@ -399,10 +411,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       const [a, b] = [...pointersRef.current.values()];
       pinchRef.current = {
         ids,
-        startDist: Math.max(
-          1,
-          Math.hypot(b.x - a.x, b.y - a.y),
-        ),
+        startDist: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)),
         startZoom: zoom,
       };
       swipedRef.current = true;
@@ -466,10 +475,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       if (a && b) {
         const dist = Math.hypot(b.x - a.x, b.y - a.y);
         setZoom(
-          Math.min(
-            2,
-            Math.max(1, (pinchRef.current.startZoom * dist) / pinchRef.current.startDist),
-          ),
+          Math.min(2, Math.max(1, (pinchRef.current.startZoom * dist) / pinchRef.current.startDist))
         );
       }
       return;
@@ -479,10 +485,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     if (!p || e.pointerId !== p.pointerId) return;
     const dx = e.clientX - p.x;
     const dy = e.clientY - p.y;
-    if (
-      !swipedRef.current &&
-      Math.hypot(dx, dy) >= SWIPE_THRESHOLD
-    ) {
+    if (!swipedRef.current && Math.hypot(dx, dy) >= SWIPE_THRESHOLD) {
       swipedRef.current = true;
       /* A drag is not a tap: cancel a pending tap-close and
          forget any double-tap in progress. */
@@ -502,17 +505,9 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
        drag in flight while a commit/spring-back animation runs
        is ignored. The mode is fixed at latch time by the zoom
        then; a wheel zoom mid-drag does not switch modes. */
-    if (
-      canNavigate &&
-      dragRef.current &&
-      !pinchRef.current &&
-      !animatingRef.current
-    ) {
+    if (canNavigate && dragRef.current && !pinchRef.current && !animatingRef.current) {
       if (zoom > 1) {
-        if (
-          !panningRef.current &&
-          Math.hypot(dx, dy) >= DRAG_LATCH
-        ) {
+        if (!panningRef.current && Math.hypot(dx, dy) >= DRAG_LATCH) {
           panningRef.current = true;
           panDragRef.current = { startPanX: pan.x, startPanY: pan.y };
           setPanning(true);
@@ -523,16 +518,10 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         if (panningRef.current && panDragRef.current) {
           const { width, height } = dragRef.current;
           const { startPanX, startPanY } = panDragRef.current;
-          setPan(
-            clampPan(startPanX + dx, startPanY + dy, zoom, width, height),
-          );
+          setPan(clampPan(startPanX + dx, startPanY + dy, zoom, width, height));
         }
       } else {
-        if (
-          !draggingRef.current &&
-          Math.abs(dx) > Math.abs(dy) &&
-          Math.abs(dx) >= DRAG_LATCH
-        ) {
+        if (!draggingRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= DRAG_LATCH) {
           draggingRef.current = true;
           swipedRef.current = true;
           doubleTapRef.current = false;
@@ -598,8 +587,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
       dragRef.current = null;
       const dx = e.clientX - p.x;
       const dy = e.clientY - p.y;
-      const commit =
-        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
+      const commit = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= width * COMMIT_FRACTION;
       animatingRef.current = true;
       try {
         if (!commit) {
@@ -732,9 +720,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      The rectangle (project screenshots): 16:9, up to 900px wide,
      centred crop — a screenshot is not a face, so the 20% headroom
      crop does not apply. */
-  const zoomTransition = reduceMotion
-    ? ''
-    : 'transition-transform duration-200 ease-out';
+  const zoomTransition = reduceMotion ? '' : 'transition-transform duration-200 ease-out';
   const objectPosition = shape === 'rect' ? 'center' : 'center 20%';
   const photoFrameClass =
     shape === 'rect'
@@ -754,16 +740,8 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
   const photo =
     manifest && !manifest.dev ? (
       <picture className="block h-full w-full">
-        <source
-          type="image/avif"
-          srcSet={manifest.avifSrcset}
-          sizes={lightboxSizes}
-        />
-        <source
-          type="image/webp"
-          srcSet={manifest.webpSrcset}
-          sizes={lightboxSizes}
-        />
+        <source type="image/avif" srcSet={manifest.avifSrcset} sizes={lightboxSizes} />
+        <source type="image/webp" srcSet={manifest.webpSrcset} sizes={lightboxSizes} />
         <img
           src={manifest.pngFallback}
           alt={alt}
@@ -777,27 +755,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         />
       </picture>
     ) : (
-      <div className="relative h-full w-full overflow-hidden">
-        <img
-          src={manifest?.src || src}
-          alt=""
-          aria-hidden="true"
-          loading="eager"
-          decoding="async"
-          draggable={false}
-          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
-          style={{ objectPosition }}
-        />
-        <img
-          src={manifest?.src || src}
-          alt={alt}
-          loading="eager"
-          decoding="async"
-          draggable={false}
-          className="relative h-full w-full object-contain"
-          style={{ objectPosition }}
-        />
-      </div>
+      <FitImage src={manifest?.src || src} alt={alt} objectPosition={objectPosition} />
     );
 
   /* Drag-track cells (project lightbox only): the same plain
@@ -806,35 +764,9 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      wraps, so both neighbours always exist. Adjacent cells are
      presentational (empty alt) — the current cell keeps the real
      alt, so a screen reader hears the photo once. */
-  const prevSrc = canNavigate
-    ? images[(index - 1 + images.length) % images.length]
-    : null;
-  const nextSrc = canNavigate
-    ? images[(index + 1) % images.length]
-    : null;
-  const cellPhoto = (srcUrl) => (
-    <div className="relative h-full w-full overflow-hidden">
-      <img
-        src={srcUrl}
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-        draggable={false}
-        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-[0.85]"
-        style={{ objectPosition }}
-      />
-      <img
-        src={srcUrl}
-        alt=""
-        loading="eager"
-        decoding="async"
-        draggable={false}
-        className="relative h-full w-full object-contain"
-        style={{ objectPosition }}
-      />
-    </div>
-  );
+  const prevSrc = canNavigate ? images[(index - 1 + images.length) % images.length] : null;
+  const nextSrc = canNavigate ? images[(index + 1) % images.length] : null;
+  const cellPhoto = (srcUrl) => <FitImage src={srcUrl} alt="" objectPosition={objectPosition} />;
 
   return createPortal(
     <motion.div
@@ -943,10 +875,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
                same wrapper also carries the pan (translate), so
                the photo moves within its cell and the neighbours
                never show. */
-            <motion.div
-              style={{ x: trackX, marginLeft: '-100%' }}
-              className="flex h-full w-full"
-            >
+            <motion.div style={{ x: trackX, marginLeft: '-100%' }} className="flex h-full w-full">
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
                   className={`h-full w-full ${panning ? '' : zoomTransition}`}
@@ -991,6 +920,6 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
         </span>
       )}
     </motion.div>,
-    document.body,
+    document.body
   );
 }

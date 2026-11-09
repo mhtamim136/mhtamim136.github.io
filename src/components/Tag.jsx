@@ -1,4 +1,13 @@
-export function Tag({ children, className = '', accent = false, count = null, button = false, active = false, onClick, ariaLabel }) {
+export function Tag({
+  children,
+  className = '',
+  accent = false,
+  count = null,
+  button = false,
+  active = false,
+  onClick,
+  ariaLabel,
+}) {
   /* Pills are labels, not buttons, so the hover is deliberately
      quiet: a 1px lift and a slightly deeper tint. Enough to feel
      alive under the cursor, never enough to fake clickability.

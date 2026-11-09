@@ -54,18 +54,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { portfolio } from '../src/data/portfolio.js';
 import { pickFeatured, resolveDetails } from './featuredDetails.mjs';
+import {
+  EXCLUDED_REPOS,
+  encodePath,
+  imagesFromTree,
+  findRootFile,
+  fetchTreeForRepo,
+} from './githubHelpers.mjs';
 import { GITHUB_USERNAME, processLanguages } from '../src/utils/githubShared.js';
-
-const EXCLUDED_REPOS = new Set([
-  'mhtamim136', // GitHub profile README repo
-  'mhtamim136.github.io', // This portfolio site itself
-]);
-
-/* Image folders for project-card slideshows. `Project_Card` is the
-   convention; `Project Card` (with a space) is accepted as a legacy
-   fallback. Folder names are case-sensitive. */
-const IMAGE_FOLDERS = ['Project_Card', 'Project Card'];
-const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'avif', 'gif']);
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outPath = join(root, 'public', 'projects.json');
@@ -104,7 +100,7 @@ async function fetchText(url) {
 async function fetchPinnedRepoNames() {
   if (!process.env.GITHUB_TOKEN) {
     console.warn(
-      '[fetch-projects] WARNING: no GITHUB_TOKEN — pinned repos cannot be read; keeping the previous featured list.',
+      '[fetch-projects] WARNING: no GITHUB_TOKEN — pinned repos cannot be read; keeping the previous featured list.'
     );
     return null;
   }
@@ -130,64 +126,6 @@ async function fetchPinnedRepoNames() {
   }
 }
 
-/* File name (last path segment), for alphabetical sorting. */
-function baseName(path) {
-  const i = path.lastIndexOf('/');
-  return i === -1 ? path : path.slice(i + 1);
-}
-
-/* URL-encode every path segment (filenames may contain spaces). */
-function encodePath(path) {
-  return path
-    .split('/')
-    .map((seg) => encodeURIComponent(seg))
-    .join('/');
-}
-
-/**
- * One repo's recursive file tree. The same tree serves two jobs:
- * slideshow images (Project_Card folder) and Featured enrichment
- * (detecting `portfolio.json` / README.md at the root) — so the
- * enrichment costs 0 extra tree calls. On failure throws — the
- * caller falls back to the previous snapshot's images for this repo.
- */
-async function fetchTreeForRepo(repoName, defaultBranch) {
-  const tree = await fetchJson(
-    `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`,
-  );
-  if (!Array.isArray(tree.tree)) return [];
-  return tree.tree;
-}
-
-/* Slideshow images from an already-fetched tree. */
-function imagesFromTree(tree, repoName, defaultBranch) {
-  for (const folder of IMAGE_FOLDERS) {
-    const prefix = `${folder}/`;
-    const files = tree
-      .filter((t) => t.type === 'blob' && t.path.startsWith(prefix))
-      .map((t) => t.path)
-      .filter((p) => IMAGE_EXTS.has(p.split('.').pop().toLowerCase()))
-      .sort((a, b) => baseName(a).localeCompare(baseName(b)));
-    if (files.length > 0) {
-      return files.map(
-        (p) =>
-          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repoName}/${defaultBranch}/${encodePath(p)}`,
-      );
-    }
-  }
-  return [];
-}
-
-/* A root-level file in the tree, matched case-insensitively
-   (README.md vs Readme.md); returns the exact path, or null. */
-function findRootFile(tree, fileName) {
-  const lower = fileName.toLowerCase();
-  const hit = tree.find(
-    (t) => t.type === 'blob' && t.path.toLowerCase() === lower,
-  );
-  return hit ? hit.path : null;
-}
-
 /**
  * Case-study details for ONE featured repo, via the fallback chain
  * (portfolio.json → README → curated → GitHub description).
@@ -201,7 +139,7 @@ async function enrichFeaturedRepo(repo, tree) {
     const portfolioPath = findRootFile(tree, 'portfolio.json');
     if (portfolioPath) {
       const raw = await fetchText(
-        `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(portfolioPath)}`,
+        `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(portfolioPath)}`
       );
       try {
         portfolioJson = JSON.parse(raw);
@@ -214,7 +152,7 @@ async function enrichFeaturedRepo(repo, tree) {
       const readmePath = findRootFile(tree, 'README.md');
       if (readmePath) {
         readmeText = await fetchText(
-          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(readmePath)}`,
+          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(readmePath)}`
         );
       }
     }
@@ -249,7 +187,7 @@ async function main() {
   let hasMore = true;
   while (hasMore) {
     const batch = await fetchJson(
-      `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`,
+      `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`
     );
     rawRepos = rawRepos.concat(batch);
     hasMore = batch.length === 100;
@@ -269,7 +207,7 @@ async function main() {
   if (pinnedNames === null) {
     featured = prevFeatured;
     console.warn(
-      `[fetch-projects] WARNING: pinned repos unreadable — keeping previous featured list (${featured.length} repos).`,
+      `[fetch-projects] WARNING: pinned repos unreadable — keeping previous featured list (${featured.length} repos).`
     );
   } else {
     featured = pickFeatured(pinnedNames, repos);
@@ -281,7 +219,7 @@ async function main() {
     repos.map(async (r) => {
       try {
         const raw = await fetchJson(
-          `https://api.github.com/repos/${GITHUB_USERNAME}/${r.name}/languages`,
+          `https://api.github.com/repos/${GITHUB_USERNAME}/${r.name}/languages`
         );
         return processLanguages(raw, r.language);
       } catch (err) {
@@ -292,7 +230,7 @@ async function main() {
         if (Array.isArray(prevLangs) && prevLangs.length > 0) return prevLangs;
         return r.language ? [r.language] : [];
       }
-    }),
+    })
   );
 
   /* File trees: one call per repo, in parallel. A single repo
@@ -301,16 +239,16 @@ async function main() {
   const treesList = await Promise.all(
     repos.map(async (r) => {
       try {
-        return await fetchTreeForRepo(r.name, r.default_branch);
+        return await fetchTreeForRepo(fetchJson, r.name, r.default_branch);
       } catch (err) {
         console.warn(`[fetch-projects] tree failed for ${r.name}: ${err.message}`);
         return null;
       }
-    }),
+    })
   );
 
   const imagesList = treesList.map((tree, i) =>
-    tree ? imagesFromTree(tree, repos[i].name, repos[i].default_branch) : [],
+    tree ? imagesFromTree(tree, repos[i].name, repos[i].default_branch) : []
   );
   /* A repo whose tree failed keeps its previous images (if any). */
   for (let i = 0; i < repos.length; i += 1) {
@@ -346,7 +284,7 @@ async function main() {
         return;
       }
       detailsByName[repos[idx].name] = await enrichFeaturedRepo(repos[idx], tree);
-    }),
+    })
   );
 
   const snapshotRepos = repos.map((r, i) => {
@@ -396,12 +334,12 @@ async function main() {
         repos: snapshotRepos,
       },
       null,
-      2,
+      2
     ) + '\n',
-    'utf8',
+    'utf8'
   );
   console.log(
-    `[fetch-projects] wrote ${snapshotRepos.length} repos (${featured.length} featured) to public/projects.json`,
+    `[fetch-projects] wrote ${snapshotRepos.length} repos (${featured.length} featured) to public/projects.json`
   );
 }
 
@@ -410,6 +348,8 @@ try {
 } catch (err) {
   /* Never break the build: warn, keep the old snapshot (if any),
      and let the site fall back to the live API at runtime. */
-  console.warn(`[fetch-projects] WARNING: ${err.message} — keeping previous projects.json (if any).`);
+  console.warn(
+    `[fetch-projects] WARNING: ${err.message} — keeping previous projects.json (if any).`
+  );
   process.exit(0);
 }

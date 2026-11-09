@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { setLenis, setLenisRafKick } from '../utils/smoothScroll';
+import { useMediaQuery } from './useMediaQuery';
 
 /**
  * Lenis smooth scroll, gated hard on prefers-reduced-motion.
@@ -11,8 +12,9 @@ import { setLenis, setLenisRafKick } from '../utils/smoothScroll';
  * off entirely instead of degrading it — same rule as every other
  * effect here (BlurWords, Magnetic, Card tilt, Spotlight): under
  * reduced motion Lenis must not exist at all, so scrolling stays
- * native and instant. A live change of the OS setting destroys
- * or creates the instance to match.
+ * native and instant. The gate is the shared useMediaQuery hook,
+ * so a live change of the OS setting destroys or creates the
+ * instance to match (the effect below re-runs on the boolean).
  *
  * Anchor clicks (`#id` links in the nav, hero and footer) are
  * routed through Lenis instead of the browser's native jump:
@@ -23,6 +25,13 @@ import { setLenis, setLenisRafKick } from '../utils/smoothScroll';
  * and the hash is set with pushState — a clicked nav link is a
  * real navigation, and the scroll-spy's replaceState then keeps
  * it without adding history entries while scrolling.
+ *
+ * Exception — the skip link (`#main`): it is NOT routed through
+ * Lenis. A skip link is not a navigation — it must jump instantly
+ * and move keyboard focus into <main> (App's skipToContent), and
+ * pushState would add a history entry for it. Letting the browser
+ * handle it natively does all three; every other anchor still
+ * goes through Lenis.
  *
  * When Lenis is off the handler is inert: nothing is prevented
  * and native anchors behave exactly as before.
@@ -43,8 +52,11 @@ import { setLenis, setLenisRafKick } from '../utils/smoothScroll';
  * position synchronously and starts no animation.
  */
 export function useLenis() {
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (prefersReducedMotion) return undefined;
+
     let lenis = null;
 
     /* One frame of the demand loop: advance Lenis, then re-arm
@@ -79,7 +91,7 @@ export function useLenis() {
     };
 
     const start = () => {
-      if (lenis || mq.matches) return;
+      if (lenis) return;
       lenis = new Lenis({ autoRaf: false, lerp: 0.1 });
       setLenis(lenis);
       setLenisRafKick(kick);
@@ -99,17 +111,15 @@ export function useLenis() {
       setLenis(null);
     };
 
-    const onChange = () => {
-      if (mq.matches) stop();
-      else start();
-    };
-
     const onClick = (e) => {
       if (!lenis) return;
       const anchor = e.target.closest('a[href^="#"]');
       if (!anchor) return;
       const hash = anchor.getAttribute('href');
       if (!hash || hash.length < 2) return;
+      /* Skip link: native handling (see header) — instant jump +
+         focus into <main>, no Lenis, no history entry. */
+      if (hash === '#main') return;
       if (!document.querySelector(hash)) return;
       e.preventDefault();
       lenis.scrollTo(hash);
@@ -118,13 +128,11 @@ export function useLenis() {
     };
 
     document.addEventListener('click', onClick);
-    mq.addEventListener('change', onChange);
     start();
 
     return () => {
       document.removeEventListener('click', onClick);
-      mq.removeEventListener('change', onChange);
       stop();
     };
-  }, []);
+  }, [prefersReducedMotion]);
 }

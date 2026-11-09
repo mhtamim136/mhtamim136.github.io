@@ -51,8 +51,7 @@ export function useActiveSection(sectionIds, options = {}) {
         const doc = document.documentElement;
         const scrollable = doc.scrollHeight > window.innerHeight + 8;
         const nearBottom =
-          scrollable &&
-          window.scrollY + window.innerHeight >= doc.scrollHeight - 4;
+          scrollable && window.scrollY + window.innerHeight >= doc.scrollHeight - 4;
 
         if (nearBottom) {
           current = lastId;

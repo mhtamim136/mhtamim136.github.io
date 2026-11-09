@@ -65,10 +65,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
 
   const showTip = (e, label) => {
     const r = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(
-      56,
-      Math.min(window.innerWidth - 56, r.left + r.width / 2),
-    );
+    const x = Math.max(56, Math.min(window.innerWidth - 56, r.left + r.width / 2));
     setTip({ label, x });
   };
   const hideTip = () => setTip(null);
@@ -118,13 +115,9 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
         {/* Theme toggle */}
         <div
           className="shrink-0"
-          onMouseEnter={(e) =>
-            showTip(e, isDark ? 'Light mode' : 'Dark mode')
-          }
+          onMouseEnter={(e) => showTip(e, isDark ? 'Light mode' : 'Dark mode')}
           onMouseLeave={hideTip}
-          onFocus={(e) =>
-            showTip(e, isDark ? 'Light mode' : 'Dark mode')
-          }
+          onFocus={(e) => showTip(e, isDark ? 'Light mode' : 'Dark mode')}
           onBlur={hideTip}
           onClick={hideTip}
         >

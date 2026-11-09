@@ -59,9 +59,7 @@ export function useTheme() {
       /* View Transitions API → smooth circular clip-path reveal.
          Falls back to an instant swap if unsupported or if the user
          prefers reduced motion. */
-      const prefersReduced = window.matchMedia(
-        '(prefers-reduced-motion: reduce)',
-      ).matches;
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       if (document.startViewTransition && !prefersReduced) {
         document.startViewTransition(() => applyTheme(next));
@@ -69,7 +67,7 @@ export function useTheme() {
         applyTheme(next);
       }
     },
-    [theme, applyTheme],
+    [theme, applyTheme]
   );
 
   return { theme, toggle, isDark: theme === 'dark' };

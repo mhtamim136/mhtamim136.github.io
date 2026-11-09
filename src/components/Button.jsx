@@ -4,12 +4,7 @@
    (all uses are primary/secondary) and is gone; the
    `hero-cta-fill--ghost` CSS class on the hero buttons is
    unrelated (a resting-fill treatment, not this variant). */
-export function Button({
-  variant = 'primary',
-  className = '',
-  children,
-  ...rest
-}) {
+export function Button({ variant = 'primary', className = '', children, ...rest }) {
   const base =
     'group inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium transition-all duration-250 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:rounded-xl sm:px-6 sm:py-3';
   const styles = {

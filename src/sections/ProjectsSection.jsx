@@ -1,6 +1,17 @@
 import { useState, useEffect, useMemo, useRef, memo, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import {
+  Star,
+  GitFork,
+  ExternalLink,
+  Github,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+} from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { ProjectSlideshow } from '../components/ProjectSlideshow';
@@ -88,11 +99,7 @@ const LanguagePills = memo(function LanguagePills({ repoName, fallbackLanguage, 
   const langs = langMap[repoName];
 
   /* Resolved languages (or fallback) */
-  const display = langs && langs.length > 0
-    ? langs
-    : fallbackLanguage
-      ? [fallbackLanguage]
-      : [];
+  const display = langs && langs.length > 0 ? langs : fallbackLanguage ? [fallbackLanguage] : [];
 
   if (display.length === 0) return null;
 
@@ -111,11 +118,7 @@ const LanguagePills = memo(function LanguagePills({ repoName, fallbackLanguage, 
           {lang}
         </span>
       ))}
-      {overflow > 0 && (
-        <span className={`${pillClass} opacity-70`}>
-          +{overflow}
-        </span>
-      )}
+      {overflow > 0 && <span className={`${pillClass} opacity-70`}>+{overflow}</span>}
     </motion.div>
   );
 });
@@ -162,7 +165,10 @@ const ShowMoreButton = memo(function ShowMoreButton({ remaining, onClick }) {
       className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
     >
       Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
-      <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+      <ChevronDown
+        className="h-4 w-4 transition-transform group-hover:translate-y-0.5"
+        aria-hidden
+      />
     </button>
   );
 });
@@ -319,6 +325,57 @@ const cardAnim = {
   exit: { opacity: 0, y: -8, scale: 0.97, transition: { duration: 0.25 } },
 };
 
+/* ── Repo stats row + action buttons ──────────────────────────── */
+/* Written once, used by both card types (Featured + grid) — the
+   markup was verbatim identical in both. Memoized like their
+   parents (P7): a card re-render with the same stats/actions
+   (e.g. a reorder that only moves the index) must not re-render
+   these. Props are primitives, so the memo comparison can hit. */
+const RepoStats = memo(function RepoStats({ updated, stars, forks }) {
+  return (
+    <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
+      {updated && <span>Updated {updated}</span>}
+      {stars > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <Star className="h-3.5 w-3.5" aria-hidden />
+          {stars}
+        </span>
+      )}
+      {forks > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <GitFork className="h-3.5 w-3.5" aria-hidden />
+          {forks}
+        </span>
+      )}
+    </div>
+  );
+});
+
+const RepoActions = memo(function RepoActions({ homepage, url }) {
+  return (
+    <div className="mt-auto flex flex-wrap gap-3 pt-6">
+      {homepage && (
+        <Button
+          {...externalLinkProps(homepage)}
+          variant="primary"
+          className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
+        >
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          Live demo
+        </Button>
+      )}
+      <Button
+        {...externalLinkProps(url)}
+        variant="secondary"
+        className="hero-cta-fill hero-cta-fill--ghost"
+      >
+        <Github className="h-3.5 w-3.5" aria-hidden />
+        GitHub
+      </Button>
+    </div>
+  );
+});
+
 /* ── Featured project card ────────────────────────────────────── */
 /* Richer than the grid card: the case-study details resolved by the
    fallback chain (portfolio.json → README → curated → GitHub). Every
@@ -339,8 +396,7 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
   const introLabel =
     details.detailsSource === 'readme'
       ? 'Overview'
-      : details.detailsSource === 'github' ||
-          details.detailsSource === 'curated-description'
+      : details.detailsSource === 'github' || details.detailsSource === 'curated-description'
         ? null
         : 'Problem';
   /* Tech pills: curated/portfolio.json tech first (more specific,
@@ -374,9 +430,7 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
 
         {/* Title + tech pills */}
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <h3 className="text-lg font-semibold text-heading sm:text-xl">
-            {formatName(repo.name)}
-          </h3>
+          <h3 className="text-lg font-semibold text-heading sm:text-xl">{formatName(repo.name)}</h3>
           {tech.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {tech.slice(0, MAX_PILLS).map((t) => (
@@ -385,9 +439,7 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
                 </span>
               ))}
               {tech.length > MAX_PILLS && (
-                <span className={`${pillClass} opacity-70`}>
-                  +{tech.length - MAX_PILLS}
-                </span>
+                <span className={`${pillClass} opacity-70`}>+{tech.length - MAX_PILLS}</span>
               )}
             </div>
           )}
@@ -410,9 +462,7 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
         {/* Solution */}
         {details.solution && (
           <div className="mt-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">
-              Solution
-            </p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">Solution</p>
             <p className="mt-1 text-sm leading-relaxed text-muted sm:text-[0.9375rem]">
               {details.solution}
             </p>
@@ -457,42 +507,9 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
           </div>
         )}
 
-        {/* Stats row */}
-        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-          {updated && (
-            <span>Updated {updated}</span>
-          )}
-          {repo.stars > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Star className="h-3.5 w-3.5" aria-hidden />
-              {repo.stars}
-            </span>
-          )}
-          {repo.forks > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <GitFork className="h-3.5 w-3.5" aria-hidden />
-              {repo.forks}
-            </span>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-auto flex flex-wrap gap-3 pt-6">
-          {repo.homepage && (
-            <Button
-              {...externalLinkProps(repo.homepage)}
-              variant="primary"
-              className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
-            >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              Live demo
-            </Button>
-          )}
-          <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
-            <Github className="h-3.5 w-3.5" aria-hidden />
-            GitHub
-          </Button>
-        </div>
+        {/* Stats row + actions (shared — see RepoStats / RepoActions above). */}
+        <RepoStats updated={updated} stars={repo.stars} forks={repo.forks} />
+        <RepoActions homepage={repo.homepage} url={repo.url} />
       </Card>
     </motion.div>
   );
@@ -539,14 +556,8 @@ const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) 
 
         {/* Title + language pills */}
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <h3 className="text-lg font-semibold text-heading sm:text-xl">
-            {formatName(repo.name)}
-          </h3>
-          <LanguagePills
-            repoName={repo.name}
-            fallbackLanguage={repo.language}
-            langMap={langMap}
-          />
+          <h3 className="text-lg font-semibold text-heading sm:text-xl">{formatName(repo.name)}</h3>
+          <LanguagePills repoName={repo.name} fallbackLanguage={repo.language} langMap={langMap} />
         </div>
 
         {/* Description — clamped to 3 lines so cards with a
@@ -567,42 +578,9 @@ const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) 
           </div>
         )}
 
-        {/* Stats row */}
-        <div className="mt-4 flex items-center gap-4 text-xs text-muted-dim">
-          {updated && (
-            <span>Updated {updated}</span>
-          )}
-          {repo.stars > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Star className="h-3.5 w-3.5" aria-hidden />
-              {repo.stars}
-            </span>
-          )}
-          {repo.forks > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <GitFork className="h-3.5 w-3.5" aria-hidden />
-              {repo.forks}
-            </span>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-auto flex flex-wrap gap-3 pt-6">
-          {repo.homepage && (
-            <Button
-              {...externalLinkProps(repo.homepage)}
-              variant="primary"
-              className="hero-cta-fill hero-cta-fill--solid flex-1 sm:flex-none"
-            >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              Live demo
-            </Button>
-          )}
-          <Button {...externalLinkProps(repo.url)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
-            <Github className="h-3.5 w-3.5" aria-hidden />
-            GitHub
-          </Button>
-        </div>
+        {/* Stats row + actions (shared — see RepoStats / RepoActions above). */}
+        <RepoStats updated={updated} stars={repo.stars} forks={repo.forks} />
+        <RepoActions homepage={repo.homepage} url={repo.url} />
       </Card>
     </motion.div>
   );
@@ -664,8 +642,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
      sort 'off' shows the Featured-first view. The sort counts as a
      filter only once applied (Tamim, 2026-11-09): the default
      "Newest" label is the section's order, not an applied sort. */
-  const isFiltered =
-    activeFilter !== null || activeYear !== null || sortMode !== 'off';
+  const isFiltered = activeFilter !== null || activeYear !== null || sortMode !== 'off';
 
   /* Years present in the data (pushedAt), derived live — never
      hardcoded. A repo pushed in a new year adds that year on the
@@ -702,12 +679,12 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
 
   const featuredNames = useMemo(
     () => new Set(featuredRepos.map((r) => r.name.toLowerCase())),
-    [featuredRepos],
+    [featuredRepos]
   );
 
   const moreRepos = useMemo(
     () => repos.filter((r) => !featuredNames.has(r.name.toLowerCase())),
-    [repos, featuredNames],
+    [repos, featuredNames]
   );
 
   /* Languages ship with the repos data itself — the build-time
@@ -755,7 +732,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
      skill pill (null for a plain language chip or "All"). */
   const activeSkillName = useMemo(
     () => (activeFilter ? findSkillByKey(activeFilter, portfolio.skills) : null),
-    [activeFilter],
+    [activeFilter]
   );
 
   /* When the active filter is a framework/tool skill (React,
@@ -764,9 +741,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
      it clears the filter, like any active chip. */
   const activeSkillChip = useMemo(() => {
     if (!activeFilter || !activeSkillName) return null;
-    const hasChip = languages.some(
-      (lang) => lang !== 'All' && normalizeKey(lang) === activeFilter,
-    );
+    const hasChip = languages.some((lang) => lang !== 'All' && normalizeKey(lang) === activeFilter);
     return hasChip ? null : activeSkillName;
   }, [activeFilter, activeSkillName, languages]);
 
@@ -817,9 +792,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
   useEffect(() => {
     if (restoredCountRef.current > 0) {
       if (!isFiltered && featured.length > 0) {
-        setVisibleCount(
-          Math.min(restoredCountRef.current, filtered.length),
-        );
+        setVisibleCount(Math.min(restoredCountRef.current, filtered.length));
         restoredCountRef.current = 0;
         return;
       }
@@ -880,14 +853,8 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
      chips, the sort toggle and the show-more button all receive
      one useCallback'd handler each. onFilterChange is App's
      setProjectFilter — stable by itself. */
-  const handleFilterChip = useCallback(
-    (key) => onFilterChange(key),
-    [onFilterChange],
-  );
-  const handleSortToggle = useCallback(
-    () => setSortMode((m) => SORT_CYCLE[m]),
-    [],
-  );
+  const handleFilterChip = useCallback((key) => onFilterChange(key), [onFilterChange]);
+  const handleSortToggle = useCallback(() => setSortMode((m) => SORT_CYCLE[m]), []);
 
   /* +4 per click, never past the end. */
   const handleShowMore = useCallback(() => {
@@ -1043,9 +1010,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
               Never re-sorted — pins keep pin order. */}
           {!isFiltered && featuredRepos.length > 0 && (
             <>
-              <h3 className="mb-6 text-lg font-semibold text-heading sm:text-xl">
-                Featured
-              </h3>
+              <h3 className="mb-6 text-lg font-semibold text-heading sm:text-xl">Featured</h3>
               <div className="grid gap-6 lg:grid-cols-2">
                 {featuredRepos.map((repo, idx) => (
                   <FeaturedProjectCard key={repo.id} repo={repo} index={idx} />
@@ -1073,7 +1038,6 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
             </>
           )}
 
-
           {/* "More Projects" heading — only once the More grid is
               expanded (never while collapsed, never while filtered). */}
           {!isFiltered && featuredRepos.length > 0 && expanded && (
@@ -1094,12 +1058,7 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
                 every load). Sync keeps the same enter/exit animation. */}
             <AnimatePresence mode="sync">
               {visible.map((repo, idx) => (
-                <GridProjectCard
-                  key={repo.id}
-                  repo={repo}
-                  langMap={langMap}
-                  index={idx}
-                />
+                <GridProjectCard key={repo.id} repo={repo} langMap={langMap} index={idx} />
               ))}
             </AnimatePresence>
           </div>
@@ -1127,33 +1086,37 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
               on the count gate keeps "Show less" reachable in the
               edge case of <= 4 More repos (otherwise expanding
               would strand the user with no way back). */}
-          {(filtered.length > INITIAL_COUNT || expanded) && (isFiltered || featuredRepos.length === 0 || expanded) && (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 text-center"
-            >
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {remaining > 0 && (
-                  <ShowMoreButton remaining={remaining} onClick={handleShowMore} />
-                )}
-                {expanded && (
-                  <button
-                    type="button"
-                    onClick={handleShowLess}
-                    className="group inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
-                  >
-                    Show less
-                    <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />
-                  </button>
-                )}
-              </div>
-              <p className="mt-3 text-xs text-muted-dim">
-                Showing {shown} of {total} projects
-              </p>
-            </motion.div>
-          )}
+          {(filtered.length > INITIAL_COUNT || expanded) &&
+            (isFiltered || featuredRepos.length === 0 || expanded) && (
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mt-8 text-center"
+              >
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {remaining > 0 && (
+                    <ShowMoreButton remaining={remaining} onClick={handleShowMore} />
+                  )}
+                  {expanded && (
+                    <button
+                      type="button"
+                      onClick={handleShowLess}
+                      className="group inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
+                    >
+                      Show less
+                      <ChevronUp
+                        className="h-4 w-4 transition-transform group-hover:-translate-y-0.5"
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                </div>
+                <p className="mt-3 text-xs text-muted-dim">
+                  Showing {shown} of {total} projects
+                </p>
+              </motion.div>
+            )}
         </>
       )}
     </SectionWrapper>

@@ -11,6 +11,7 @@
     "sync-catalog": "node scripts/sync-ai-catalog.mjs",
     "prebuild": "node scripts/fetch-projects.mjs && node scripts/sync-ai-catalog.mjs",
     "lint": "eslint .",
+    "test": "node --test src/utils/skillProjectCounts.test.mjs",
     "format": "prettier --write src api scripts plugins index.html",
     "format:check": "prettier --check src api scripts plugins index.html"
   },

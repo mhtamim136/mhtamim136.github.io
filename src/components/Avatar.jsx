@@ -39,9 +39,7 @@ export function Avatar({ src, manifest, alt, className = '' }) {
     if (wasOpenRef.current && !lightboxOpen) triggerRef.current?.focus();
     wasOpenRef.current = lightboxOpen;
   }, [lightboxOpen]);
-  const viewLabel = alt
-    ? `View ${alt.charAt(0).toLowerCase() + alt.slice(1)}`
-    : 'View photo';
+  const viewLabel = alt ? `View ${alt.charAt(0).toLowerCase() + alt.slice(1)}` : 'View photo';
 
   return (
     <>
@@ -78,16 +76,8 @@ export function Avatar({ src, manifest, alt, className = '' }) {
         >
           {manifest && !manifest.dev ? (
             <picture>
-              <source
-                type="image/avif"
-                srcSet={manifest.avifSrcset}
-                sizes={manifest.sizes}
-              />
-              <source
-                type="image/webp"
-                srcSet={manifest.webpSrcset}
-                sizes={manifest.sizes}
-              />
+              <source type="image/avif" srcSet={manifest.avifSrcset} sizes={manifest.sizes} />
+              <source type="image/webp" srcSet={manifest.webpSrcset} sizes={manifest.sizes} />
               <img
                 src={manifest.pngFallback}
                 alt={alt}

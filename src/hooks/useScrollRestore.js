@@ -159,8 +159,7 @@ export function useScrollRestore(sectionIds = []) {
     }
 
     const hash = window.location.hash;
-    const isReload =
-      navType === 'reload' || navType === 'back_forward';
+    const isReload = navType === 'reload' || navType === 'back_forward';
     const restoreSaved = isReload && savedY !== null;
     const restoreHash = !restoreSaved && hash.length > 1;
 
@@ -182,8 +181,7 @@ export function useScrollRestore(sectionIds = []) {
       if (restoreHash) {
         const el = document.getElementById(hash.slice(1));
         if (!el) return; /* Hash target never mounted — stay put. */
-        intendedTop =
-          el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET_PX;
+        intendedTop = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET_PX;
       } else if (restoreSaved) {
         intendedTop = savedY;
       } else {
@@ -193,10 +191,7 @@ export function useScrollRestore(sectionIds = []) {
         intendedTop = window.scrollY;
       }
       const clampTop = (value) => {
-        const max = Math.max(
-          0,
-          document.documentElement.scrollHeight - window.innerHeight,
-        );
+        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
         return Math.max(0, Math.min(value, max));
       };
       const applyScroll = (top) => {
@@ -274,8 +269,7 @@ export function useScrollRestore(sectionIds = []) {
          hard timeout is the last resort: restore clamped rather
          than not at all. */
       const sectionsReady =
-        sectionIds.length === 0 ||
-        sectionIds.every((id) => document.getElementById(id));
+        sectionIds.length === 0 || sectionIds.every((id) => document.getElementById(id));
       const settled = now - stableSince >= SETTLE_STABLE_MS;
       const loadedEnough = loaded || now - start >= LOAD_WAIT_MS;
       const timedOut = now - start >= SETTLE_TIMEOUT_MS;

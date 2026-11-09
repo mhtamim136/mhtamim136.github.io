@@ -127,10 +127,7 @@ export function useGitHubRepos() {
         let timerId;
         try {
           const timeout = new Promise((_, reject) => {
-            timerId = setTimeout(
-              () => reject(new Error('Function timeout')),
-              API_TIMEOUT_MS,
-            );
+            timerId = setTimeout(() => reject(new Error('Function timeout')), API_TIMEOUT_MS);
           });
           const res = await Promise.race([
             fetch('/api/projects', { signal: controller.signal }),
@@ -161,10 +158,7 @@ export function useGitHubRepos() {
              snapshot results keep the old no-cache behaviour. */
           if (fromFunction) {
             try {
-              sessionStorage.setItem(
-                CACHE_KEY,
-                JSON.stringify({ data, timestamp: Date.now() }),
-              );
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
             } catch {
               /* sessionStorage full or unavailable — non-critical */
             }

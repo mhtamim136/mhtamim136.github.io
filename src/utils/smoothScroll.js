@@ -40,8 +40,6 @@ export function smoothScrollTo(top) {
     rafKick?.();
     return;
   }
-  const reduced = window.matchMedia(
-    '(prefers-reduced-motion: reduce)',
-  ).matches;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' });
 }

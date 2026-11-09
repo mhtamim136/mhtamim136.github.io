@@ -1,11 +1,5 @@
 import { useRef, useCallback } from 'react';
-import {
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-  useTransform,
-} from 'framer-motion';
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 
 /**
  * Card with a subtle 3D tilt on hover.
@@ -72,7 +66,7 @@ export function Card({
         el.style.setProperty('--my', `${e.clientY - rect.top}px`);
       }
     },
-    [mouseX, mouseY, spotlight, reduceMotion],
+    [mouseX, mouseY, spotlight, reduceMotion]
   );
 
   const handleMouseLeave = useCallback(() => {

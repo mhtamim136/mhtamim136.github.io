@@ -2,7 +2,7 @@
  * Skill → project matching for Interactive Skills.
  *
  * Pure logic, no network, no React — unit-tested in
- * /tmp/test-skill-counts.mjs (kept outside the repo).
+ * skillProjectCounts.test.mjs (run with `npm test`).
  *
  * RULES (binding, Tamim's automation requirement):
  * - The SKILLS LIST stays curated in src/data/portfolio.js. A repo
@@ -33,9 +33,9 @@ export const SKILL_KEY_ALIASES = {
   'Node.js': 'nodejs',
   'Express.js': 'express',
   'Tailwind CSS': 'tailwindcss',
-  'HTML5': 'html',
-  'CSS3': 'css',
-  'MySQL': 'mysql',
+  HTML5: 'html',
+  CSS3: 'css',
+  MySQL: 'mysql',
   'SQL Server': 'sqlserver',
   'Oracle DB': 'oracle',
 };

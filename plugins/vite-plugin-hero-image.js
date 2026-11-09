@@ -173,7 +173,9 @@ export default function heroImagePlugin() {
       for (const v of manifest.webp) {
         console.log(`  WebP ${v.width}w: ${(v.size / 1024).toFixed(1)} KB`);
       }
-      console.log(`  PNG  ${manifest.png.width}w: ${(manifest.png.size / 1024).toFixed(1)} KB (fallback)`);
+      console.log(
+        `  PNG  ${manifest.png.width}w: ${(manifest.png.size / 1024).toFixed(1)} KB (fallback)`
+      );
     },
 
     resolveId(id) {
@@ -257,4 +259,3 @@ export default function heroImagePlugin() {
     },
   };
 }
-

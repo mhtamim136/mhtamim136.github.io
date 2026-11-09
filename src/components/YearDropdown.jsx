@@ -44,7 +44,7 @@ export function YearDropdown({ years, value, onChange }) {
   ];
   const selectedIndex = Math.max(
     0,
-    options.findIndex((o) => o.year === value),
+    options.findIndex((o) => o.year === value)
   );
   /* Trigger label stays short — just the year (or "All years").
      The counts live only inside the open panel, where they help
@@ -62,7 +62,7 @@ export function YearDropdown({ years, value, onChange }) {
     };
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [open ]);
+  }, [open]);
 
   const focusOption = (index) => {
     const el = optionRefs.current[index];

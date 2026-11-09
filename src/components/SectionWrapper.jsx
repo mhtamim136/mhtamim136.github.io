@@ -14,13 +14,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, scale: 1 },
 };
 
-export function SectionWrapper({
-  id,
-  className = '',
-  children,
-  title,
-  subtitle,
-}) {
+export function SectionWrapper({ id, className = '', children, title, subtitle }) {
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <section id={id} className={`relative py-16 sm:py-20 lg:py-24 ${className}`}>
@@ -37,13 +31,8 @@ export function SectionWrapper({
             {title && (
               <div className="flex items-center gap-3">
                 {/* Accent dash decoration */}
-                <span
-                  className="h-[3px] w-8 rounded-full bg-accent sm:w-10"
-                  aria-hidden
-                />
-                <h2
-                  className="font-display text-2xl font-semibold tracking-tight text-heading sm:text-3xl"
-                >
+                <span className="h-[3px] w-8 rounded-full bg-accent sm:w-10" aria-hidden />
+                <h2 className="font-display text-2xl font-semibold tracking-tight text-heading sm:text-3xl">
                   {title}
                 </h2>
               </div>

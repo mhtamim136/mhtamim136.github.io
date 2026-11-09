@@ -101,10 +101,16 @@ export function HeroSection() {
         className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-accent/65 sm:text-xs"
       >
         <span className="whitespace-nowrap">
-          {portfolio.location} <span aria-hidden className="text-accent/40">·</span>
+          {portfolio.location}{' '}
+          <span aria-hidden className="text-accent/40">
+            ·
+          </span>
         </span>{' '}
         <span className="whitespace-nowrap">
-          Open to internships &amp; collaboration <span aria-hidden className="text-accent/40">·</span>
+          Open to internships &amp; collaboration{' '}
+          <span aria-hidden className="text-accent/40">
+            ·
+          </span>
         </span>{' '}
         <span className="whitespace-nowrap">Folio {new Date().getFullYear()}</span>
       </motion.p>
@@ -154,7 +160,9 @@ export function HeroSection() {
 
       {/* Title — blur + rise, continuing the same stagger as the
           name (baseDelay 0.38). RoleLine above is untouched. */}
-      <p className={`mt-4 text-lg font-semibold text-body sm:text-xl ${hasImage ? '' : 'mx-auto max-w-xl'}`}>
+      <p
+        className={`mt-4 text-lg font-semibold text-body sm:text-xl ${hasImage ? '' : 'mx-auto max-w-xl'}`}
+      >
         <BlurWords words={titleWords} baseDelay={0.38} />
       </p>
 
@@ -224,13 +232,20 @@ export function HeroSection() {
               220ms. */}
           <Button href="#contact" variant="primary" className="hero-cta-fill hero-cta-fill--solid">
             Get In Touch
-            <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">
+            <span
+              aria-hidden
+              className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0"
+            >
               <NavIcon name="arrow-right" className="h-4 w-4" />
             </span>
           </Button>
         </Magnetic>
         <Magnetic>
-          <Button {...externalLinkProps(resumeLink)} variant="secondary" className="hero-cta-fill hero-cta-fill--ghost">
+          <Button
+            {...externalLinkProps(resumeLink)}
+            variant="secondary"
+            className="hero-cta-fill hero-cta-fill--ghost"
+          >
             <NavIcon name="document" className="h-4 w-4" />
             Resume
           </Button>

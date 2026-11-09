@@ -13,7 +13,14 @@ const layout =
 
 const surface = `${layout} ${hoverPremium}`;
 
-export function SocialButton({ href, icon: Icon, children, className = '', openInNewTab = true, ...rest }) {
+export function SocialButton({
+  href,
+  icon: Icon,
+  children,
+  className = '',
+  openInNewTab = true,
+  ...rest
+}) {
   const linkProps =
     openInNewTab && typeof href === 'string' && !href.startsWith('mailto:')
       ? externalLinkProps(href)

@@ -60,7 +60,10 @@ export function Footer() {
           statement to the opening hero. Existing utility only. In
           light mode the `footer-glow` marker (see index.css) swaps
           it for a soft sky → emerald band. */}
-      <div className="footer-glow pointer-events-none absolute inset-x-0 top-0 h-80 bg-hero-glow" aria-hidden />
+      <div
+        className="footer-glow pointer-events-none absolute inset-x-0 top-0 h-80 bg-hero-glow"
+        aria-hidden
+      />
 
       <Container className="relative">
         {/* ── Closing CTA ── */}
@@ -82,9 +85,16 @@ export function Footer() {
               {/* Same 550ms L-to-R wipe as the hero primary (Tier 4,
                   item 21): the footer CTA bookends the page with the
                   hero. Still a plain link to #contact. */}
-              <Button href="#contact" variant="primary" className="hero-cta-fill hero-cta-fill--solid">
+              <Button
+                href="#contact"
+                variant="primary"
+                className="hero-cta-fill hero-cta-fill--solid"
+              >
                 Get In Touch
-                <span aria-hidden className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0">
+                <span
+                  aria-hidden
+                  className="transition-transform duration-250 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0"
+                >
                   <NavIcon name="arrow-right" className="h-4 w-4" />
                 </span>
               </Button>

@@ -49,7 +49,18 @@ const listItem = {
    is made once. The rendered class SET is identical to the old
    two components (only the attribute order differs, which does
    not affect the cascade). */
-function FloatingField({ id, name, type = 'text', label, value, onChange, error, autoComplete, multiline = false, rows }) {
+function FloatingField({
+  id,
+  name,
+  type = 'text',
+  label,
+  value,
+  onChange,
+  error,
+  autoComplete,
+  multiline = false,
+  rows,
+}) {
   const filled = value.length > 0;
   const fieldClass = `contact-input peer w-full rounded-xl border bg-glass/[0.03] px-4 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
     multiline ? 'resize-none pb-3' : 'pb-2.5'
@@ -59,7 +70,9 @@ function FloatingField({ id, name, type = 'text', label, value, onChange, error,
       : 'border-glass/[0.08] hover:border-glass/[0.14]'
   }`;
   const labelClass = `pointer-events-none absolute left-4 top-2 origin-[0] text-[0.6875rem] font-medium uppercase tracking-wider transition-all duration-200 ${
-    filled ? '' : 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
+    filled
+      ? ''
+      : 'peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:font-normal'
   } peer-focus:top-2 peer-focus:text-[0.6875rem] peer-focus:uppercase peer-focus:tracking-wider peer-focus:font-medium ${
     error ? 'text-red-400' : 'text-muted-dim peer-focus:text-accent'
   }`;
@@ -118,7 +131,7 @@ function CopyEmailButton({ email }) {
     () => () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     },
-    [],
+    []
   );
 
   const copy = useCallback(async () => {
@@ -177,8 +190,7 @@ function CopyEmailButton({ email }) {
 /* ── Main section ─────────────────────────────────────────────── */
 export function ContactSection() {
   const { contacts } = portfolio;
-  const { fields, errors, status, serverMsg, handleChange, handleSubmit, reset } =
-    useContactForm();
+  const { fields, errors, status, serverMsg, handleChange, handleSubmit, reset } = useContactForm();
   /* Reduced motion: the submit button's hover/tap gestures are
      gated below — under reduced motion the button must not move. */
   const reduceMotion = useReducedMotion() ?? false;
@@ -330,9 +342,7 @@ export function ContactSection() {
         >
           {/* Email card */}
           <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">
-              Email
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">Email</p>
             <div className="mt-3 flex items-center gap-2">
               <a
                 href={`mailto:${contacts.email}`}
@@ -350,9 +360,7 @@ export function ContactSection() {
 
           {/* Socials card */}
           <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">
-              Social
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">Social</p>
             <motion.ul
               className="mt-4 flex flex-col gap-2.5"
               variants={listContainer}

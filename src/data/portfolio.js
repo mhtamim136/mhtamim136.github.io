@@ -11,20 +11,26 @@ export const portfolio = {
     'I am Murad Hasan Tamim, a CSE student at AIUB focused on building practical software solutions. I develop applications using Java, C#, and web technologies, with an emphasis on clean UI design and problem solving.',
   location: 'Dhaka, Bangladesh',
   institution: 'American International University-Bangladesh',
-  currentlyLearning: ['Machine Learning', 'Deep Learning', 'Computer Vision', 'Data Mining & Warehousing', '.NET'],
+  currentlyLearning: [
+    'Machine Learning',
+    'Deep Learning',
+    'Computer Vision',
+    'Data Mining & Warehousing',
+    '.NET',
+  ],
   resumeLink: '/Resume/Resume-MHTamim.pdf',
   githubProfile: 'https://github.com/mhtamim136',
 
   /** Shown in hero and emphasized in the skills area */
-highlightedSkills: ['C++','Java', 'C#', 'JavaScript', 'React', 'Node.js'],
+  highlightedSkills: ['C++', 'Java', 'C#', 'JavaScript', 'React', 'Node.js'],
 
-skills: {
-  languages: ['C++', 'Java', 'C#', 'JavaScript'],
-  frontend: ['HTML5', 'CSS3', 'React', 'Tailwind CSS'],
-  backend: ['Node.js', 'Express.js', 'PHP'],
-  database: ['MySQL', 'SQL Server', 'Oracle DB'],
-  concepts: ['OOP', 'DSA', 'Problem Solving'],
-},
+  skills: {
+    languages: ['C++', 'Java', 'C#', 'JavaScript'],
+    frontend: ['HTML5', 'CSS3', 'React', 'Tailwind CSS'],
+    backend: ['Node.js', 'Express.js', 'PHP'],
+    database: ['MySQL', 'SQL Server', 'Oracle DB'],
+    concepts: ['OOP', 'DSA', 'Problem Solving'],
+  },
 
   /* Curated case-study data, restored from the pre-port backup
      (backup/before-port-2026-11-08). This is the FALLBACK layer for
@@ -35,52 +41,63 @@ skills: {
   projects: [
     {
       title: 'IdeaBid – Project Request & Management Platform',
-      problem: "Managing project requests, proposals, and communication across users, developers, and admins is often fragmented and inefficient.",
-      solution: "Built a C# Windows Forms application with role-based access to streamline project requests, proposal handling, and transaction tracking in one centralized system.",
+      problem:
+        'Managing project requests, proposals, and communication across users, developers, and admins is often fragmented and inefficient.',
+      solution:
+        'Built a C# Windows Forms application with role-based access to streamline project requests, proposal handling, and transaction tracking in one centralized system.',
       tech: ['C#', 'Windows Forms'],
       live: null,
       github: 'https://github.com/mhtamim136/IdeaBid--Project-Request-Management-Platform',
     },
     {
       title: 'ITFirmHub',
-      problem: "Small IT firms often lack a centralized system to store and manage firm information, making data access and updates inefficient.",
-      solution: "Developed a Java Swing-based desktop application that allows users to add, update, search, and manage IT firm details in a structured and user-friendly way.",
+      problem:
+        'Small IT firms often lack a centralized system to store and manage firm information, making data access and updates inefficient.',
+      solution:
+        'Developed a Java Swing-based desktop application that allows users to add, update, search, and manage IT firm details in a structured and user-friendly way.',
       tech: ['Java', 'Swing', 'File Handling'],
       live: null,
       github: 'https://github.com/mhtamim136/ItFirmHub',
     },
     {
       title: 'TeamFlow-Lite Mini Task Tracker',
-      problem: "Small teams often lack a simple and efficient way to track tasks, deadlines, and individual contributions without using complex project management tools.",
-      solution: "Developed a lightweight Java-based task management system with CRUD operations, deadline tracking, and progress monitoring, using file-based storage for simplicity and ease of use.",
+      problem:
+        'Small teams often lack a simple and efficient way to track tasks, deadlines, and individual contributions without using complex project management tools.',
+      solution:
+        'Developed a lightweight Java-based task management system with CRUD operations, deadline tracking, and progress monitoring, using file-based storage for simplicity and ease of use.',
       tech: ['Java'],
       live: null,
       github: 'https://github.com/mhtamim136/TeamFlow-Lite-Mini-Task-Tracker',
     },
     {
       title: 'Profile Card',
-      description: 'A personal profile card showcasing my information, social links, and quick access to my portfolio and GitHub.',
+      description:
+        'A personal profile card showcasing my information, social links, and quick access to my portfolio and GitHub.',
       tech: ['HTML', 'CSS', 'JavaScript'],
       live: 'https://mhtamim136.github.io/profile-card/',
       github: 'https://github.com/mhtamim136/profile-card',
     },
     {
       title: 'AI Governance Dashboard',
-      description: 'A research-based web dashboard implementing the DCAG framework to evaluate AI governance readiness across policy, institutional, technical, risk, and ethical dimensions.',
+      description:
+        'A research-based web dashboard implementing the DCAG framework to evaluate AI governance readiness across policy, institutional, technical, risk, and ethical dimensions.',
       tech: ['HTML', 'CSS', 'JavaScript'],
       live: 'https://mhtamim136.github.io/ai-governance/',
       github: 'https://github.com/mhtamim136/ai-governance',
     },
     {
       title: 'BuyTrust: Your Marketplace for New & Pre-owned Items',
-      description: 'E-commerce system design with Figma UI layouts and core diagrams including use case, activity, sequence, and class.',
-       problem: 'No unified platform for buying and selling both new and pre-owned items, along with issues like trust, fake listings, and high commissions.',
-      solution: 'Designed a secure and user-friendly marketplace concept supporting both new and pre-owned items with verified users, safe transactions, and structured system workflows.',
+      description:
+        'E-commerce system design with Figma UI layouts and core diagrams including use case, activity, sequence, and class.',
+      problem:
+        'No unified platform for buying and selling both new and pre-owned items, along with issues like trust, fake listings, and high commissions.',
+      solution:
+        'Designed a secure and user-friendly marketplace concept supporting both new and pre-owned items with verified users, safe transactions, and structured system workflows.',
 
       tech: ['Figma', 'System Design', 'UML'],
       live: null,
       github: 'https://github.com/mhtamim136/BuyTrust',
-    }
+    },
   ],
 
   experience: [
@@ -93,7 +110,7 @@ skills: {
         'Developing full applications using Java, C#, and web technologies (React, Tailwind)',
         'Designing responsive user interfaces and implementing file-based data persistence',
         'Working with databases including Oracle DB and SQL for data management',
-        'Applying problem-solving skills to real-world academic and personal projects'
+        'Applying problem-solving skills to real-world academic and personal projects',
       ],
     },
   ],
@@ -112,7 +129,8 @@ skills: {
      ResearchGate only, paper 2 none. */
   research: [
     {
-      title: 'Navigating Academic Pressure and Skill Development: A Study on Coping Mechanisms Among Computer Science and Engineering Students in Bangladesh.',
+      title:
+        'Navigating Academic Pressure and Skill Development: A Study on Coping Mechanisms Among Computer Science and Engineering Students in Bangladesh.',
       role: '1st Author & Corresponding Author',
       venue: 'ICSS, Begum Rokeya University, Rangpur',
       date: 'May 2025',
@@ -129,7 +147,8 @@ skills: {
       ],
     },
     {
-      title: 'Evaluating AI Governance and Regulation in Developing Countries: A Comparative Analysis with a Proposed Framework.',
+      title:
+        'Evaluating AI Governance and Regulation in Developing Countries: A Comparative Analysis with a Proposed Framework.',
       role: '2nd Author',
       venue: 'ICCA 2026 — 4th International Conference on Computing Advancements, AIUB, Dhaka',
       date: '15–16 Oct 2026',
@@ -137,7 +156,8 @@ skills: {
       links: [],
     },
     {
-      title: 'Predicting Sustainable Media Innovation Adoption: Multi-Model Analysis of AI Diffusion in Emerging Markets.',
+      title:
+        'Predicting Sustainable Media Innovation Adoption: Multi-Model Analysis of AI Diffusion in Emerging Markets.',
       role: '4th Author',
       venue: 'ICCTASS 2025, AIUB, Dhaka',
       date: 'Dec 2025',
@@ -151,28 +171,32 @@ skills: {
     },
   ],
 
-services: [
-  {
-    title: 'Web interfaces',
-    description: 'Responsive and user-friendly interfaces built with React and Tailwind, focusing on clean design, usability, and performance.',
-    icon: 'layout',
-  },
-  {
-    title: 'Desktop applications',
-    description: 'Java Swing and C# Windows Forms applications with full CRUD functionality and file-based data management.',
-    icon: 'monitor',
-  },
-  {
-    title: 'Database & data handling',
-    description: 'Working with Oracle DB and SQL for structured data storage, along with file-based persistence for lightweight systems.',
-    icon: 'database',
-  },
-  {
-    title: 'Problem solving',
-    description: 'Designing practical solutions using OOP, structured logic, and efficient workflows for real-world applications.',
-    icon: 'brain',
-  },
-],
+  services: [
+    {
+      title: 'Web interfaces',
+      description:
+        'Responsive and user-friendly interfaces built with React and Tailwind, focusing on clean design, usability, and performance.',
+      icon: 'layout',
+    },
+    {
+      title: 'Desktop applications',
+      description:
+        'Java Swing and C# Windows Forms applications with full CRUD functionality and file-based data management.',
+      icon: 'monitor',
+    },
+    {
+      title: 'Database & data handling',
+      description:
+        'Working with Oracle DB and SQL for structured data storage, along with file-based persistence for lightweight systems.',
+      icon: 'database',
+    },
+    {
+      title: 'Problem solving',
+      description:
+        'Designing practical solutions using OOP, structured logic, and efficient workflows for real-world applications.',
+      icon: 'brain',
+    },
+  ],
 
   contacts: {
     email: 'mhtamim136@gmail.com',

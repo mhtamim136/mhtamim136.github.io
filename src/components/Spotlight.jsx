@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /**
  * Cursor-following spotlight — one soft light that trails the pointer
@@ -22,22 +23,11 @@ const HALF = SIZE / 2;
 
 export function Spotlight() {
   const ref = useRef(null);
-  const [enabled, setEnabled] = useState(false);
-
-  /* Gate on fine pointer + no reduced-motion preference. */
-  useEffect(() => {
-    const finePointer = window.matchMedia('(pointer: fine)');
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () =>
-      setEnabled(finePointer.matches && !reducedMotion.matches);
-    update();
-    finePointer.addEventListener('change', update);
-    reducedMotion.addEventListener('change', update);
-    return () => {
-      finePointer.removeEventListener('change', update);
-      reducedMotion.removeEventListener('change', update);
-    };
-  }, []);
+  /* Gate on fine pointer + no reduced-motion preference (live —
+     toggling the OS setting takes effect without a reload). */
+  const finePointer = useMediaQuery('(pointer: fine)');
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const enabled = finePointer && !reducedMotion;
 
   /* Chase loop — transform-only, stops when settled. */
   useEffect(() => {

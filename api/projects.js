@@ -46,35 +46,18 @@
  */
 
 import { pickFeatured, resolveDetails } from '../scripts/featuredDetails.mjs';
+import {
+  EXCLUDED_REPOS,
+  encodePath,
+  imagesFromTree,
+  findRootFile,
+  fetchTreeForRepo,
+} from '../scripts/githubHelpers.mjs';
 import { GITHUB_USERNAME, processLanguages } from '../src/utils/githubShared.js';
-
-const EXCLUDED_REPOS = new Set([
-  'mhtamim136', // GitHub profile README repo
-  'mhtamim136.github.io', // This portfolio site itself
-]);
-
-/* Image folders for project-card slideshows. `Project_Card` is the
-   convention; `Project Card` (with a space) is accepted as a legacy
-   fallback. Folder names are case-sensitive. */
-const IMAGE_FOLDERS = ['Project_Card', 'Project Card'];
-const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'avif', 'gif']);
 
 /* Whole-operation budget — Vercel Hobby kills functions at 10s, so
    abort GitHub work at 8s and answer with a clean 502 instead. */
 const OVERALL_TIMEOUT_MS = 8000;
-
-function baseName(path) {
-  const i = path.lastIndexOf('/');
-  return i === -1 ? path : path.slice(i + 1);
-}
-
-/* URL-encode every path segment (filenames may contain spaces). */
-function encodePath(path) {
-  return path
-    .split('/')
-    .map((seg) => encodeURIComponent(seg))
-    .join('/');
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -139,43 +122,6 @@ export default async function handler(req, res) {
     }
   }
 
-  /* One repo's recursive file tree — serves both the slideshow
-     images and the Featured enrichment (portfolio.json / README
-     detection), so enrichment costs 0 extra tree calls. */
-  async function fetchTreeForRepo(repoName, defaultBranch) {
-    const tree = await fetchJson(
-      `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`,
-    );
-    if (!Array.isArray(tree.tree)) return [];
-    return tree.tree;
-  }
-
-  function imagesFromTree(tree, repoName, defaultBranch) {
-    for (const folder of IMAGE_FOLDERS) {
-      const prefix = `${folder}/`;
-      const files = tree
-        .filter((t) => t.type === 'blob' && t.path.startsWith(prefix))
-        .map((t) => t.path)
-        .filter((p) => IMAGE_EXTS.has(p.split('.').pop().toLowerCase()))
-        .sort((a, b) => baseName(a).localeCompare(baseName(b)));
-      if (files.length > 0) {
-        return files.map(
-          (p) =>
-            `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repoName}/${defaultBranch}/${encodePath(p)}`,
-        );
-      }
-    }
-    return [];
-  }
-
-  function findRootFile(tree, fileName) {
-    const lower = fileName.toLowerCase();
-    const hit = tree.find(
-      (t) => t.type === 'blob' && t.path.toLowerCase() === lower,
-    );
-    return hit ? hit.path : null;
-  }
-
   /* Case-study details for ONE featured repo (portfolio.json →
      README → curated → GitHub description). Never throws. */
   async function enrichFeaturedRepo(repo, tree, curated) {
@@ -185,7 +131,7 @@ export default async function handler(req, res) {
       const portfolioPath = findRootFile(tree, 'portfolio.json');
       if (portfolioPath) {
         const raw = await fetchText(
-          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(portfolioPath)}`,
+          `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(portfolioPath)}`
         );
         try {
           portfolioJson = JSON.parse(raw);
@@ -197,7 +143,7 @@ export default async function handler(req, res) {
         const readmePath = findRootFile(tree, 'README.md');
         if (readmePath) {
           readmeText = await fetchText(
-            `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(readmePath)}`,
+            `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo.name}/${repo.default_branch}/${encodePath(readmePath)}`
           );
         }
       }
@@ -214,9 +160,7 @@ export default async function handler(req, res) {
     let curated = [];
     try {
       const mod = await import('../src/data/portfolio.js');
-      curated = Array.isArray(mod?.portfolio?.projects)
-        ? mod.portfolio.projects
-        : [];
+      curated = Array.isArray(mod?.portfolio?.projects) ? mod.portfolio.projects : [];
     } catch {
       curated = [];
     }
@@ -228,7 +172,7 @@ export default async function handler(req, res) {
       let hasMore = true;
       while (hasMore) {
         const batch = await fetchJson(
-          `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`,
+          `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`
         );
         rawRepos = rawRepos.concat(batch);
         hasMore = batch.length === 100;
@@ -239,10 +183,7 @@ export default async function handler(req, res) {
         .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
     })();
 
-    const [repos, pinnedNames] = await Promise.all([
-      reposPromise,
-      fetchPinnedRepoNames(),
-    ]);
+    const [repos, pinnedNames] = await Promise.all([reposPromise, fetchPinnedRepoNames()]);
     const featured = pickFeatured(pinnedNames, repos);
 
     /* Languages + trees per repo, in parallel. One repo failing
@@ -253,7 +194,7 @@ export default async function handler(req, res) {
         let languages;
         try {
           const raw = await fetchJson(
-            `https://api.github.com/repos/${GITHUB_USERNAME}/${r.name}/languages`,
+            `https://api.github.com/repos/${GITHUB_USERNAME}/${r.name}/languages`
           );
           languages = processLanguages(raw, r.language);
         } catch {
@@ -262,7 +203,7 @@ export default async function handler(req, res) {
 
         let tree = [];
         try {
-          tree = await fetchTreeForRepo(r.name, r.default_branch);
+          tree = await fetchTreeForRepo(fetchJson, r.name, r.default_branch);
         } catch {
           /* keep tree as [] — this repo gets no slideshow images */
         }
@@ -284,32 +225,27 @@ export default async function handler(req, res) {
           topics: r.topics || [],
         };
         return { entry, tree };
-      }),
+      })
     );
 
     /* Featured details (featured repos only, max 4). */
     const detailsByName = {};
     await Promise.all(
       featured.map(async (name) => {
-        const found = enriched.find(
-          (e) => e.entry.name.toLowerCase() === name.toLowerCase(),
-        );
+        const found = enriched.find((e) => e.entry.name.toLowerCase() === name.toLowerCase());
         if (!found) return;
         detailsByName[found.entry.name] = await enrichFeaturedRepo(
           found.entry,
           found.tree,
-          curated,
+          curated
         );
-      }),
+      })
     );
     for (const e of enriched) {
       if (detailsByName[e.entry.name]) e.entry.details = detailsByName[e.entry.name];
     }
 
-    res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=86400',
-    );
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({
       generatedAt: new Date().toISOString(),
       source: 'github-api',
@@ -321,7 +257,7 @@ export default async function handler(req, res) {
        status code for debugging, answer with a generic 502. */
     console.error(
       '[api/projects] GitHub unavailable:',
-      err?.name === 'AbortError' ? 'timeout' : err?.status || 'network',
+      err?.name === 'AbortError' ? 'timeout' : err?.status || 'network'
     );
     return res.status(502).json({ error: 'github_unavailable' });
   } finally {

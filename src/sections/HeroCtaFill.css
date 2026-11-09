@@ -66,11 +66,13 @@
    instant — no extra rule needed here. Verified by measurement.
    ------------------------------------------------------------------ */
 .hero-cta-fill {
-  background-image:
-    linear-gradient(to right, #22d3ee 50%, transparent 50%),
-    var(--cta-rest, none);
-  background-size: calc(200% + 6px) 100%, 100% 100%;
-  background-position: 100% 0, 0 0;
+  background-image: linear-gradient(to right, #22d3ee 50%, transparent 50%), var(--cta-rest, none);
+  background-size:
+    calc(200% + 6px) 100%,
+    100% 100%;
+  background-position:
+    100% 0,
+    0 0;
   background-repeat: no-repeat;
   transition:
     background-position 550ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -82,7 +84,9 @@
 
 .hero-cta-fill:not(:disabled):hover,
 .hero-cta-fill:not(:disabled):focus-visible {
-  background-position: 0 0, 0 0;
+  background-position:
+    0 0,
+    0 0;
   color: #062a33;
   border-color: #22d3ee;
 }
