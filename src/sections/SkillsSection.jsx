@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
@@ -19,6 +19,7 @@ const labels = {
 export function SkillsSection({ repos, activeFilter, onFilterChange }) {
   const { skills, highlightedSkills } = portfolio;
   const highlightSet = new Set(highlightedSkills);
+  const reduceMotion = useReducedMotion() ?? false;
 
   /* Live counts per skill, derived from the same repo data the
      Projects grid reads — a future project auto-raises its
@@ -62,7 +63,7 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
         {Object.entries(skills).map(([key, items], idx) => (
           <motion.div
             key={key}
-            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: '-30px' }}
             transition={{ delay: idx * 0.05, duration: 0.35 }}
@@ -85,7 +86,7 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
                        on scroll without any single pill shouting. */
                     <motion.li
                       key={skill}
-                      initial={{ opacity: 0, y: 4 }}
+                      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: idx * 0.05 + i * 0.02, duration: 0.25 }}

@@ -150,7 +150,7 @@ export function YearDropdown({ years, value, onChange }) {
                 tabIndex={-1}
                 onClick={() => select(opt.year)}
                 onKeyDown={(e) => handleOptionKeyDown(e, i)}
-                className={`flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left text-sm transition-colors duration-150 focus-visible:bg-accent/10 focus-visible:outline-none ${
+                className={`flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left text-sm transition-colors duration-150 focus-visible:bg-accent/10 focus-visible:outline-none ${
                   selected
                     ? 'font-semibold text-accent'
                     : 'text-muted hover:bg-accent/10 hover:text-heading'
@@ -176,9 +176,9 @@ export function YearDropdown({ years, value, onChange }) {
         aria-controls="year-filter-listbox"
         onClick={() => (open ? setOpen(false) : openAndFocus(selectedIndex))}
         onKeyDown={handleTriggerKeyDown}
-        className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
+        className={`inline-flex items-center gap-1.5 rounded-xl border px-4 py-3.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
           value !== null
-            ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+            ? 'tone-accent border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
             : 'border-glass/15 bg-glass/[0.06] text-muted hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
         }`}
       >

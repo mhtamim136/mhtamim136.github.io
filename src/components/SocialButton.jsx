@@ -5,7 +5,7 @@ const hoverPremium =
   'transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.06] hover:border-accent/35 hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_18px_rgb(var(--accent)_/_0.32)]';
 
 const layout =
-  'group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-2.5 text-sm font-medium text-body shadow-glass backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-100';
+  'group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-3 text-sm font-medium text-body shadow-glass backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-100';
 
 const surface = `${layout} ${hoverPremium}`;
 

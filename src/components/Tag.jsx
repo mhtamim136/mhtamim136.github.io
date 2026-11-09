@@ -12,11 +12,16 @@ export function Tag({ children, className = '', accent = false, count = null, bu
       </span>
     ) : null;
   const tone = active
-    ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+    ? 'tone-accent border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
     : accent
-      ? 'border-accent/35 bg-accent/10 text-accent hover:border-accent/50 hover:bg-accent/15'
+      ? 'tone-accent border-accent/35 bg-accent/10 text-accent hover:border-accent/50 hover:bg-accent/15'
       : 'border-glass/10 bg-glass/[0.04] text-subtle hover:border-glass/20 hover:bg-glass/[0.07] hover:text-heading';
-  const classes = `inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:-translate-y-px sm:text-[0.8125rem] ${tone} ${className}`;
+  /* Tier 3 — tap targets: a clickable pill is a real <button>, so
+     it gets a 44px hit area (px-3.5 py-3.5 → 46px tall) while the
+     plain label <span> keeps its compact padding. The icon and
+     text sizes never change — only the padding grows. */
+  const pad = button ? 'px-3.5 py-3.5' : 'px-2.5 py-1';
+  const classes = `inline-flex items-center rounded-md border ${pad} text-xs font-medium transition-all duration-200 hover:-translate-y-px sm:text-[0.8125rem] ${tone} ${className}`;
   if (button) {
     return (
       <button

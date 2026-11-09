@@ -125,8 +125,11 @@
   --glass: 15 23 42;
 
   /* 0.72 → 0.85: on the deeper page grey the card fill needs to
-     read as white, or the card disappears into the page. */
-  --card-bg: rgb(255 255 255 / 0.85);
+     read as white, or the card disappears into the page.
+     Tier 3: solid #FFFFFF — the last 15% of translucency let the
+     page grey bleed through and flattened the cards; solid white
+     is the cleanest separation on the deeper #E9EDF2 page. */
+  --card-bg: #ffffff;
   /* Light cards need a touch more edge than dark ones to read
      against the bright page — 7% was too faint. */
   --card-border: rgb(15 23 42 / 0.1);
@@ -154,11 +157,19 @@
   --grid-color: rgb(var(--accent) / 0.05);
   --radial-glow: rgb(var(--accent) / 0.07);
 
-  --gradient-via: #0d9488;
+  /* Tier 3: #0d9488 (teal-600) → #0891b2 (cyan-600) — the middle
+     gradient stop was reading green-teal against the cyan accent;
+     cyan-600 keeps the hero name gradient in the same cyan family
+     as the accent and reads deeper on the light page. */
+  --gradient-via: #0891b2;
   --gradient-to: #059669;
 
-  /* Navbar frosted glass — light */
-  --nav-bg: rgba(255, 255, 255, 0.4);
+  /* Navbar frosted glass — light. Tier 3: 0.4 → 0.75 — the light
+     nav let scrolling text show through too clearly; 0.75 + the
+     backdrop blur makes it near-opaque without losing the glass
+     feel. (Dark --nav-bg is untouched: 0.2 + blur already reads
+     solid on the dark page, and dark pixels must stay identical.) */
+  --nav-bg: rgba(255, 255, 255, 0.75);
   --nav-border: rgba(0, 0, 0, 0.08);
   --nav-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04);
   --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -378,6 +389,120 @@ section[id] {
   to {
     clip-path: circle(150% at var(--toggle-x, 90%) var(--toggle-y, 5%));
   }
+}
+
+/* ─── Tier 3 — light-mode depth (LIGHT THEME ONLY) ───────────────
+   Unlayered CSS, so these win over the layered Tailwind utilities
+   regardless of specificity — the same pattern HeroCtaFill.css
+   already uses. Every rule is scoped under [data-theme="light"],
+   so dark mode is byte-identical: no dark rule is touched here.
+   Marker classes are added in the components (btn-primary,
+   tone-accent, contact-send, contact-input, footer-glow,
+   featured-card); the /65 and /70 text rules need no marker —
+   those five sites are the only users of those opacities.
+
+   Why: the audit measured text-accent/65 at 2.56:1 in light mode,
+   and a live composited measurement confirms it (2.55:1 on the
+   surface, 2.74:1 on cards — it fails AA). The solid primary
+   buttons (#0E7490 + white) and deeper teal pills (#155E75 on
+   #A5F3FC) are the audit's Top 3; the footer band, solid cards
+   and the Featured top border deepen the flat light mode per
+   section. (An earlier draft of this comment quoted 4.56:1 /
+   /85 — that came from a harness that ignored the text alpha
+   when computing luminance; the corrected composited numbers
+   are in the /65 rule comment below.) */
+
+/* Dim accent text: /65 and /70 → solid #155E75 (cyan-800) in light
+   mode only. Sites: hero meta row, Skills labels, Experience
+   dates, footer availability line (/65), RoleLine caret (/70).
+   The decorative dots (/40) are left alone.
+   NOTE: Tailwind's text-accent/65 does NOT use --tw-text-opacity —
+   it bakes the alpha into the color (rgb(var(--accent) / .65)) —
+   so the override must set `color` directly; setting the variable
+   does nothing (verified: the first attempt with
+   --tw-text-opacity measured no change).
+   WHY #155E75 and not /85: contrast must be computed with the
+   semi-transparent colour COMPOSITED over its background (the
+   audit's 2.56:1 for /65 is correct — composited). /85 composites
+   to only 3.56:1 on the surface and 4.04:1 on white cards — still
+   failing AA. Even full #0E7490 is only 4.56:1 on the surface
+   (0.06 of margin). #155E75 is 6.14:1 on the surface and 7.22:1
+   on white cards — a real margin. In dark mode /65 stays: it
+   composites to 4.93:1 on the dark surface, which passes. */
+[data-theme='light'] .text-accent\/65 {
+  color: #155e75;
+}
+[data-theme='light'] .text-accent\/70 {
+  color: #155e75;
+}
+
+/* Primary buttons: solid #0E7490 + white text in light mode
+   (was accent/15 tint + accent text). The :not(.hero-cta-fill)
+   on :hover keeps the hero button's #22D3EE wipe border intact —
+   the wipe's own :hover rule sets it, and this rule would
+   otherwise out-specify it. The hero button's resting solid fill
+   comes from --cta-rest in HeroCtaFill.css (light override there);
+   this rule's background-color matches it, so both layers agree. */
+[data-theme='light'] .btn-primary {
+  background-color: #0e7490;
+  border-color: #0e7490;
+  color: #fff;
+}
+[data-theme='light'] .btn-primary:not(.hero-cta-fill):hover {
+  background-color: #155e75;
+  border-color: #155e75;
+}
+
+/* Accent-tinted interactive elements (active filter chips, sort,
+   selected year trigger, most-used skill pills, active skill
+   pills, Services icon tiles): deeper teal text #155E75 on a
+   #A5F3FC tint in light mode (was accent/10–15 tint + accent
+   text, which read washed out). Hover deepens the tint. */
+[data-theme='light'] .tone-accent {
+  color: #155e75;
+  border-color: rgb(21 94 117 / 0.4);
+  background-color: rgb(165 243 252 / 0.55);
+}
+[data-theme='light'] .tone-accent:hover {
+  background-color: rgb(165 243 252 / 0.8);
+}
+
+/* Contact Send button: solid like the other primaries. */
+[data-theme='light'] .contact-send {
+  background-color: #0e7490;
+  border-color: #0e7490;
+  color: #fff;
+}
+[data-theme='light'] .contact-send:hover {
+  background-color: #155e75;
+  border-color: #155e75;
+}
+
+/* Contact inputs: solid white + a real edge in light mode (was
+   glass/0.03 + glass/0.08, which vanished into the white card). */
+[data-theme='light'] .contact-input {
+  background-color: #fff;
+  border-color: rgb(15 23 42 / 0.16);
+}
+[data-theme='light'] .contact-input:focus {
+  border-color: rgb(14 116 144 / 0.6);
+}
+
+/* Footer CTA band: soft sky → emerald, fading to transparent at
+   the bottom so there is no hard edge where the band ends. */
+[data-theme='light'] .footer-glow {
+  background: linear-gradient(
+    180deg,
+    #e0f2fe 0%,
+    #d1fae5 55%,
+    transparent 100%
+  );
+}
+
+/* Featured cards: a 2px accent top border in light mode only, so
+   the Featured row reads as distinct from the More grid. */
+[data-theme='light'] .featured-card {
+  border-top: 2px solid #0e7490;
 }
 
 /* ─── Reduced motion ────────────────────────────────────────────── */

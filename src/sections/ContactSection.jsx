@@ -25,8 +25,13 @@ const listContainer = {
   show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
 };
 
+/* Tier 3 — the socials cascade rise is capped at 8px (was 14px):
+   the gap between items is 10px, so 8px is below it — two
+   adjacent items can never overlap even if their stagger
+   desyncs completely under a fast fling. Same 0.45s duration
+   and 0.07s stagger, so the cascade still reads. */
 const listItem = {
-  hidden: { opacity: 0, y: 14, scale: 0.96 },
+  hidden: { opacity: 0, y: 8, scale: 0.96 },
   show: {
     opacity: 1,
     y: 0,
@@ -50,7 +55,7 @@ function FloatingInput({ id, name, type = 'text', label, value, onChange, error,
         autoComplete={autoComplete}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`peer w-full rounded-xl border bg-glass/[0.03] px-4 pb-2.5 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
+        className={`contact-input peer w-full rounded-xl border bg-glass/[0.03] px-4 pb-2.5 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
           error
             ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
             : 'border-glass/[0.08] hover:border-glass/[0.14]'
@@ -90,7 +95,7 @@ function FloatingTextarea({ id, name, label, value, onChange, error }) {
         rows={5}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`peer w-full resize-none rounded-xl border bg-glass/[0.03] px-4 pb-3 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
+        className={`contact-input peer w-full resize-none rounded-xl border bg-glass/[0.03] px-4 pb-3 pt-6 text-sm text-heading outline-none transition-all duration-250 placeholder-shown:pt-4 focus:border-accent/50 focus:bg-glass/[0.05] focus:ring-1 focus:ring-accent/25 sm:text-base ${
           error
             ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
             : 'border-glass/[0.08] hover:border-glass/[0.14]'
@@ -169,7 +174,7 @@ function CopyEmailButton({ email }) {
       type="button"
       onClick={copy}
       aria-label={copied ? 'Email address copied' : 'Copy email address'}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-3.5 text-xs font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
         copied
           ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
           : 'border-glass/10 bg-glass/[0.04] text-muted hover:border-accent/25 hover:text-accent'
@@ -203,7 +208,7 @@ export function ContactSection() {
       <div className="grid gap-8 lg:grid-cols-5">
         {/* ── Left: Contact form ── */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
@@ -216,7 +221,7 @@ export function ContactSection() {
             {/* Success state */}
             {status === 'success' && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 role="status"
                 className="flex min-h-[280px] flex-col items-center justify-center text-center"
@@ -231,7 +236,7 @@ export function ContactSection() {
                 <button
                   type="button"
                   onClick={reset}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-5 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <ArrowLeft className="h-4 w-4" aria-hidden />
                   Send another message
@@ -284,7 +289,7 @@ export function ContactSection() {
                 {/* Error banner */}
                 {status === 'error' && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4 flex items-start gap-2 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300"
                     role="alert"
@@ -304,7 +309,7 @@ export function ContactSection() {
                     aria-busy={status === 'sending'}
                     whileHover={reduceMotion ? undefined : { scale: 1.02, y: -2 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
+                    className="contact-send mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/40 bg-accent/15 px-6 py-3 text-sm font-semibold text-accent shadow-accent-glow transition-all duration-300 hover:bg-accent/25 hover:border-accent/60 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
                   >
                     {status === 'sending' ? (
                       <>
@@ -326,7 +331,7 @@ export function ContactSection() {
 
         {/* ── Right: Email + Socials ── */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4, delay: 0.1 }}
@@ -360,7 +365,7 @@ export function ContactSection() {
             <motion.ul
               className="mt-4 flex flex-col gap-2.5"
               variants={listContainer}
-              initial="hidden"
+              initial={reduceMotion ? false : 'hidden'}
               whileInView="show"
               viewport={{ once: true, margin: '-40px' }}
             >

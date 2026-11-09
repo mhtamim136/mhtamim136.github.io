@@ -47,7 +47,7 @@ export function Avatar({ src, manifest, alt, className = '' }) {
     <>
       <motion.div
         className={`group relative mx-auto ${className}`}
-        initial={{ opacity: 0, scale: 0.85 }}
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >

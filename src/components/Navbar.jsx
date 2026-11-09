@@ -20,7 +20,7 @@ const iconProps = {
 };
 
 const navItemBase =
-  'flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 ease-out sm:p-3';
+  'flex shrink-0 items-center justify-center rounded-xl p-3 transition-all duration-300 ease-out sm:p-3';
 
 /** Hover: subtle lift, soft translucent pill — glass-friendly */
 const navItemHover =
@@ -40,10 +40,14 @@ const navItemIdle = 'text-muted-dim';
  * which takes ~1s. Positioned under the hovered icon, clamped inside
  * the viewport. A tap clears it, so it never lingers on touch screens.
  *
- * Mobile (~390px): tighter icon padding keeps all 7 icons + the toggle
- * inside the viewport (7×36 + gaps + toggle ≈ 365px), so the toggle
- * stays reachable without a sideways swipe. overflow-x-auto remains
- * only as a safety net for narrower screens.
+ * Mobile (~390px): the icons are 44×44 tap targets (p-3 around
+ * the 20px icon), so the gaps shrink to fit: gap-0 between items,
+ * px-1 on the pill, px-2 on the header. 7×44 + divider 17 + toggle
+ * 44 + pill padding 8 = 377px ≤ 382px available (390 − header
+ * px-2). The visible icons are still 24px apart (12px padding
+ * each side), so the pill reads exactly as before — only the hit
+ * areas grew. overflow-x-auto remains only as a safety net for
+ * narrower screens.
  */
 export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);
@@ -69,7 +73,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
 
   return (
     <header
-      className={`pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 transition-[transform,visibility] duration-300 ease-out sm:px-6 sm:pt-4 ${
+      className={`pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-2 pt-3 transition-[transform,visibility] duration-300 ease-out sm:px-6 sm:pt-4 ${
         hidden ? '-translate-y-[calc(100%+1rem)] invisible' : 'translate-y-0'
       }`}
     >
@@ -82,7 +86,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
           the transition to 0.01ms, so hide/show becomes instant
           instead of sliding. */}
       <nav
-        className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-center gap-1 overflow-x-auto rounded-[1.125rem] px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
+        className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
         aria-label="Primary"
       >
         {items.map(({ id, label, icon }) => {

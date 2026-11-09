@@ -85,6 +85,16 @@
   --cta-rest: linear-gradient(to right, rgb(var(--accent) / 0.15), rgb(var(--accent) / 0.15));
 }
 
+/* Tier 3 — light mode: the primary button is solid #0E7490 (see
+   index.css .btn-primary), so the resting layer here must be solid
+   #0E7490 too, or the hero button would show the accent/15 tint
+   while every other primary shows solid. The #22D3EE wipe (layer 1)
+   still sweeps in on hover/focus-visible, and the label still flips
+   to #062A33 — only the resting fill changes. */
+[data-theme='light'] .hero-cta-fill--solid {
+  --cta-rest: linear-gradient(to right, #0e7490, #0e7490);
+}
+
 /* Ghost (Resume, GitHub icon): resting background is the variant's
    own glass; layer 2 stays off. */
 .hero-cta-fill--ghost {

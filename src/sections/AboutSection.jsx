@@ -1,10 +1,11 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 
 export function AboutSection() {
   const { about, institution, currentlyLearning } = portfolio;
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <SectionWrapper
@@ -13,7 +14,7 @@ export function AboutSection() {
       subtitle="Background, focus, and how I like to build."
     >
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.35 }}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Star, GitFork, ExternalLink, Github, ChevronDown, ChevronUp, Check, ArrowDown, ArrowUp } from 'lucide-react';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
@@ -70,6 +70,7 @@ const pillClass =
    both carry a `languages` array per repo) — no runtime fetch. A repo
    without a languages array falls back to its primary language. */
 function LanguagePills({ repoName, fallbackLanguage, langMap }) {
+  const reduceMotion = useReducedMotion() ?? false;
   const langs = langMap[repoName];
 
   /* Resolved languages (or fallback) */
@@ -87,7 +88,7 @@ function LanguagePills({ repoName, fallbackLanguage, langMap }) {
   return (
     <motion.div
       className="flex flex-wrap gap-1.5"
-      initial={{ opacity: 0 }}
+      initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
@@ -118,9 +119,9 @@ function FilterChip({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-200 sm:text-sm ${
+      className={`rounded-lg border px-4 py-3.5 text-xs font-medium transition-all duration-200 sm:text-sm ${
         active
-          ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+          ? 'tone-accent border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
           : 'border-glass/10 bg-glass/[0.04] text-muted hover:-translate-y-px hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
       }`}
     >
@@ -161,9 +162,9 @@ function SortToggle({ sortMode, onToggle }) {
       onClick={onToggle}
       aria-pressed={active}
       aria-label={ariaLabel}
-      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
+      className={`inline-flex items-center gap-1.5 rounded-xl border px-4 py-3.5 text-xs font-medium backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm ${
         active
-          ? 'border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
+          ? 'tone-accent border-accent/40 bg-accent/15 text-accent shadow-accent-glow hover:bg-accent/20'
           : 'border-glass/15 bg-glass/[0.06] text-muted hover:border-accent/40 hover:bg-accent/10 hover:text-accent'
       }`}
     >
@@ -249,8 +250,14 @@ function sortRepos(list, dir) {
 }
 
 /* ── Project card item animation ──────────────────────────────── */
+/* Tier 3 — the mount rise is capped at 8px (was 24px): below the
+   smallest 10px gap on the page, so a card can never paint over
+   the text below it even if two adjacent cards desync under a
+   fast fling. Same 0.4s duration and 0.05s stagger, so the
+   entrance still cascades — only the distance shrank. The exit
+   rise is capped the same way (was -12px). */
 const cardAnim = {
-  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  hidden: { opacity: 0, y: 8, scale: 0.97 },
   show: (i) => ({
     opacity: 1,
     y: 0,
@@ -261,7 +268,7 @@ const cardAnim = {
       ease: [0.22, 1, 0.36, 1],
     },
   }),
-  exit: { opacity: 0, y: -12, scale: 0.97, transition: { duration: 0.25 } },
+  exit: { opacity: 0, y: -8, scale: 0.97, transition: { duration: 0.25 } },
 };
 
 /* ── Featured project card ────────────────────────────────────── */
@@ -274,6 +281,7 @@ const cardAnim = {
    like the grid card's description. */
 function FeaturedProjectCard({ repo, index }) {
   const details = repo.details || {};
+  const reduceMotion = useReducedMotion() ?? false;
   const updated = formatUpdated(repo.pushedAt);
   const introLabel =
     details.detailsSource === 'readme'
@@ -296,13 +304,13 @@ function FeaturedProjectCard({ repo, index }) {
     <motion.div
       custom={index}
       variants={cardAnim}
-      initial="hidden"
+      initial={reduceMotion ? false : 'hidden'}
       whileInView="show"
       viewport={{ once: true, margin: '-40px' }}
     >
       <Card
         spotlight
-        className="flex h-full flex-col overflow-hidden p-6 sm:p-7"
+        className="featured-card flex h-full flex-col overflow-hidden p-6 sm:p-7"
         whileHover={{ y: -6, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
@@ -442,6 +450,7 @@ function FeaturedProjectCard({ repo, index }) {
    the same data), as does the filter: a normalized skill/language
    key, or null for "All". */
 export function ProjectsSection({ repos, featured, loading, error, activeFilter, onFilterChange }) {
+  const reduceMotion = useReducedMotion() ?? false;
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   /* Sort + year filter are local to this section — only Projects
      consumes them (the shared language filter stays in App because
@@ -677,7 +686,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
               without ever touching the controls.
               (2) the language chips row below it. */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3 }}
@@ -747,7 +756,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                       <button
                         type="button"
                         onClick={handleShowMore}
-                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                        className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
                       >
                         Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
                         <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
@@ -786,9 +795,9 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                   key={repo.id}
                   custom={idx}
                   variants={cardAnim}
-                  initial="hidden"
+                  initial={reduceMotion ? false : 'hidden'}
                   animate="show"
-                  exit="exit"
+                  exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : 'exit'}
                   layout
                 >
                   <Card
@@ -903,7 +912,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
               would strand the user with no way back). */}
           {(filtered.length > INITIAL_COUNT || expanded) && (isFiltered || featuredRepos.length === 0 || expanded) && (
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="mt-8 text-center"
@@ -913,7 +922,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                   <button
                     type="button"
                     onClick={handleShowMore}
-                    className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
+                    className="group inline-flex items-center gap-2 rounded-xl border border-glass/10 bg-glass/[0.04] px-6 py-3 text-sm font-medium text-muted transition-all duration-300 hover:border-accent/25 hover:text-accent"
                   >
                     Show {remaining} more {remaining === 1 ? 'project' : 'projects'}
                     <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
@@ -923,7 +932,7 @@ export function ProjectsSection({ repos, featured, loading, error, activeFilter,
                   <button
                     type="button"
                     onClick={handleShowLess}
-                    className="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
+                    className="group inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-muted transition-all duration-300 hover:text-accent"
                   >
                     Show less
                     <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" aria-hidden />

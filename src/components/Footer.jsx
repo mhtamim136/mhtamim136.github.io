@@ -56,13 +56,15 @@ export function Footer() {
   return (
     <footer className="relative border-t border-glass/[0.06]">
       {/* Faint hero-glow echo behind the CTA — ties the closing
-          statement to the opening hero. Existing utility only. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-hero-glow" aria-hidden />
+          statement to the opening hero. Existing utility only. In
+          light mode the `footer-glow` marker (see index.css) swaps
+          it for a soft sky → emerald band. */}
+      <div className="footer-glow pointer-events-none absolute inset-x-0 top-0 h-80 bg-hero-glow" aria-hidden />
 
       <Container className="relative">
         {/* ── Closing CTA ── */}
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -99,7 +101,7 @@ export function Footer() {
                   {...linkProps}
                   aria-label={label}
                   title={label}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 >
                   <Icon className="h-[18px] w-[18px]" aria-hidden />
                 </a>

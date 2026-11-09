@@ -23,7 +23,7 @@ export function ThemeToggle({ isDark, onToggle }) {
     <motion.button
       type="button"
       onClick={onToggle}
-      className="flex h-10 w-10 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-colors duration-300 hover:border-accent/25 hover:bg-glass/[0.07] hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:h-11 sm:w-11"
+      className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-colors duration-300 hover:border-accent/25 hover:bg-glass/[0.07] hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       whileHover={reduceMotion ? undefined : { scale: 1.07, y: -2 }}
       whileTap={reduceMotion ? undefined : { scale: 0.93 }}
@@ -43,7 +43,13 @@ export function ThemeToggle({ isDark, onToggle }) {
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={transition}
+          /* Tier 3 — the icon crossfade is an opacity animation, so
+             MotionConfig's transform-only gate does not stop it.
+             Under reduced motion the swap is instant (duration 0);
+             the rotate/scale in the variants are already killed by
+             MotionConfig. The button is 44×44 (was 40×40) — a real
+             tap target on mobile. */
+          transition={reduceMotion ? { duration: 0 } : transition}
         >
           {isDark ? (
             /* Moon */

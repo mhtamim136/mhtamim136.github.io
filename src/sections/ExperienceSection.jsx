@@ -1,10 +1,11 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 
 export function ExperienceSection() {
   const { experience } = portfolio;
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <SectionWrapper
@@ -21,7 +22,7 @@ export function ExperienceSection() {
           {experience.map((job, idx) => (
             <motion.li
               key={`${job.company}-${job.role}`}
-              initial={{ opacity: 0, x: -12 }}
+              initial={reduceMotion ? false : { opacity: 0, x: -8 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ delay: idx * 0.08, duration: 0.35 }}
@@ -48,7 +49,7 @@ export function ExperienceSection() {
                     <motion.li
                       key={pt}
                       className="leading-relaxed"
-                      initial={{ opacity: 0, y: 4 }}
+                      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: 0.2 + i * 0.05, duration: 0.3 }}
