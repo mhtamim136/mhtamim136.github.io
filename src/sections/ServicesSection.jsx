@@ -11,7 +11,7 @@ export function ServicesSection() {
     <SectionWrapper
       id="services"
       title="What I Build"
-      subtitle="Things I build — from interfaces to databases."
+      subtitle="Things I build — interfaces, apps, and the data behind them."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         {services.map((s, idx) => (
