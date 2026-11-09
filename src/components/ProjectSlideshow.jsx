@@ -15,10 +15,10 @@ const MANUAL_PAUSE_MS = 7000;
    the finger; SWIPE_THRESHOLD still distinguishes tap vs drag for
    click suppression in general. Same values as the lightbox. */
 const DRAG_LATCH = 10;
-/* Drag-follow commit: a drag must pass half the box width to commit
+/* Drag-follow commit: a drag must pass a third of the box width to commit
    to the next/previous slide (the gallery rule); anything less
    springs back. Same as the lightbox. */
-const COMMIT_FRACTION = 0.5;
+const COMMIT_FRACTION = 0.33;
 
 /**
  * Professional project-image carousel (Airbnb / Behance style).
@@ -29,7 +29,7 @@ const COMMIT_FRACTION = 0.5;
  *   same fit as the lightbox); ONE carousel behaviour everywhere: a
  *   three-cell track (previous / current / next, each exactly the
  *   box width) that follows the finger 1:1 on a drag, commits past
- *   half the box width, and springs back below it — exactly like
+ *   a third of the box width, and springs back below it — exactly like
  *   the photo lightbox. Arrows, dots and auto-advance use the SAME
  *   track animation (slide to ±width, then swap the index, reset
  *   the track to 0). There is no crossfade any more: the crossfade
@@ -370,7 +370,7 @@ export function ProjectSlideshow({ images, repoName }) {
      only) and captures the pointer so move/up keep firing if the
      finger slides off the cell; a horizontal-dominant move of
      ≥ DRAG_LATCH latches a drag and the track follows the finger
-     1:1, clamped to one box width; on release a drag past half the
+     1:1, clamped to one box width; on release a drag past a third of the
      box width commits (slide, then swap the index) and anything
      less springs back. A drag latches draggedRef, so the release
      click never opens the lightbox; a plain tap still does. */
@@ -384,7 +384,7 @@ export function ProjectSlideshow({ images, repoName }) {
       /* Capture is best-effort — move/up still fire while over the cell. */
     }
     /* Drag-follow setup: measure the box once — the commit threshold
-       is half this width. The drag latches in the move handler. */
+       is a third of this width. The drag latches in the move handler. */
     if (count > 1) {
       const width = containerRef.current?.getBoundingClientRect().width ?? 0;
       dragRef.current = width > 0 ? { width } : null;
@@ -432,7 +432,7 @@ export function ProjectSlideshow({ images, repoName }) {
        track — a second pointerup in that window does nothing. */
     if (animatingRef.current) return;
     /* Drag-follow release: the gallery rule. A horizontal-dominant
-       drag past half the box width COMMITS — the track slides fully
+       drag past a third of the box width COMMITS — the track slides fully
        to the adjacent slide and only then does the index swap (the
        swap awaits the slide-out, otherwise the new slide would
        appear at centre instantly and the slide would be lost).

@@ -100,13 +100,18 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
  *   drag moves the track WITH the finger, 1:1 — pull halfway and
  *   you see half the old photo and half the next one, exactly
  *   like a phone gallery. The old 50px navigate-on-release is
- *   gone: on release a drag past ~50% of the container width
+ *   gone: on release a drag past ~1/3 of the container width
  *   commits (the track slides fully to the adjacent photo, THEN
  *   it navigates and the track resets to 0) and anything less
- *   springs back. The zoom lives on each CELL now (same scale on
- *   all three, so a drag while zoomed shows the next photo at
- *   the same zoom), each cell clips its own image
- *   (overflow-hidden), so the split stays clean at any zoom.
+ *   springs back. The zoom lives on an inner wrapper INSIDE
+ *   each cell (same scale on all three, so a drag while zoomed
+ *   shows the next photo at the same zoom). Each cell keeps
+ *   overflow-hidden and NO transform, so its box stays exactly
+ *   one frame wide and clips the scaled image inside it — a
+ *   scale on the cell itself grows the cell's own box past its
+ *   slot, and the neighbour then paints over the current
+ *   photo's half (the 2026-11-09 zoom bug: wheel-zoom to 2x
+ *   showed the next slide on the right half of the frame).
  *   The hero portrait has no track — a drag there does nothing,
  *   as before. Keyboard arrows and the prev/next buttons still
  *   navigate instantly, with no drag animation.
@@ -126,10 +131,10 @@ const DOUBLE_TAP_SLOP = 30; /* px */
    glued to the finger; the old 50px SWIPE_THRESHOLD still
    distinguishes tap vs drag for click suppression in general. */
 const DRAG_LATCH = 10; /* px */
-/* Drag-follow commit: a drag must pass half the container width
+/* Drag-follow commit: a drag must pass a third of the container width
    to commit to the next/previous photo (the gallery rule);
    anything less springs back. */
-const COMMIT_FRACTION = 0.5;
+const COMMIT_FRACTION = 0.33;
 export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', images, index, onNavigate }) {
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef(null);
@@ -160,7 +165,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      horizontal offset as a Framer Motion value — written in the
      pointermove handler, so the photos follow the finger with no
      re-render per move. containerRef measures the photo frame at
-     drag start (the commit threshold is half that width);
+     drag start (the commit threshold is a third of that width);
      dragRef holds the width for the gesture in progress;
      draggingRef latches once the gesture is a horizontal drag;
      animatingRef guards the commit/spring-back animation in
@@ -294,7 +299,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
      pointerdown records the start (first pointer only) and
      captures the pointer so move/up keep firing if the finger
      slides off the photo; a move of ≥ SWIPE_THRESHOLD marks a
-     drag; on release a horizontal-dominant drag that passed half
+     drag; on release a horizontal-dominant drag that passed a third of
      the container width COMMITS — the track slides fully to the
      adjacent photo and only then does it navigate — while a
      shorter drag springs back (see onPhotoPointerUp). The drag
@@ -358,7 +363,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
     downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
     swipedRef.current = false;
     /* Drag-follow setup (project lightbox only): measure the
-       frame once — the commit threshold is half this width. The
+       frame once — the commit threshold is a third of this width. The
        drag latches as a horizontal drag in the move handler. */
     if (canNavigate) {
       const width = containerRef.current?.getBoundingClientRect().width ?? 0;
@@ -469,7 +474,7 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
        track — a second pointerup in that window does nothing. */
     if (animatingRef.current) return;
     /* Drag-follow release (project lightbox only): the gallery
-       rule. A horizontal-dominant drag past half the container
+       rule. A horizontal-dominant drag past a third of the container
        width COMMITS — the track slides fully to the adjacent
        photo (left = next, right = prev) and only then does it
        navigate, and the track resets to 0 in the same handler
@@ -816,31 +821,42 @@ export function PhotoLightbox({ manifest, src, alt, onClose, shape = 'circle', i
                the frame and the neighbours wait just outside it;
                the track's x (a motion value, written by the
                pointer handlers) then slides them through. Each
-               cell clips its own image, so the split between the
-               outgoing and incoming photo stays clean at any
-               zoom — the zoomed neighbour never bleeds into the
-               current cell's half. */
+               cell clips its own image (overflow-hidden, no
+               transform on the cell itself), so the split
+               between the outgoing and incoming photo stays
+               clean at any zoom — the zoom lives on an inner
+               wrapper inside the cell, whose scaled box the
+               cell clips. (A scale on the cell itself used to
+               grow the cell's box past its slot, so the next
+               cell painted over the current photo's right half
+               at zoom 2 — fixed 2026-11-09.) */
             <motion.div
               style={{ x: trackX, marginLeft: '-100%' }}
               className="flex h-full w-full"
             >
-              <div
-                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
-                style={{ transform: `scale(${zoom})` }}
-              >
-                {cellPhoto(prevSrc)}
+              <div className="h-full w-full shrink-0 overflow-hidden">
+                <div
+                  className={`h-full w-full ${zoomTransition}`}
+                  style={{ transform: `scale(${zoom})` }}
+                >
+                  {cellPhoto(prevSrc)}
+                </div>
               </div>
-              <div
-                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
-                style={{ transform: `scale(${zoom})` }}
-              >
-                {photo}
+              <div className="h-full w-full shrink-0 overflow-hidden">
+                <div
+                  className={`h-full w-full ${zoomTransition}`}
+                  style={{ transform: `scale(${zoom})` }}
+                >
+                  {photo}
+                </div>
               </div>
-              <div
-                className={`h-full w-full shrink-0 overflow-hidden ${zoomTransition}`}
-                style={{ transform: `scale(${zoom})` }}
-              >
-                {cellPhoto(nextSrc)}
+              <div className="h-full w-full shrink-0 overflow-hidden">
+                <div
+                  className={`h-full w-full ${zoomTransition}`}
+                  style={{ transform: `scale(${zoom})` }}
+                >
+                  {cellPhoto(nextSrc)}
+                </div>
               </div>
             </motion.div>
           ) : (
