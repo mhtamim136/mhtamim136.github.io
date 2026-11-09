@@ -25,6 +25,9 @@ const SkillsSection = lazy(() =>
 const ProjectsSection = lazy(() =>
   import('./sections/ProjectsSection').then((m) => ({ default: m.ProjectsSection }))
 );
+const ResearchSection = lazy(() =>
+  import('./sections/ResearchSection').then((m) => ({ default: m.ResearchSection }))
+);
 const ExperienceSection = lazy(() =>
   import('./sections/ExperienceSection').then((m) => ({ default: m.ExperienceSection }))
 );
@@ -119,7 +122,7 @@ export default function App() {
       <main id="main" tabIndex={-1} className="pt-20 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:pt-[5.25rem]">
         <HeroSection />
 
-        {/* One boundary for all six lazy sections — the fallback is
+        {/* One boundary for all seven lazy sections — the fallback is
             identical for each, so separate wrappers only repeated
             the same spinner. */}
         <Suspense fallback={<SectionFallback />}>
@@ -131,6 +134,9 @@ export default function App() {
 
           <Divider />
           <ProjectsSection repos={repos} featured={featured} loading={loading} error={error} activeFilter={projectFilter} onFilterChange={setProjectFilter} />
+
+          <Divider />
+          <ResearchSection />
 
           <Divider />
           <ExperienceSection />

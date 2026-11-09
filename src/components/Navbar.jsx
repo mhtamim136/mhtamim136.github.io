@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, Code, FolderOpen, Home, Layers, Mail, User } from 'lucide-react';
+import { BookOpen, Clock, Code, FolderOpen, Home, Layers, Mail, User } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
 
@@ -9,6 +9,8 @@ const NAV_ICONS = {
   code: Code,
   /** Projects — folder represents grouped work clearly */
   folder: FolderOpen,
+  /** Research — open book for papers/publications */
+  book: BookOpen,
   timeline: Clock,
   layers: Layers,
   mail: Mail,
@@ -42,12 +44,12 @@ const navItemIdle = 'text-muted-dim';
  *
  * Mobile (~390px): the icons are 44×44 tap targets (p-3 around
  * the 20px icon), so the gaps shrink to fit: gap-0 between items,
- * px-1 on the pill, px-2 on the header. 7×44 + divider 17 + toggle
- * 44 + pill padding 8 = 377px ≤ 382px available (390 − header
- * px-2). The visible icons are still 24px apart (12px padding
- * each side), so the pill reads exactly as before — only the hit
- * areas grew. overflow-x-auto remains only as a safety net for
- * narrower screens.
+ * px-1 on the pill, px-2 on the header. With eight items the pill
+ * no longer fits — 8×44 + divider 17 + toggle 44 + pill padding 8
+ * = 421px > 382px available (390 − header px-2) — so it scrolls
+ * horizontally (overflow-x-auto). The 44px tap targets stay, so
+ * the scroll is the tradeoff for the eighth item; overflow-x-auto
+ * remains only as a safety net for narrower screens otherwise.
  */
 export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);

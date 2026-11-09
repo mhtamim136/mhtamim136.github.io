@@ -98,6 +98,38 @@ skills: {
     },
   ],
 
+  /* Research papers, in Tamim's CV order (Navigating first,
+     Evaluating second, Predicting third — his chosen order, not
+     chronological). Titles, roles, venues and dates copied exactly
+     from the final CV; ResearchGate links only where verified —
+     the ICCA paper has none yet (publication forthcoming). */
+  research: [
+    {
+      title: 'Navigating Academic Pressure and Skill Development: A Study on Coping Mechanisms Among Computer Science and Engineering Students in Bangladesh.',
+      role: '1st Author & Corresponding Author',
+      venue: 'ICSS, Begum Rokeya University, Rangpur',
+      date: 'May 2025',
+      status: 'Published',
+      researchGate: 'https://www.researchgate.net/publication/397838805_Navigating_Academic_Pressure_and_Skill_Development_A_Study_on_Coping_Mechanisms_Among_Computer_Science_and_Engineering_Students_in_Bangladesh',
+    },
+    {
+      title: 'Evaluating AI Governance and Regulation in Developing Countries: A Comparative Analysis with a Proposed Framework.',
+      role: '2nd Author',
+      venue: 'ICCA 2026 — 4th International Conference on Computing Advancements, AIUB, Dhaka',
+      date: '15–16 Oct 2026',
+      status: 'Publication forthcoming',
+      researchGate: null,
+    },
+    {
+      title: 'Predicting Sustainable Media Innovation Adoption: Multi-Model Analysis of AI Diffusion in Emerging Markets.',
+      role: '4th Author',
+      venue: 'ICCTASS 2025, AIUB, Dhaka',
+      date: 'Dec 2025',
+      status: 'Published',
+      researchGate: 'https://www.researchgate.net/publication/398620391_Predicting_Sustainable_Media_Innovation_Adoption_Multi-Model_Analysis_of_AI_Diffusion_in_Emerging_Markets',
+    },
+  ],
+
 services: [
   {
     title: 'Web interfaces',
@@ -136,6 +168,7 @@ services: [
     { id: 'about', label: 'About', icon: 'user' },
     { id: 'skills', label: 'Skills', icon: 'code' },
     { id: 'projects', label: 'Projects', icon: 'folder' },
+    { id: 'research', label: 'Research', icon: 'book' },
     { id: 'experience', label: 'Experience', icon: 'timeline' },
     { id: 'services', label: 'What I Build', icon: 'layers' },
     { id: 'contact', label: 'Contact', icon: 'mail' },
