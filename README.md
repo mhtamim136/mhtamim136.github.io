@@ -107,7 +107,7 @@ Each project card can show an automatic image slideshow. In a project repo, add 
 ├── index.html           # Entry point
 ├── postcss.config.js    # PostCSS (Tailwind + Autoprefixer)
 ├── tailwind.config.js   # Tailwind theme
-├── vercel.json          # SPA rewrites + security headers
+├── vercel.json          # Security headers + custom 404 page (no SPA rewrite)
 └── vite.config.js       # Vite config
 ```
 

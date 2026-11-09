@@ -1,0 +1,97 @@
+/* 404 page styles — served with public/404.html by Vercel and GitHub
+   Pages for unmatched routes. Dark default (the site's default
+   theme); the standalone page cannot read the site's theme, so it
+   does not try. Separate file (not inline) because the site's
+   Content-Security-Policy (style-src 'self', no 'unsafe-inline')
+   would block an inline <style> block on Vercel. No JavaScript.
+   Tokens mirror the site: dark bg #0A0E13, muted text #94A3B8
+   (dark --muted), accent gradient #22D3EE -> #67E8F9 -> #6EE7B7
+   (the hero name gradient), button text #062A33 (the hero CTA
+   fill's dark text). Font stack names the site's fonts with a
+   system fallback — the hashed woff2 files cannot be referenced
+   reliably from a static page. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0a0e13;
+  color: #e9edf2;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.not-found {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.not-found__code {
+  margin: 0;
+  font-size: clamp(5rem, 22vw, 9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  /* Plain cyan fallback; the gradient replaces it where
+     background-clip: text is supported. */
+  color: #22d3ee;
+}
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .not-found__code {
+    background: linear-gradient(90deg, #22d3ee, #67e8f9, #6ee7b7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+.not-found__title {
+  margin: 1.25rem 0 0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.not-found__text {
+  margin: 0.75rem 0 0;
+  max-width: 28rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+.not-found__home {
+  margin-top: 2rem;
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  background: #22d3ee;
+  color: #062a33;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.not-found__home:hover {
+  background: #67e8f9;
+}
+
+.not-found__home:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 3px;
+}
