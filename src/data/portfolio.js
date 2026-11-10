@@ -164,6 +164,10 @@ export const portfolio = {
       status: null,
       links: [
         {
+          label: 'AIUB',
+          url: 'https://www.aiub.edu/Files/student-research/Predicting_Sustainable_Media_Innovation_Adoption_Multi-Model_Analysis_of_AI_Diffusion_in_Emerging_Ma.html',
+        },
+        {
           label: 'ResearchGate',
           url: 'https://www.researchgate.net/publication/398620391_Predicting_Sustainable_Media_Innovation_Adoption_Multi-Model_Analysis_of_AI_Diffusion_in_Emerging_Markets',
         },
