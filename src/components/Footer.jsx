@@ -99,7 +99,7 @@ export function Footer() {
         >
           <h2
             ref={statementRef}
-            className="font-display text-4xl font-bold tracking-tight leading-[1.6] text-heading sm:text-5xl lg:text-6xl"
+            className="font-display text-4xl font-bold tracking-tight leading-[1.6] sm:leading-[1.6] lg:leading-[1.6] text-heading sm:text-5xl lg:text-6xl"
           >
             {statementInView ? (
               <BlurWords words={statementWords} />
