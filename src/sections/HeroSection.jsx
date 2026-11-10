@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
@@ -71,6 +71,54 @@ export function HeroSection() {
   /* Under reduced motion every element renders in its final state
      instantly — no rise, no fade, no wipe, no blur (see note above). */
   const initial = reduceMotion ? false : 'hidden';
+
+  /* ── Scroll-linked hero exit (anim #1, 2026-11-10): as the
+      visitor scrolls the first ~400px the hero content fades +
+      rises (opacity 1→0, y 0→−40) and the photo settles 1→0.96 —
+      the hero *retires* instead of being shoved off-screen.
+      Transform-only, no layout work. Under reduced motion the
+      ranges are constant, so the values are static (the hooks
+      stay unconditional). A restored mid-page position simply
+      renders the hero already retired, which is correct. The
+      entrance is untouched — the exit rides the column wrappers,
+      the entrance rides the inner elements, so the two never
+      drive the same property on the same element. The range ends
+      before the hero leaves the viewport, so the fade never
+      fights Lenis's anchor landings. */
+  const { scrollY } = useScroll();
+  const exitOpacity = useTransform(scrollY, [0, 400], reduceMotion ? [1, 1] : [1, 0]);
+  const exitY = useTransform(scrollY, [0, 400], reduceMotion ? [0, 0] : [0, -40]);
+  const photoScale = useTransform(scrollY, [0, 400], reduceMotion ? [1, 1] : [1, 0.96]);
+
+  /* ── Scroll cue (anim #6): "Scroll" label + animated chevron,
+      centred at the hero's bottom edge, fading out over the first
+      40px of scroll (opacity 1→0) — it only ever matters at the
+      very top. Under reduced motion the cue is not rendered at
+      all (a static "Scroll" label with no motion is noise).
+      Hidden below `sm`: on small screens the CTA row can wrap to
+      two rows and the cue would crowd it. The cue sits in the
+      section's bottom padding (bottom-4), never over the CTAs.
+      Centred with inset-x-0 + justify-center (no translate class)
+      so nothing fights framer-motion's inline opacity. */
+  const cueOpacity = useTransform(scrollY, [0, 40], [1, 0]);
+  const scrollCue = !reduceMotion && (
+    <motion.div
+      aria-hidden
+      style={{ opacity: cueOpacity }}
+      className="pointer-events-none absolute inset-x-0 bottom-4 z-10 hidden justify-center sm:flex"
+    >
+      <div className="flex flex-col items-center gap-1 text-muted-dim">
+        <span className="text-[10px] font-medium uppercase tracking-[0.2em]">Scroll</span>
+        <motion.span
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex"
+        >
+          <NavIcon name="chevron-down" className="h-4 w-4" />
+        </motion.span>
+      </div>
+    </motion.div>
+  );
 
   /* ── Blur + rise words — name (3 words) then title (4 words)
       as one continuous stagger. The last name word keeps its
@@ -276,25 +324,39 @@ export function HeroSection() {
         <div className="pointer-events-none absolute inset-0 bg-hero-glow" aria-hidden />
         <Container className="relative z-10">
           <div className="flex flex-col-reverse items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
-            {/* Text — left */}
-            <div className="flex-1 text-center lg:text-left">{textContent}</div>
+            {/* Text — left. Scroll-linked exit (anim #1) rides this
+                wrapper; the entrance rides the inner elements. */}
+            <motion.div
+              className="flex-1 text-center lg:text-left"
+              style={{ opacity: exitOpacity, y: exitY }}
+            >
+              {textContent}
+            </motion.div>
 
             {/* Image — right on desktop, top on mobile. Previous
                 design restored: a gentle fade + 20px rise (0.4s) on
                 the wrapper, plus the Avatar's own 0.85→1 scale-in.
                 The photo always grows INTO its frame, never past
-                it, so it can never look cut. No wipe, no 1.06 scale. */}
+                it, so it can never look cut. No wipe, no 1.06 scale.
+                Scroll-linked exit (anim #1): the outer wrapper
+                settles 1→0.96 on scroll; the entrance rides the
+                inner wrapper, so the two never conflict. */}
             <motion.div
+              style={{ scale: photoScale }}
               className="w-48 shrink-0 sm:w-56 lg:w-64 xl:w-72"
-              custom={0}
-              variants={item}
-              initial={reduceMotion ? false : 'hidden'}
-              animate="show"
             >
-              <Avatar manifest={heroManifest} src={profileImage} alt={`Portrait of ${name}`} />
+              <motion.div
+                custom={0}
+                variants={item}
+                initial={reduceMotion ? false : 'hidden'}
+                animate="show"
+              >
+                <Avatar manifest={heroManifest} src={profileImage} alt={`Portrait of ${name}`} />
+              </motion.div>
             </motion.div>
           </div>
         </Container>
+        {scrollCue}
       </section>
     );
   }
@@ -306,7 +368,12 @@ export function HeroSection() {
       className="relative flex min-h-[88vh] flex-col justify-center py-20 sm:min-h-[85vh] sm:py-24"
     >
       <div className="pointer-events-none absolute inset-0 bg-hero-glow" aria-hidden />
-      <Container className="relative z-10 text-center">{textContent}</Container>
+      <Container className="relative z-10 text-center">
+        {/* Scroll-linked exit (anim #1) rides this wrapper; the
+            entrance rides the inner elements. */}
+        <motion.div style={{ opacity: exitOpacity, y: exitY }}>{textContent}</motion.div>
+      </Container>
+      {scrollCue}
     </section>
   );
 }

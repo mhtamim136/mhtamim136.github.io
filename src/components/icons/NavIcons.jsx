@@ -21,6 +21,14 @@ export function NavIcon({ name, className = '' }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
         </svg>
       );
+    /* Down chevron (anim #6, hero scroll cue) — the arrow-up path
+       flipped, same 1.5 stroke weight as the rest of the set. */
+    case 'chevron-down':
+      return (
+        <svg className={c} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 8.25l7.5 7.5 7.5-7.5" />
+        </svg>
+      );
     case 'arrow-right':
       return (
         <svg className={c} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">

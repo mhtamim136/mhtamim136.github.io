@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdEmail } from 'react-icons/md';
@@ -6,6 +7,7 @@ import { portfolio } from '../data/portfolio';
 import { Container } from './Container';
 import { Button } from './Button';
 import { Magnetic } from './Magnetic';
+import { BlurWords } from './BlurWords';
 import { NavIcon } from './icons/NavIcons';
 import { externalLinkProps } from '../utils/links';
 import '../sections/HeroCtaFill.css';
@@ -22,7 +24,21 @@ import '../sections/HeroCtaFill.css';
  * so under reduced motion the footer renders in its final state
  * instantly (MotionConfig stops transforms, not opacity — the
  * explicit gate is required, same pattern HeroSection uses).
+ * The closing statement itself gets the hero's BlurWords reveal
+ * (anim #3): it arrives word by word when the footer scrolls into
+ * view, bookending the opening name.
  */
+
+/* Closing statement words for the BlurWords reveal (anim #3) —
+   the same words as the plain h2 it replaces, gradient kept on
+   "together". The apostrophe is the literal ’ (U+2019), as
+   rendered by the old `Let&rsquo;s`. */
+const statementWords = [
+  { text: 'Let’s' },
+  { text: 'build' },
+  { text: 'something' },
+  { text: 'together', className: 'text-gradient' },
+];
 
 /* Curated professional identities only. Missing keys are skipped,
    never rendered as dead links. */
@@ -53,6 +69,13 @@ const socials = [
 export function Footer() {
   const { contacts } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
+  /* Word-reveal trigger (anim #3): mount BlurWords only once the
+     statement has scrolled into view (same -40px margin as the
+     section entrance), so the animation never plays unseen below
+     the fold. Before that the identical plain text renders, so
+     the heading keeps its layout. */
+  const statementRef = useRef(null);
+  const statementInView = useInView(statementRef, { once: true, margin: '-40px' });
 
   return (
     <footer className="relative border-t border-glass/[0.06]">
@@ -74,8 +97,17 @@ export function Footer() {
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="py-16 text-center sm:py-20 lg:py-24"
         >
-          <h2 className="font-display text-4xl font-bold tracking-tight text-heading sm:text-5xl lg:text-6xl">
-            Let&rsquo;s build something <span className="text-gradient">together</span>
+          <h2
+            ref={statementRef}
+            className="font-display text-4xl font-bold tracking-tight text-heading sm:text-5xl lg:text-6xl"
+          >
+            {statementInView ? (
+              <BlurWords words={statementWords} />
+            ) : (
+              <>
+                Let&rsquo;s build something <span className="text-gradient">together</span>
+              </>
+            )}
           </h2>
           <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.18em] text-accent/65 sm:text-xs">
             Open to internships &amp; collaboration

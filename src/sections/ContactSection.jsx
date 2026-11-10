@@ -4,12 +4,15 @@ import { FaGithub, FaInstagram, FaFacebook, FaDiscord } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { FiGlobe } from 'react-icons/fi';
 import { MdEmail } from 'react-icons/md';
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Loader2, Copy, Check } from 'lucide-react';
+import { Send, AlertCircle, ArrowLeft, Loader2, Copy, Check } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
+import { Button } from '../components/Button';
 import { Magnetic } from '../components/Magnetic';
+import { NavIcon } from '../components/icons/NavIcons';
 import { SocialButton } from '../components/SocialButton';
 import { useContactForm } from '../hooks/useContactForm';
+import { externalLinkProps } from '../utils/links';
 import '../sections/HeroCtaFill.css';
 
 const socialMeta = [
@@ -189,7 +192,7 @@ function CopyEmailButton({ email }) {
 
 /* ── Main section ─────────────────────────────────────────────── */
 export function ContactSection() {
-  const { contacts } = portfolio;
+  const { contacts, resumeLink } = portfolio;
   const { fields, errors, status, serverMsg, handleChange, handleSubmit, reset } = useContactForm();
   /* Reduced motion: the submit button's hover/tap gestures are
      gated below — under reduced motion the button must not move. */
@@ -222,8 +225,46 @@ export function ContactSection() {
                 role="status"
                 className="flex min-h-[280px] flex-col items-center justify-center text-center"
               >
+                {/* Drawn check (anim #7): the circle stroke draws
+                    itself (0.5s), then the check stroke (0.35s) —
+                    the send is the one transaction on the site, so
+                    its success gets a drawn check instead of a
+                    static icon. Same h-8 w-8 emerald mark inside
+                    the existing emerald ring; the panel scale-in
+                    is unchanged. Under reduced motion both strokes
+                    render at pathLength 1 instantly. */}
                 <div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
-                  <CheckCircle className="h-8 w-8 text-emerald-400" aria-hidden />
+                  <svg
+                    className="h-8 w-8 text-emerald-400"
+                    viewBox="0 0 32 32"
+                    fill="none"
+                    aria-hidden
+                  >
+                    <motion.circle
+                      cx="16"
+                      cy="16"
+                      r="14"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      initial={reduceMotion ? false : { pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                    <motion.path
+                      d="M10 16.5l4 4 8-9"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={reduceMotion ? false : { pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{
+                        duration: 0.35,
+                        delay: 0.5,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                    />
+                  </svg>
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-heading">Message sent!</h3>
                 <p className="mt-2 max-w-sm text-sm text-muted">
@@ -355,6 +396,26 @@ export function ContactSection() {
                 <span className="truncate">{contacts.email}</span>
               </a>
               <CopyEmailButton email={contacts.email} />
+            </div>
+            {/* Download CV (anim #8): the same PDF the hero
+                "Resume" button links to, same behaviour —
+                externalLinkProps opens it in a new tab (no
+                `download`, so the visitor stays on the site),
+                same secondary + ghost 550ms wipe as the hero
+                Resume button. It lives in the email card so a
+                recruiter who has read the page can take the CV
+                without scrolling back to the hero. Full-width on
+                mobile like the section's other buttons; the email
+                row above is untouched. */}
+            <div className="mt-4">
+              <Button
+                {...externalLinkProps(resumeLink)}
+                variant="secondary"
+                className="hero-cta-fill hero-cta-fill--ghost w-full sm:w-auto"
+              >
+                <NavIcon name="document" className="h-4 w-4" />
+                Download CV
+              </Button>
             </div>
           </div>
 

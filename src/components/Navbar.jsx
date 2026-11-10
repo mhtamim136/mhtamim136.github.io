@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { BookOpen, Clock, Code, FolderOpen, Home, Layers, Mail, User } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
@@ -17,12 +18,15 @@ const NAV_ICONS = {
 };
 
 const iconProps = {
-  className: 'h-5 w-5 shrink-0 transition-colors duration-300 ease-out',
+  /* `relative` so the icon paints above the travelling pill (anim
+     #5): both are positioned at z-auto, so DOM order decides and
+     the icon — rendered after the pill — wins. */
+  className: 'relative h-5 w-5 shrink-0 transition-colors duration-300 ease-out',
   strokeWidth: 1.5,
 };
 
 const navItemBase =
-  'flex shrink-0 items-center justify-center rounded-xl p-3 transition-all duration-300 ease-out sm:p-3';
+  'relative flex shrink-0 items-center justify-center rounded-xl p-3 transition-all duration-300 ease-out sm:p-3';
 
 /** Hover: subtle lift, soft translucent pill — glass-friendly */
 const navItemHover =
@@ -31,6 +35,12 @@ const navItemHover =
 /** Active section: visible translucent pill in both themes */
 const navItemActive =
   'bg-glass/[0.07] text-accent ring-1 ring-glass/[0.08] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.06)]';
+
+/** The travelling pill (anim #5): the active background + ring,
+    carried by the motion.span behind the active link. The link
+    itself keeps only the text colour (`text-accent`). */
+const navPill =
+  'bg-glass/[0.07] ring-1 ring-glass/[0.08] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.06)]';
 
 const navItemIdle = 'text-muted-dim';
 
@@ -57,6 +67,11 @@ const navItemIdle = 'text-muted-dim';
  */
 export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);
+  /* Reduced motion: the travelling pill is disabled — the static
+     class pill (navItemActive) renders instead, exactly as before
+     (anim #5). MotionConfig would disable the layout animation
+     anyway; this gate is explicit. */
+  const reduceMotion = useReducedMotion() ?? false;
   /* Smart navigation — hide on scroll down, show on any scroll
      up, always visible at the top. Transform only; see
      useHideOnScroll for the hysteresis design. */
@@ -105,8 +120,27 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
               onFocus={(e) => showTip(e, label)}
               onBlur={hideTip}
               onClick={hideTip}
-              className={`${navItemBase} ${active ? `${navItemActive} ${navItemHover}` : `${navItemIdle} ${navItemHover}`}`}
+              className={`${navItemBase} ${active ? (reduceMotion ? navItemActive : 'text-accent') : navItemIdle} ${navItemHover}`}
             >
+              {/* Travelling active pill (anim #5): a layoutId span
+                  behind the active link — it slides between icons
+                  (spring 300/30) instead of fading in place. It
+                  renders only for the active link and only when
+                  motion is allowed; under reduced motion the link
+                  keeps the static navItemActive pill as before.
+                  `absolute inset-0` anchors to the link (relative
+                  via navItemBase); the icon paints above it (also
+                  relative, later in DOM). The travel is a transform,
+                  so the nav's overflow-x-auto clip still applies
+                  and the pill can never paint outside the pill. */}
+              {active && !reduceMotion && (
+                <motion.span
+                  layoutId="nav-pill"
+                  className={`absolute inset-0 rounded-xl ${navPill}`}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  aria-hidden
+                />
+              )}
               <Icon {...iconProps} aria-hidden />
               <span className="sr-only">{label}</span>
             </a>
