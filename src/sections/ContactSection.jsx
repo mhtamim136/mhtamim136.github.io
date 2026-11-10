@@ -12,7 +12,6 @@ import { Magnetic } from '../components/Magnetic';
 import { NavIcon } from '../components/icons/NavIcons';
 import { SocialButton } from '../components/SocialButton';
 import { useContactForm } from '../hooks/useContactForm';
-import { externalLinkProps } from '../utils/links';
 import '../sections/HeroCtaFill.css';
 
 const socialMeta = [
@@ -397,19 +396,22 @@ export function ContactSection() {
               </a>
               <CopyEmailButton email={contacts.email} />
             </div>
-            {/* Download CV (anim #8): the same PDF the hero
-                "Resume" button links to, same behaviour —
-                externalLinkProps opens it in a new tab (no
-                `download`, so the visitor stays on the site),
-                same secondary + ghost 550ms wipe as the hero
-                Resume button. It lives in the email card so a
-                recruiter who has read the page can take the CV
-                without scrolling back to the hero. Full-width on
-                mobile like the section's other buttons; the email
-                row above is untouched. */}
+            {/* Download CV (anim #8, batch 2 fix): the same PDF
+                the hero "Resume" button links to, but a real
+                download — `download` saves the file under the
+                given name instead of opening the PDF viewer in a
+                new tab (the old externalLinkProps version opened
+                it, which contradicted the "Download" label). Same
+                secondary + ghost 550ms wipe as the hero Resume
+                button. It lives in the email card so a recruiter
+                who has read the page can take the CV without
+                scrolling back to the hero. Full-width on mobile
+                like the section's other buttons; the email row
+                above is untouched. */}
             <div className="mt-4">
               <Button
-                {...externalLinkProps(resumeLink)}
+                href={resumeLink}
+                download="Murad-Hasan-Tamim-CV.pdf"
                 variant="secondary"
                 className="hero-cta-fill hero-cta-fill--ghost w-full sm:w-auto"
               >

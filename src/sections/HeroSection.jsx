@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { Container } from '../components/Container';
@@ -72,23 +73,36 @@ export function HeroSection() {
      instantly — no rise, no fade, no wipe, no blur (see note above). */
   const initial = reduceMotion ? false : 'hidden';
 
-  /* ── Scroll-linked hero exit (anim #1, 2026-11-10): as the
-      visitor scrolls the first ~400px the hero content fades +
-      rises (opacity 1→0, y 0→−40) and the photo settles 1→0.96 —
-      the hero *retires* instead of being shoved off-screen.
+  /* ── Scroll-linked hero exit (anim #1, 2026-11-10; batch 2
+      retarget, 2026-11-10): the exit is tied to the hero's OWN
+      height — `useScroll` with `target: heroRef` and offset
+      ["start start", "end start"], so progress runs 0→1 exactly
+      while the hero scrolls off the viewport. As the visitor
+      scrolls, the hero content fades + rises (opacity 1→0,
+      y 0→−40) and the photo settles 1→0.96 — the hero *retires*
+      in step with its departure instead of vanishing early.
+      The first version used the global scrollY over [0, 400]px,
+      but the hero is 88vh tall (~700px on a phone), so the fade
+      finished while the hero's space was still mostly on screen
+      and left a large blank area (Tamim confirmed on his phone).
       Transform-only, no layout work. Under reduced motion the
       ranges are constant, so the values are static (the hooks
       stay unconditional). A restored mid-page position simply
       renders the hero already retired, which is correct. The
       entrance is untouched — the exit rides the column wrappers,
       the entrance rides the inner elements, so the two never
-      drive the same property on the same element. The range ends
-      before the hero leaves the viewport, so the fade never
-      fights Lenis's anchor landings. */
+      drive the same property on the same element. The scroll cue
+      below still uses the GLOBAL scrollY (first 40px) — it only
+      ever matters at the very top. */
+  const heroRef = useRef(null);
+  const { scrollYProgress: heroExitProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const exitOpacity = useTransform(heroExitProgress, [0, 1], reduceMotion ? [1, 1] : [1, 0]);
+  const exitY = useTransform(heroExitProgress, [0, 1], reduceMotion ? [0, 0] : [0, -40]);
+  const photoScale = useTransform(heroExitProgress, [0, 1], reduceMotion ? [1, 1] : [1, 0.96]);
   const { scrollY } = useScroll();
-  const exitOpacity = useTransform(scrollY, [0, 400], reduceMotion ? [1, 1] : [1, 0]);
-  const exitY = useTransform(scrollY, [0, 400], reduceMotion ? [0, 0] : [0, -40]);
-  const photoScale = useTransform(scrollY, [0, 400], reduceMotion ? [1, 1] : [1, 0.96]);
 
   /* ── Scroll cue (anim #6): "Scroll" label + animated chevron,
       centred at the hero's bottom edge, fading out over the first
@@ -318,6 +332,7 @@ export function HeroSection() {
     return (
       <section
         id="hero"
+        ref={heroRef}
         className="relative flex min-h-[88vh] flex-col justify-center py-20 sm:min-h-[85vh] sm:py-24"
       >
         {/* Faint cyan glow behind the hero — depth, not decoration. */}
@@ -365,6 +380,7 @@ export function HeroSection() {
   return (
     <section
       id="hero"
+      ref={heroRef}
       className="relative flex min-h-[88vh] flex-col justify-center py-20 sm:min-h-[85vh] sm:py-24"
     >
       <div className="pointer-events-none absolute inset-0 bg-hero-glow" aria-hidden />

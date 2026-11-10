@@ -87,11 +87,17 @@ import { FitImage } from './FitImage';
  *   browser starts a native image drag and fires pointercancel
  *   after the first move. Both are scoped to navigation
  *   (touch-none) / harmless no-ops (draggable) for the hero.
- * - Pinch + double-tap zoom (touch, 2026-11-09): pinch with two
- *   fingers scales the zoom continuously, clamped [1, 2] like
- *   desktop; double-tap toggles 1 ↔ 2 (and resets the pan).
- *   The hero stays centre-zoom only, no pan; the project
- *   variant pans while zoomed (see the pan note below).
+ * - Pinch + double-tap zoom (touch, 2026-11-09; gallery feel
+ *   fix 2026-11-10): pinch with two fingers scales the zoom
+ *   continuously, clamped [1, 4] for project screenshots ([1, 2]
+ *   for the hero, whose 880px source caps it); double-tap toggles
+ *   1 ↔ 2 (and resets the pan). While a pinch is active the zoom
+ *   transition is OFF, so the scale tracks the fingers 1:1, and
+ *   the zoom anchors on the pinch MIDPOINT — the pan is
+ *   recomputed so the content under the fingers stays under them
+ *   instead of drifting away from a centre-only scale. The hero
+ *   stays centre-zoom only, no pan; the project variant pans
+ *   while zoomed (see the pan note below).
  *   The photo div is `touch-none` ALWAYS now (pinch needs it on
  *   the hero photo too, or the browser takes over the touch stream
  *   and fires pointercancel mid-pinch — the same gotcha as the
@@ -126,8 +132,8 @@ import { FitImage } from './FitImage';
  *   navigate instantly, with no drag animation.
  * - Pan while zoomed (project screenshots only, 2026-11-10):
  *   at zoom > 1 a drag moves WITHIN the same photo (pan) instead
- *   of navigating — the photo's edges can be reached at 2x, like
- *   a phone gallery. The pan is clamped so an image edge never
+ *   of navigating — the photo's edges can be reached at up to 4x,
+ *   like a phone gallery. The pan is clamped so an image edge never
  *   passes the frame edge (|pan| <= (zoom-1)/2 * frame size, so
  *   at zoom 1 the pan is 0 and the drag navigates as before).
  *   The pan resets to (0, 0) on every navigation and whenever
@@ -235,6 +241,12 @@ export function PhotoLightbox({
   /* Desktop zoom state. The component remounts on every open, so zoom
      always starts at 1 — no reset needed. */
   const [zoom, setZoom] = useState(1);
+  /* Max zoom: the rect variant (project screenshots) goes to 4x —
+     the live sources are 1011–3840px wide displayed at ~360px on
+     a phone, so 4x stays at or below native sharpness (worst case
+     ~1.14x upscale on the smallest 1011px source). The circle
+     (hero portrait, 880px source) stays at 2x — its quality cap. */
+  const maxZoom = shape === 'rect' ? 4 : 2;
   /* Pan while zoomed (project lightbox only): the zoomed photo's
      offset inside its frame, in frame pixels — applied to the same
      inner wrapper as the zoom scale (translate + scale). It is 0
@@ -245,6 +257,12 @@ export function PhotoLightbox({
      instead of lagging 200 ms behind it. */
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
+  /* `pinching` is the pinch in progress: while it is true the zoom
+     transition is off (see the render), so the scale tracks the
+     fingers 1:1 instead of lagging 200 ms behind them — the same
+     treatment `panning` already gets. Discrete zoom steps (click,
+     double-tap) keep the 200 ms transition. */
+  const [pinching, setPinching] = useState(false);
   /* Zoom needs a mouse: evaluated on mount (i.e. on open), per the
      live pointer. Headless Chrome reports (pointer: none), so zoom
      tests must run in headed Chrome under Xvfb. */
@@ -409,11 +427,26 @@ export function PhotoLightbox({
     if (pointersRef.current.size === 2) {
       const ids = [...pointersRef.current.keys()];
       const [a, b] = [...pointersRef.current.values()];
+      /* The pinch anchors on its midpoint: the frame rect (cached
+         here — the frame does not move during a pinch) and the pan
+         at pinch start, so each move can keep the content under
+         the fingers fixed (see onPhotoPointerMove). */
+      const frameRect = containerRef.current?.getBoundingClientRect();
       pinchRef.current = {
         ids,
         startDist: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)),
         startZoom: zoom,
+        startPan: pan,
+        frame: frameRect
+          ? {
+              cx: frameRect.left + frameRect.width / 2,
+              cy: frameRect.top + frameRect.height / 2,
+              width: frameRect.width,
+              height: frameRect.height,
+            }
+          : null,
       };
+      setPinching(true);
       swipedRef.current = true;
       downPointRef.current = null;
       doubleTapRef.current = false;
@@ -467,16 +500,41 @@ export function PhotoLightbox({
     pt.x = e.clientX;
     pt.y = e.clientY;
     /* Pinch: two pointers down — scale the zoom by the finger
-       distance relative to the pinch start, clamped [1, 2]. */
+       distance relative to the pinch start, clamped [1, maxZoom].
+       The zoom tracks the fingers 1:1 (the transition is off
+       while pinching — see `pinching`). For the project lightbox
+       the zoom also anchors on the pinch MIDPOINT: the pan is
+       recomputed from the pinch-start pan so the content under
+       the midpoint stays under it as the fingers spread
+       (pan' = mid − (z2/z1)·(mid − pan0), clamped to the new
+       zoom) instead of drifting away from a centre-only scale.
+       The hero circle stays centre-only with no pan. */
     if (pinchRef.current) {
       const [id1, id2] = pinchRef.current.ids;
       const a = pointersRef.current.get(id1);
       const b = pointersRef.current.get(id2);
       if (a && b) {
         const dist = Math.hypot(b.x - a.x, b.y - a.y);
-        setZoom(
-          Math.min(2, Math.max(1, (pinchRef.current.startZoom * dist) / pinchRef.current.startDist))
+        const nextZoom = Math.min(
+          maxZoom,
+          Math.max(1, (pinchRef.current.startZoom * dist) / pinchRef.current.startDist)
         );
+        setZoom(nextZoom);
+        const pinch = pinchRef.current;
+        if (canNavigate && pinch.frame) {
+          const midX = (a.x + b.x) / 2 - pinch.frame.cx;
+          const midY = (a.y + b.y) / 2 - pinch.frame.cy;
+          const ratio = nextZoom / pinch.startZoom;
+          setPan(
+            clampPan(
+              midX - ratio * (midX - pinch.startPan.x),
+              midY - ratio * (midY - pinch.startPan.y),
+              nextZoom,
+              pinch.frame.width,
+              pinch.frame.height
+            )
+          );
+        }
       }
       return;
     }
@@ -547,6 +605,7 @@ export function PhotoLightbox({
        its release click is suppressed by swipedRef. */
     if (pinchRef.current?.ids.includes(e.pointerId)) {
       pinchRef.current = null;
+      setPinching(false);
       return;
     }
     const p = downPointRef.current;
@@ -630,6 +689,7 @@ export function PhotoLightbox({
     pointersRef.current.delete(e.pointerId);
     if (pinchRef.current?.ids.includes(e.pointerId)) {
       pinchRef.current = null;
+      setPinching(false);
     }
     if (downPointRef.current?.pointerId === e.pointerId) {
       downPointRef.current = null;
@@ -690,17 +750,17 @@ export function PhotoLightbox({
       tapTimerRef.current = setTimeout(onClose, DOUBLE_TAP_DELAY);
       return;
     }
-    setZoom((z) => (z >= 2 ? 1 : Math.min(2, z + 0.5)));
+    setZoom((z) => (z >= maxZoom ? 1 : Math.min(maxZoom, z + 0.5)));
   };
 
-  /* Desktop: wheel on the photo zooms continuously, clamped [1, 2].
+  /* Desktop: wheel on the photo zooms continuously, clamped [1, maxZoom].
      Wheel down at 1x does nothing — it stays open, never closes by
      accident. No preventDefault needed: body scroll is locked while
      the lightbox is open, so the wheel has nothing to scroll. */
   const onPhotoWheel = (e) => {
     if (!finePointer) return;
     e.stopPropagation();
-    setZoom((z) => Math.min(2, Math.max(1, z - e.deltaY * 0.002)));
+    setZoom((z) => Math.min(maxZoom, Math.max(1, z - e.deltaY * 0.002)));
   };
 
   /* Lightbox-appropriate sizes so the browser picks 480/800/880w as
@@ -853,7 +913,7 @@ export function PhotoLightbox({
              close still works — it is a click, which touch-action
              does not affect — and body scroll is locked while the
              lightbox is open, so the hero loses nothing. */
-          className={`${photoFrameClass} ${canNavigate ? '' : zoomTransition} touch-none`}
+          className={`${photoFrameClass} ${canNavigate ? '' : pinching ? '' : zoomTransition} touch-none`}
         >
           {canNavigate ? (
             /* Drag track: three cells in a row — previous /
@@ -878,7 +938,7 @@ export function PhotoLightbox({
             <motion.div style={{ x: trackX, marginLeft: '-100%' }} className="flex h-full w-full">
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  className={`h-full w-full ${panning || pinching ? '' : zoomTransition}`}
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                   }}
@@ -888,7 +948,7 @@ export function PhotoLightbox({
               </div>
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  className={`h-full w-full ${panning || pinching ? '' : zoomTransition}`}
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                   }}
@@ -898,7 +958,7 @@ export function PhotoLightbox({
               </div>
               <div className="h-full w-full shrink-0 overflow-hidden">
                 <div
-                  className={`h-full w-full ${panning ? '' : zoomTransition}`}
+                  className={`h-full w-full ${panning || pinching ? '' : zoomTransition}`}
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                   }}
