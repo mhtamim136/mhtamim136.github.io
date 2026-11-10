@@ -318,6 +318,39 @@
     }
   }
 
+  /* Nav-link hover — subtle lift, soft translucent pill, accent
+     icon. Same declarations Tailwind generated for the old hover:
+     variants, so the desktop mouse feel is identical; only the
+     gate is new. Gated on (hover: hover) and (pointer: fine):
+     on touch :hover sticks on the tapped link until the next tap,
+     and the stuck hover (bg-glass 0.06 + accent) is visually
+     near-identical to the travelling active pill (bg-glass 0.07 +
+     ring), so it read as a second highlight next to the
+     spy-driven pill. Touch taps get no hover highlight at all —
+     the travelling pill is the only highlight. */
+  @media (hover: hover) and (pointer: fine) {
+    .nav-item-hover:hover {
+      --tw-translate-y: -0.25rem;
+      --tw-scale-x: 1.07;
+      --tw-scale-y: 1.07;
+      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+      background-color: rgb(var(--glass) / 0.06);
+      --tw-text-opacity: 1;
+      color: rgb(var(--accent) / var(--tw-text-opacity, 1));
+    }
+  }
+  /* Reduced motion kills the hover lift/scale, as before — the bg
+     + accent still apply. Placed after the hover block so the
+     neutral values win at equal specificity. */
+  @media (prefers-reduced-motion: reduce) {
+    .nav-item-hover:hover {
+      --tw-translate-y: 0px;
+      --tw-scale-x: 1;
+      --tw-scale-y: 1;
+      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+    }
+  }
+
   /* Thin gradient divider between sections */
   .section-divider {
     height: 1px;

@@ -28,9 +28,13 @@ const iconProps = {
 const navItemBase =
   'relative flex shrink-0 items-center justify-center rounded-xl p-3 transition-all duration-300 ease-out sm:p-3';
 
-/** Hover: subtle lift, soft translucent pill — glass-friendly */
-const navItemHover =
-  'hover:-translate-y-1 hover:scale-[1.07] hover:bg-glass/[0.06] hover:text-accent motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100';
+/** Hover: subtle lift, soft translucent pill — glass-friendly.
+    The look lives in index.css (.nav-item-hover), gated to
+    hover-capable devices: on touch :hover sticks on the tapped
+    link until the next tap, and the stuck hover pill (bg 0.06 +
+    accent) is near-identical to the travelling active pill, so it
+    read as a second highlight next to the spy-driven pill. */
+const navItemHover = 'nav-item-hover';
 
 /** Active section: visible translucent pill in both themes */
 const navItemActive =
