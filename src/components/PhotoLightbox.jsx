@@ -26,8 +26,12 @@ import { FitImage } from './FitImage';
  *   Wheel on the photo zooms continuously, clamped [1, 2]. Click or
  *   wheel on the BACKDROP closes (zoom out to normal = back to the hero
  *   view). Escape closes. Pan while zoomed (2026-11-11): a drag
- *   moves the photo inside the fixed circle, clamped so the photo
+ *   moves the photo inside the circle, clamped so the photo
  *   always covers it — the centre is no longer the only view.
+ *   The circle GROWS with the zoom (2026-11-11, half rate —
+ *   1.5x at 2x zoom), so the zoomed photo feels big like the
+ *   original design, while the photo stays bigger than the
+ *   circle and the pan keeps working.
  * - MAX ZOOM 2 is a quality cap: the source photo is 880px wide, the
  *   circle displays at ~560px, so 2x renders ~1120px from an 880px
  *   source (mild 1.27x upscale, acceptable). Beyond 2x it would
@@ -63,8 +67,9 @@ import { FitImage } from './FitImage';
  *   Same zoom, same close behaviour (tap closes on touch, click
  *   zooms on desktop), same Tab cycle. The circle stays the
  *   default — the hero portrait keeps its face-filling cover
- *   crop; its zoom moved from the frame to an inner wrapper
- *   (2026-11-11, so a drag can pan it) at the same 2x cap.
+ *   crop; its zoom is split between the frame (half rate) and
+ *   an inner wrapper (the rest), so the photo's on-screen size
+ *   is exactly zoom x the circle (2026-11-11) at the same 2x cap.
  * - Keyboard navigation (project screenshots only, 2026-11-09):
  *   when `images` + `index` + `onNavigate` are passed, ArrowLeft /
  *   ArrowRight move to the previous / next screenshot (wrapping
@@ -139,16 +144,24 @@ import { FitImage } from './FitImage';
  *   same photo (pan) instead of navigating — the photo's edges
  *   can be reached at up to 4x (project) / 2x (hero), like a
  *   phone gallery. The pan is clamped so an image edge never
- *   passes the frame edge (|pan| <= (zoom-1)/2 * frame size, so
- *   at zoom 1 the pan is 0 and the drag navigates as before).
- *   The hero frame is square, so the same formula covers its
- *   circle — the square clamp is conservative for the inscribed
- *   circle, and no empty background can ever show inside it.
+ *   passes the frame edge. For the project rectangle the photo
+ *   is zoom x the frame, so |pan| <= (zoom-1)/2 * frame size
+ *   (at zoom 1 the pan is 0 and the drag navigates as before).
+ *   For the hero the frame itself grows at half the zoom rate
+ *   (frameScale = 1 + (zoom-1)/2, so 1.5x at 2x zoom) while the
+ *   photo stays zoom x the ORIGINAL circle — the slack is
+ *   (zoom - frameScale) * D, so |pan| <= (zoom - frameScale)
+ *   * D / (2 * frameScale) in inner-wrapper units (the frame's
+ *   scale multiplies the pan on screen). The hero frame is
+ *   square, so the same formula covers its circle — the square
+ *   clamp is conservative for the inscribed circle, and no
+ *   empty background can ever show inside it.
  *   The pan resets to (0, 0) on every navigation and whenever
- *   the zoom returns to 1. The hero zoom now lives on an inner
- *   wrapper inside the fixed circle (it used to scale the whole
- *   frame); the photo renders at the same size at each zoom
- *   step, only the clip boundary changed — circle, not viewport.
+ *   the zoom returns to 1. The hero zoom is split: the frame
+ *   grows at half rate and the inner wrapper carries the rest
+ *   (zoom / frameScale), so the photo renders at the same
+ *   on-screen size as the fixed-circle version at each zoom
+ *   step — only the circle grows around it.
  */
 /* Touch tap timing: a single tap waits this long before closing, so
    a second tap landing nearby can still be recognised as a
@@ -157,15 +170,23 @@ import { FitImage } from './FitImage';
    first to count. */
 const DOUBLE_TAP_DELAY = 250; /* ms */
 const DOUBLE_TAP_SLOP = 30; /* px */
-/* Pan clamp (project lightbox only): the zoomed photo may move
-   only far enough to bring an edge into view — never past it.
-   The inner wrapper is frame-sized and scales about its centre,
-   so at zoom z it overhangs the frame by (z-1)/2 * frame size on
-   every side; that overhang is the max pan. At zoom 1 the max is
-   0, so the pan is 0 and a drag navigates instead of panning. */
-const clampPan = (x, y, zoom, width, height) => {
-  const maxX = ((zoom - 1) / 2) * width;
-  const maxY = ((zoom - 1) / 2) * height;
+/* Pan clamp: the zoomed photo may move only far enough to bring
+   an edge into view — never past it. `frameScale` is the frame's
+   own scale (1 for the project rectangle; 1 + (zoom-1)/2 for the
+   hero circle, whose frame grows at half the zoom rate). The
+   photo is zoom x the unscaled frame on screen while the frame
+   is frameScale x, so the slack is (zoom - frameScale) x size
+   and the max pan in inner-wrapper units is that slack halved
+   and divided by frameScale (the frame's scale multiplies the
+   pan on screen). At zoom 1 the max is 0, so the pan is 0 and a
+   drag navigates instead of panning. `width`/`height` are the
+   UNSCALED frame size — callers pass offsetWidth /
+   offsetHeight, never a getBoundingClientRect (which includes
+   the frame's scale; the rect frame never scales, so its rect
+   is already unscaled). */
+const clampPan = (x, y, zoom, width, height, frameScale = 1) => {
+  const maxX = (((zoom - frameScale) / 2) * width) / frameScale;
+  const maxY = (((zoom - frameScale) / 2) * height) / frameScale;
   return {
     x: Math.max(-maxX, Math.min(maxX, x)),
     y: Math.max(-maxY, Math.min(maxY, y)),
@@ -257,9 +278,24 @@ export function PhotoLightbox({
      ~1.14x upscale on the smallest 1011px source). The circle
      (hero portrait, 880px source) stays at 2x — its quality cap. */
   const maxZoom = shape === 'rect' ? 4 : 2;
+  /* Frame growth (hero circle only, 2026-11-11): the circle grows
+     at HALF the zoom rate — 1x at zoom 1, 1.25x at 1.5x, 1.5x at
+     2x — so the zoomed photo feels big like the original design
+     while the photo (zoom x the original circle on screen) stays
+     bigger than the frame and the pan keeps working. The project
+     rectangle never grows (its zoom lives in the track cells). */
+  const frameScale = shape === 'circle' ? 1 + (zoom - 1) * 0.5 : 1;
+  /* The inner wrapper's scale: transforms multiply, so the frame's
+     scale(frameScale) also scales everything inside it — the
+     wrapper must carry zoom / frameScale (1.333 at zoom 2) for the
+     photo to land at exactly zoom x on screen. */
+  const innerScale = zoom / frameScale;
   /* Pan while zoomed (both variants): the zoomed photo's
-     offset inside its frame, in frame pixels — applied to the same
-     inner wrapper as the zoom scale (translate + scale). It is 0
+     offset inside its frame, in INNER-WRAPPER pixels — applied to
+     the same inner wrapper as the zoom scale (translate + scale).
+     The frame's scale multiplies it on screen, so a screen drag
+     of dx moves the pan by dx / frameScale (see the move
+     handler). It is 0
      whenever zoom is 1 (the zoom-change effect below guarantees
      it), so navigation drags at zoom 1 are unaffected. `panning`
      is the gesture in progress: while it is true the zoom
@@ -318,13 +354,21 @@ export function PhotoLightbox({
      functional update returns the previous object unchanged when
      already in bounds, so no extra render happens. */
   useEffect(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    /* Unscaled size on purpose: the hero frame now carries
+       scale(frameScale), so its getBoundingClientRect is the
+       SCALED size — offsetWidth/offsetHeight are transform-
+       ignorant and give the layout size D the clamp needs.
+       (For the rect frame, which never scales, they are the
+       same values as the rect, up to sub-pixel rounding.) */
+    const el = containerRef.current;
+    if (!el) return;
+    const width = el.offsetWidth;
+    const height = el.offsetHeight;
     setPan((prev) => {
-      const next = clampPan(prev.x, prev.y, zoom, rect.width, rect.height);
+      const next = clampPan(prev.x, prev.y, zoom, width, height, frameScale);
       return next.x === prev.x && next.y === prev.y ? prev : next;
     });
-  }, [zoom]);
+  }, [zoom, frameScale]);
 
   /* Focus moves into the dialog on open and body scroll locks while
      open; both are restored on unmount. Mount-only: navigating
@@ -486,11 +530,14 @@ export function PhotoLightbox({
        follow + pan); the hero measures only while zoomed, when
        a drag pans (at zoom 1 a hero drag does nothing). The
        drag latches as a horizontal drag — or, while zoomed, as
-       a pan — in the move handler. */
+       a pan — in the move handler. offsetWidth/offsetHeight on
+       purpose: the hero frame now carries scale(frameScale),
+       so its getBoundingClientRect is the SCALED size — the
+       clamp and the commit threshold need the unscaled D. */
     if (canNavigate || zoom > 1) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const width = rect?.width ?? 0;
-      const height = rect?.height ?? 0;
+      const el = containerRef.current;
+      const width = el?.offsetWidth ?? 0;
+      const height = el?.offsetHeight ?? 0;
       dragRef.current = width > 0 ? { width, height } : null;
       draggingRef.current = false;
     }
@@ -573,8 +620,9 @@ export function PhotoLightbox({
        only): once the gesture is horizontal-dominant, the track
        follows the finger 1:1, clamped to one container width
        either way. For the hero circle the pan moves the photo
-       inside the fixed circle (same clamp); at zoom 1 a hero
-       drag does nothing. Either latch marks the gesture a drag
+       inside the growing circle (same clamp, re-derived for the
+       frame scale); at zoom 1 a hero drag does nothing. Either
+       latch marks the gesture a drag
        (swipedRef), so the release click is suppressed even for a
        short drag — otherwise it would be followed by a close
        (touch) or a zoom (desktop). A drag in flight while a
@@ -594,7 +642,21 @@ export function PhotoLightbox({
         if (panningRef.current && panDragRef.current) {
           const { width, height } = dragRef.current;
           const { startPanX, startPanY } = panDragRef.current;
-          setPan(clampPan(startPanX + dx, startPanY + dy, zoom, width, height));
+          /* 1:1 with the finger: dx/dy are screen pixels, but the
+             pan lives in inner-wrapper units and the frame's scale
+             multiplies it on screen — so the drag is divided by
+             frameScale (1 for the rect variant, so it is unchanged
+             there). The clamp takes the same frameScale. */
+          setPan(
+            clampPan(
+              startPanX + dx / frameScale,
+              startPanY + dy / frameScale,
+              zoom,
+              width,
+              height,
+              frameScale
+            )
+          );
         }
       } else if (canNavigate) {
         if (!draggingRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= DRAG_LATCH) {
@@ -788,12 +850,17 @@ export function PhotoLightbox({
      variant. */
   const lightboxSizes = '(max-width: 640px) 92vw, 560px';
 
-  /* The circle: fixed diameter min(92vw, 80vh, 560px), overflow-hidden
-     so the cover crop is a true circle. The img fills the square with
-     object-cover + center 20% — the same crop as the avatar. Zoom is
-     a plain scale() on this div (NOT on the motion.div above — Framer
-     Motion owns that element's transform for the open animation, and
-     nested transforms compose). Zoom transition 0.2s; instant under
+  /* The circle: fixed diameter min(92vw, 80vh, 560px) at zoom 1,
+     overflow-hidden so the cover crop is a true circle. The img
+     fills the square with object-cover + center 20% — the same
+     crop as the avatar. The frame GROWS with the zoom at half
+     rate (scale(frameScale) on this div, about its centre —
+     1.5x at 2x zoom) and the inner wrapper carries the rest of
+     the zoom (zoom / frameScale), so the photo lands at exactly
+     zoom x on screen; the two scales multiply. (NOT on the
+     motion.div above — Framer Motion owns that element's
+     transform for the open animation, and nested transforms
+     compose.) Zoom transition 0.2s on both; instant under
      reduced motion.
      The rectangle (project screenshots): 16:9, up to 900px wide,
      centred crop — a screenshot is not a face, so the 20% headroom
@@ -920,13 +987,13 @@ export function PhotoLightbox({
           onPointerMove={onPhotoPointerMove}
           onPointerUp={onPhotoPointerUp}
           onPointerCancel={onPhotoPointerCancel}
-          /* The zoom lives on an inner wrapper inside the frame
-             (hero, below) or inside each track cell (project) —
-             the frame itself never scales, so a drag can pan the
-             photo within it. The hero circle stays fixed while
-             the photo inside magnifies; the face renders at the
-             same size as before at each zoom step, only the clip
-             boundary is the circle instead of the viewport. */
+          /* The hero zoom is split: the frame grows at half rate
+             (scale(frameScale) below) and the inner wrapper
+             carries the rest (zoom / frameScale), so the photo
+             lands at exactly zoom x on screen while the circle
+             grows around it — and a drag can still pan the photo
+             within the growing circle. The project zoom lives
+             inside each track cell (the rect frame never scales). */
           /* touch-none ALWAYS now: without it the browser takes
              over the touch stream for panning and fires
              pointercancel mid-swipe or mid-pinch, so pointerup
@@ -934,7 +1001,13 @@ export function PhotoLightbox({
              close still works — it is a click, which touch-action
              does not affect — and body scroll is locked while the
              lightbox is open, so the hero loses nothing. */
-          className={`${photoFrameClass} touch-none`}
+          /* Hero only: the frame itself grows at half the zoom
+             rate (scale(frameScale), about its centre — the
+             transition animates it like the inner zoom, and is
+             off while panning/pinching so the scale tracks the
+             fingers 1:1). The rect frame never scales. */
+          style={canNavigate ? undefined : { transform: `scale(${frameScale})` }}
+          className={`${photoFrameClass} ${canNavigate ? '' : panning || pinching ? '' : zoomTransition} touch-none`}
         >
           {canNavigate ? (
             /* Drag track: three cells in a row — previous /
@@ -990,15 +1063,17 @@ export function PhotoLightbox({
             </motion.div>
           ) : (
             /* Hero circle: the photo sits in an inner wrapper
-               that carries the zoom + pan (translate + scale,
-               about the centre) — the same pattern as the
-               project cells above. The fixed circle clips it,
-               so a drag pans the photo inside the circle while
-               the circle itself stays put. */
+               that carries the pan + the REST of the zoom
+               (translate + scale(zoom / frameScale), about the
+               centre) — the frame itself carries the first half
+               of the zoom (scale(frameScale)), and the two
+               multiply to exactly zoom x on screen. The growing
+               circle clips it, so a drag pans the photo inside
+               the circle while the circle grows around it. */
             <div
               className={`h-full w-full ${panning || pinching ? '' : zoomTransition}`}
               style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${innerScale})`,
               }}
             >
               {photo}
