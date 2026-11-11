@@ -25,8 +25,9 @@ import { FitImage } from './FitImage';
  *   max the next click resets to 1, so the user is never stuck zoomed).
  *   Wheel on the photo zooms continuously, clamped [1, 2]. Click or
  *   wheel on the BACKDROP closes (zoom out to normal = back to the hero
- *   view). Escape closes. NO pan/drag while zoomed — centre zoom only;
- *   for a face portrait the centre IS the face.
+ *   view). Escape closes. Pan while zoomed (2026-11-11): a drag
+ *   moves the photo inside the fixed circle, clamped so the photo
+ *   always covers it — the centre is no longer the only view.
  * - MAX ZOOM 2 is a quality cap: the source photo is 880px wide, the
  *   circle displays at ~560px, so 2x renders ~1120px from an 880px
  *   source (mild 1.27x upscale, acceptable). Beyond 2x it would
@@ -61,8 +62,9 @@ import { FitImage } from './FitImage';
  *   a tall or small screenshot is never cropped or over-zoomed).
  *   Same zoom, same close behaviour (tap closes on touch, click
  *   zooms on desktop), same Tab cycle. The circle stays the
- *   default — the hero portrait is untouched (its cover crop
- *   and frame zoom are exactly as before).
+ *   default — the hero portrait keeps its face-filling cover
+ *   crop; its zoom moved from the frame to an inner wrapper
+ *   (2026-11-11, so a drag can pan it) at the same 2x cap.
  * - Keyboard navigation (project screenshots only, 2026-11-09):
  *   when `images` + `index` + `onNavigate` are passed, ArrowLeft /
  *   ArrowRight move to the previous / next screenshot (wrapping
@@ -96,8 +98,9 @@ import { FitImage } from './FitImage';
  *   the zoom anchors on the pinch MIDPOINT — the pan is
  *   recomputed so the content under the fingers stays under them
  *   instead of drifting away from a centre-only scale. The hero
- *   stays centre-zoom only, no pan; the project variant pans
- *   while zoomed (see the pan note below).
+ *   pinch stays centre-anchored (no midpoint pan — the drag pan
+ *   covers that); the project variant pans while zoomed and
+ *   anchors its pinch on the midpoint (see the pan note below).
  *   The photo div is `touch-none` ALWAYS now (pinch needs it on
  *   the hero photo too, or the browser takes over the touch stream
  *   and fires pointercancel mid-pinch — the same gotcha as the
@@ -127,18 +130,25 @@ import { FitImage } from './FitImage';
  *   slot, and the neighbour then paints over the current
  *   photo's half (the 2026-11-09 zoom bug: wheel-zoom to 2x
  *   showed the next slide on the right half of the frame).
- *   The hero portrait has no track — a drag there does nothing,
- *   as before. Keyboard arrows and the prev/next buttons still
+ *   The hero portrait has no track — at zoom 1 a drag there still
+ *   does nothing; while zoomed a drag pans (see the pan note
+ *   below). Keyboard arrows and the prev/next buttons still
  *   navigate instantly, with no drag animation.
- * - Pan while zoomed (project screenshots only, 2026-11-10):
- *   at zoom > 1 a drag moves WITHIN the same photo (pan) instead
- *   of navigating — the photo's edges can be reached at up to 4x,
- *   like a phone gallery. The pan is clamped so an image edge never
+ * - Pan while zoomed (project screenshots 2026-11-10; hero
+ *   circle 2026-11-11): at zoom > 1 a drag moves WITHIN the
+ *   same photo (pan) instead of navigating — the photo's edges
+ *   can be reached at up to 4x (project) / 2x (hero), like a
+ *   phone gallery. The pan is clamped so an image edge never
  *   passes the frame edge (|pan| <= (zoom-1)/2 * frame size, so
  *   at zoom 1 the pan is 0 and the drag navigates as before).
+ *   The hero frame is square, so the same formula covers its
+ *   circle — the square clamp is conservative for the inscribed
+ *   circle, and no empty background can ever show inside it.
  *   The pan resets to (0, 0) on every navigation and whenever
- *   the zoom returns to 1. The hero portrait is unchanged —
- *   centre zoom only, no pan.
+ *   the zoom returns to 1. The hero zoom now lives on an inner
+ *   wrapper inside the fixed circle (it used to scale the whole
+ *   frame); the photo renders at the same size at each zoom
+ *   step, only the clip boundary changed — circle, not viewport.
  */
 /* Touch tap timing: a single tap waits this long before closing, so
    a second tap landing nearby can still be recognised as a
@@ -213,7 +223,7 @@ export function PhotoLightbox({
   const draggingRef = useRef(false);
   const animatingRef = useRef(false);
   const trackAnimRef = useRef(null);
-  /* Pan tracking (project lightbox only, zoom > 1): panningRef
+  /* Pan tracking (zoom > 1, both variants): panningRef
      latches once the gesture is a pan; panDragRef holds the pan
      at the latch, so each move is start + delta (clamped) rather
      than an accumulation. The pan VALUE is state (below) — these
@@ -247,7 +257,7 @@ export function PhotoLightbox({
      ~1.14x upscale on the smallest 1011px source). The circle
      (hero portrait, 880px source) stays at 2x — its quality cap. */
   const maxZoom = shape === 'rect' ? 4 : 2;
-  /* Pan while zoomed (project lightbox only): the zoomed photo's
+  /* Pan while zoomed (both variants): the zoomed photo's
      offset inside its frame, in frame pixels — applied to the same
      inner wrapper as the zoom scale (translate + scale). It is 0
      whenever zoom is 1 (the zoom-change effect below guarantees
@@ -390,9 +400,11 @@ export function PhotoLightbox({
      navigates nowhere (see the routing note in
      onPhotoPointerMove). The drag leaves swipedRef true so the
      click that follows the drag is suppressed. Navigation only
-     when canNavigate — for the hero
-     a swipe navigates nowhere and the track never moves, so a
-     drag never closes or zooms by accident.
+     when canNavigate — for the hero a swipe navigates nowhere
+     and the track never moves, so a drag never closes or zooms
+     by accident. For the hero the zoomed drag pans instead (see
+     the pan note in the file header); at zoom 1 a hero drag
+     still does nothing.
      A second pointer down starts a PINCH instead: the finger
      distance and the zoom at that moment are recorded, and the
      zoom then tracks the distance ratio, clamped [1, 2] like
@@ -468,11 +480,14 @@ export function PhotoLightbox({
     /* One pointer — the single-pointer behaviour. */
     downPointRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
     swipedRef.current = false;
-    /* Drag setup (project lightbox only): measure the frame once —
-       the commit threshold is a third of this width, and the pan
-       clamp needs the height too. The drag latches as a horizontal
-       drag — or, while zoomed, as a pan — in the move handler. */
-    if (canNavigate) {
+    /* Drag setup: measure the frame once — the commit threshold
+       is a third of this width, and the pan clamp needs the
+       height too. The project lightbox always measures (drag-
+       follow + pan); the hero measures only while zoomed, when
+       a drag pans (at zoom 1 a hero drag does nothing). The
+       drag latches as a horizontal drag — or, while zoomed, as
+       a pan — in the move handler. */
+    if (canNavigate || zoom > 1) {
       const rect = containerRef.current?.getBoundingClientRect();
       const width = rect?.width ?? 0;
       const height = rect?.height ?? 0;
@@ -508,7 +523,7 @@ export function PhotoLightbox({
        the midpoint stays under it as the fingers spread
        (pan' = mid − (z2/z1)·(mid − pan0), clamped to the new
        zoom) instead of drifting away from a centre-only scale.
-       The hero circle stays centre-only with no pan. */
+       The hero pinch stays centre-anchored (no midpoint pan). */
     if (pinchRef.current) {
       const [id1, id2] = pinchRef.current.ids;
       const a = pointersRef.current.get(id1);
@@ -550,20 +565,23 @@ export function PhotoLightbox({
       doubleTapRef.current = false;
       clearTapTimer();
     }
-    /* Drag routing (project lightbox only). While zoomed, a drag
-       PANS within the same photo — the pan follows the finger
-       1:1, clamped so an edge never passes the frame; the track
+    /* Drag routing. While zoomed, a drag PANS within the same
+       photo — the pan follows the finger 1:1, clamped so an edge
+       never passes the frame; for the project lightbox the track
        stays at 0 and the release navigates nowhere. At zoom 1
-       the same drag is the gallery drag-follow: once the gesture
-       is horizontal-dominant, the track follows the finger 1:1,
-       clamped to one container width either way. Either latch
-       marks the gesture a drag (swipedRef), so the release click
-       is suppressed even for a short drag — otherwise it would
-       be followed by a close (touch) or a zoom (desktop). A
-       drag in flight while a commit/spring-back animation runs
-       is ignored. The mode is fixed at latch time by the zoom
-       then; a wheel zoom mid-drag does not switch modes. */
-    if (canNavigate && dragRef.current && !pinchRef.current && !animatingRef.current) {
+       the same drag is the gallery drag-follow (project lightbox
+       only): once the gesture is horizontal-dominant, the track
+       follows the finger 1:1, clamped to one container width
+       either way. For the hero circle the pan moves the photo
+       inside the fixed circle (same clamp); at zoom 1 a hero
+       drag does nothing. Either latch marks the gesture a drag
+       (swipedRef), so the release click is suppressed even for a
+       short drag — otherwise it would be followed by a close
+       (touch) or a zoom (desktop). A drag in flight while a
+       commit/spring-back animation runs is ignored. The mode is
+       fixed at latch time by the zoom then; a wheel zoom
+       mid-drag does not switch modes. */
+    if (dragRef.current && !pinchRef.current && !animatingRef.current) {
       if (zoom > 1) {
         if (!panningRef.current && Math.hypot(dx, dy) >= DRAG_LATCH) {
           panningRef.current = true;
@@ -578,7 +596,7 @@ export function PhotoLightbox({
           const { startPanX, startPanY } = panDragRef.current;
           setPan(clampPan(startPanX + dx, startPanY + dy, zoom, width, height));
         }
-      } else {
+      } else if (canNavigate) {
         if (!draggingRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= DRAG_LATCH) {
           draggingRef.current = true;
           swipedRef.current = true;
@@ -614,12 +632,12 @@ export function PhotoLightbox({
     /* A commit/spring-back animation already in flight owns the
        track — a second pointerup in that window does nothing. */
     if (animatingRef.current) return;
-    /* Pan release (project lightbox only, zoomed): the pan simply
-       stays where the user left it — no navigation, no
-       spring-back, the track never moved. The release click is
-       still suppressed by swipedRef (set at the pan latch), so a
-       pan never zooms (desktop) or closes (touch) on release. */
-    if (canNavigate && panningRef.current) {
+    /* Pan release (zoomed): the pan simply stays where the user
+       left it — no navigation, no spring-back, the track never
+       moved. The release click is still suppressed by swipedRef
+       (set at the pan latch), so a pan never zooms (desktop) or
+       closes (touch) on release. */
+    if (panningRef.current) {
       panningRef.current = false;
       panDragRef.current = null;
       setPanning(false);
@@ -902,10 +920,13 @@ export function PhotoLightbox({
           onPointerMove={onPhotoPointerMove}
           onPointerUp={onPhotoPointerUp}
           onPointerCancel={onPhotoPointerCancel}
-          /* Hero: the zoom scales the whole frame, exactly as
-             before. Project: the frame stays fixed and the zoom
-             lives on the track's cells instead (see below). */
-          style={canNavigate ? undefined : { transform: `scale(${zoom})` }}
+          /* The zoom lives on an inner wrapper inside the frame
+             (hero, below) or inside each track cell (project) —
+             the frame itself never scales, so a drag can pan the
+             photo within it. The hero circle stays fixed while
+             the photo inside magnifies; the face renders at the
+             same size as before at each zoom step, only the clip
+             boundary is the circle instead of the viewport. */
           /* touch-none ALWAYS now: without it the browser takes
              over the touch stream for panning and fires
              pointercancel mid-swipe or mid-pinch, so pointerup
@@ -913,7 +934,7 @@ export function PhotoLightbox({
              close still works — it is a click, which touch-action
              does not affect — and body scroll is locked while the
              lightbox is open, so the hero loses nothing. */
-          className={`${photoFrameClass} ${canNavigate ? '' : pinching ? '' : zoomTransition} touch-none`}
+          className={`${photoFrameClass} touch-none`}
         >
           {canNavigate ? (
             /* Drag track: three cells in a row — previous /
@@ -968,7 +989,20 @@ export function PhotoLightbox({
               </div>
             </motion.div>
           ) : (
-            photo
+            /* Hero circle: the photo sits in an inner wrapper
+               that carries the zoom + pan (translate + scale,
+               about the centre) — the same pattern as the
+               project cells above. The fixed circle clips it,
+               so a drag pans the photo inside the circle while
+               the circle itself stays put. */
+            <div
+              className={`h-full w-full ${panning || pinching ? '' : zoomTransition}`}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              }}
+            >
+              {photo}
+            </div>
           )}
         </div>
       </motion.div>
