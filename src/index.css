@@ -97,6 +97,17 @@
   --nav-border: rgba(255, 255, 255, 0.12);
   --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  /* Desktop Liquid Glass tint (round 5) — MUCH thinner than the
+     shared --nav-bg, so the page shows through the frost. These
+     vars are consumed ONLY by .nav-glass-desktop (sm+), so the
+     mobile closed pill and overlay top pill keep --nav-bg exactly.
+     Dark 0.07: over the near-black page the pill stays dark enough
+     for the light icons, while glows/cards show through frosted. */
+  --nav-bg-desktop: rgba(15, 18, 25, 0.07);
+  --nav-border-desktop: rgba(255, 255, 255, 0.34);
+  --nav-rim-top: rgb(255 255 255 / 0.38);
+  --nav-rim-bottom: rgb(255 255 255 / 0.16);
 }
 
 /* ─── Light theme ───────────────────────────────────────────────── */
@@ -170,6 +181,18 @@
   --nav-border: rgba(0, 0, 0, 0.08);
   --nav-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04);
   --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* Desktop Liquid Glass tint (round 5) — light. 0.32 white lets
+     the frosted page (grid, chips, headings) show through clearly;
+     the 32px blur (in .nav-glass-desktop) smears scrolling text
+     into an unreadable smudge, which is what protects legibility
+     at this thin tint — the Tier 3 lesson, fixed with blur
+     instead of opacity. Dark icons stay legible on the light
+     frost; the 0.16 dark border gives the pill a crisp edge. */
+  --nav-bg-desktop: rgba(255, 255, 255, 0.32);
+  --nav-border-desktop: rgba(0, 0, 0, 0.16);
+  --nav-rim-top: rgb(255 255 255 / 0.5);
+  --nav-rim-bottom: rgb(0 0 0 / 0.08);
 }
 
 /* ─── Base layer ────────────────────────────────────────────────── */
@@ -387,29 +410,38 @@
     }
   }
 
-  /* Liquid Glass on the DESKTOP pill only (round 4) — the same
-     material language as the mobile overlay menu: stronger frost
-     (24px blur + saturate + brightness), a soft top sheen and a
-     stronger specular rim, so the page shows through the frost
-     like it does on the phone overlay.
+  /* Liquid Glass on the DESKTOP pill only (round 5 — the strong
+     version). Round 4 kept the shared tint (dark 0.2, light 0.75)
+     and was invisible on Tamim's desktop (light pill-crop diff
+     only max 10/255, dark 42/255). This round thins the tint
+     hard (dark 0.07, light 0.32 — the --nav-bg-desktop vars in
+     the theme blocks) and leans on the Liquid Glass mechanism:
+     a MUCH stronger blur (32px) smears the page behind into an
+     unreadable frost, so legibility comes from blur, not opacity;
+     strong specular rims top AND bottom + a pronounced sheen make
+     the glossy capsule read at normal viewing distance, like the
+     reference mockup.
      Scoped to sm+ (min-width: 640px): below that the pill is the
      mobile closed pill (Menu + toggle) and the overlay top pill,
      which must stay pixel-identical to round 3 — .nav-glass itself
-     is untouched. The tint is deliberately NOT thinned: the light
-     --nav-bg is 0.75 because 0.4 let scrolling text show through
-     too clearly (Tier 3 note), and the dark 0.2 already reads
-     translucent; the glass richness comes from blur + sheen + rim.
-     The ::before is the sheen only — white in both themes (like
-     the overlay's sheen), pointer-events none, no layout; it needs
-     the nav to be `relative` (set in Navbar.jsx). */
+     and the shared --nav-bg vars are untouched. The ::before is
+     the sheen only — white in both themes (like the overlay's
+     sheen), pointer-events none, no layout; it needs the nav to
+     be `relative` (set in Navbar.jsx). Geometry is unchanged by
+     construction: only background, border-color, backdrop-filter
+     and box-shadow change here — no width, height, padding,
+     margin or position property is touched. */
   @media (min-width: 640px) {
     .nav-glass-desktop {
-      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.05);
-      backdrop-filter: blur(24px) saturate(180%) brightness(1.05);
+      background: var(--nav-bg-desktop);
+      border-color: var(--nav-border-desktop);
+      -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(1.06);
+      backdrop-filter: blur(32px) saturate(180%) brightness(1.06);
       box-shadow:
         var(--nav-shadow),
         var(--nav-highlight),
-        inset 0 1px 0 rgb(255 255 255 / 0.08);
+        inset 0 1px 0 var(--nav-rim-top),
+        inset 0 -1px 0 var(--nav-rim-bottom);
     }
     .nav-glass-desktop::before {
       content: '';
@@ -418,11 +450,21 @@
       border-radius: inherit;
       background: linear-gradient(
         to bottom,
-        rgb(255 255 255 / 0.12),
-        rgb(255 255 255 / 0.03) 32%,
-        transparent 60%
+        rgb(255 255 255 / 0.32),
+        rgb(255 255 255 / 0.07) 35%,
+        transparent 65%
       );
       pointer-events: none;
+    }
+    /* Desktop hover, a touch stronger than round 4 (0.08 → 0.12)
+       to match the richer glass — still below the active fill
+       (0.16), so hover never reads as a second active pill.
+       Nested hover media: touch gets no hover highlight at all. */
+    @media (hover: hover) and (pointer: fine) {
+      .nav-item-hover:hover {
+        background-color: rgb(var(--glass) / 0.12);
+        box-shadow: inset 0 1px 0 rgb(var(--glass) / 0.12);
+      }
     }
   }
 }
