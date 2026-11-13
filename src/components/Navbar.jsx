@@ -55,15 +55,18 @@ const navItemBase =
     read as a second highlight next to the spy-driven pill. */
 const navItemHover = 'nav-item-hover';
 
-/** Active section: visible translucent pill in both themes */
+/** Active section: visible translucent pill in both themes.
+    Round 4: the ring + inset top highlight are a touch stronger
+    (0.08 → 0.10) to match the Liquid Glass rim language. */
 const navItemActive =
-  'bg-glass/[0.07] text-accent ring-1 ring-glass/[0.08] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.06)]';
+  'bg-glass/[0.07] text-accent ring-1 ring-glass/[0.10] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)]';
 
 /** The travelling pill (anim #5): the active background + ring,
     carried by the motion.span behind the active link. The link
-    itself keeps only the text colour (`text-accent`). */
+    itself keeps only the text colour (`text-accent`). Same round-4
+    rim strengthening as navItemActive. */
 const navPill =
-  'bg-glass/[0.07] ring-1 ring-glass/[0.08] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.06)]';
+  'bg-glass/[0.07] ring-1 ring-glass/[0.10] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)]';
 
 const navItemIdle = 'text-muted-dim';
 
@@ -220,8 +223,14 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
           Under reduced motion the site's global rule collapses
           the transition to 0.01ms, so hide/show becomes instant
           instead of sliding. */}
+      {/* Desktop Liquid Glass (round 4): `nav-glass-desktop` layers
+          the overlay's glass material (24px blur + sheen + rim) on
+          top of .nav-glass — scoped to sm+ in index.css, so the
+          mobile closed pill and overlay top pill stay untouched.
+          `relative` anchors the sheen ::before; it changes no
+          layout (no offsets) and no geometry. */}
       <nav
-        className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-safe-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
+        className="pointer-events-auto nav-glass nav-glass-desktop relative flex max-w-6xl items-center justify-safe-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
         aria-label="Primary"
       >
         {/* Mobile menu button — below sm the pill holds only this

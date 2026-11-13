@@ -333,8 +333,14 @@
       --tw-translate-y: -0.25rem;
       --tw-scale-x: 1.07;
       --tw-scale-y: 1.07;
-      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-      background-color: rgb(var(--glass) / 0.06);
+      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate))
+        skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
+        scaleY(var(--tw-scale-y));
+      /* Round 4: a touch more fill (0.06 → 0.08) + the same inset
+         top highlight as the travelling pill, so the hover reads
+         as part of the Liquid Glass pill instead of a flat tint. */
+      background-color: rgb(var(--glass) / 0.08);
+      box-shadow: inset 0 1px 0 rgb(var(--glass) / 0.08);
       --tw-text-opacity: 1;
       color: rgb(var(--accent) / var(--tw-text-opacity, 1));
     }
@@ -347,7 +353,9 @@
       --tw-translate-y: 0px;
       --tw-scale-x: 1;
       --tw-scale-y: 1;
-      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate))
+        skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
+        scaleY(var(--tw-scale-y));
     }
   }
 
@@ -376,6 +384,45 @@
     .nav-glass {
       /* Opaque fallback for browsers without backdrop-filter */
       background: rgb(var(--surface) / 0.92);
+    }
+  }
+
+  /* Liquid Glass on the DESKTOP pill only (round 4) — the same
+     material language as the mobile overlay menu: stronger frost
+     (24px blur + saturate + brightness), a soft top sheen and a
+     stronger specular rim, so the page shows through the frost
+     like it does on the phone overlay.
+     Scoped to sm+ (min-width: 640px): below that the pill is the
+     mobile closed pill (Menu + toggle) and the overlay top pill,
+     which must stay pixel-identical to round 3 — .nav-glass itself
+     is untouched. The tint is deliberately NOT thinned: the light
+     --nav-bg is 0.75 because 0.4 let scrolling text show through
+     too clearly (Tier 3 note), and the dark 0.2 already reads
+     translucent; the glass richness comes from blur + sheen + rim.
+     The ::before is the sheen only — white in both themes (like
+     the overlay's sheen), pointer-events none, no layout; it needs
+     the nav to be `relative` (set in Navbar.jsx). */
+  @media (min-width: 640px) {
+    .nav-glass-desktop {
+      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.05);
+      backdrop-filter: blur(24px) saturate(180%) brightness(1.05);
+      box-shadow:
+        var(--nav-shadow),
+        var(--nav-highlight),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+    }
+    .nav-glass-desktop::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        to bottom,
+        rgb(255 255 255 / 0.12),
+        rgb(255 255 255 / 0.03) 32%,
+        transparent 60%
+      );
+      pointer-events: none;
     }
   }
 }
