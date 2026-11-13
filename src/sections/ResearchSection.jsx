@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { ExternalLink, Trophy } from 'lucide-react';
+import { ArrowUpRight, ExternalLink, Trophy } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
@@ -67,6 +67,7 @@ export function ResearchSection() {
                       >
                         <Trophy className="h-3 w-3" aria-hidden />
                         {paper.award.label}
+                        <ArrowUpRight className="h-3 w-3" aria-hidden />
                       </a>
                     )}
                     {paper.status && (
