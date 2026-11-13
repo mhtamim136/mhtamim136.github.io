@@ -389,9 +389,20 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
                 treatment. active:scale gives a pressed feel on
                 tap; justify-safe-center keeps the first row
                 reachable if the list ever scrolls on a short
-                screen. */}
+                screen.
+
+                Compact sizing (round 3): each row is 54px tall —
+                36px icon tile + py-2 + 1px borders — instead of
+                70px. The whole list (8 rows + gaps + nav padding)
+                is 520px, so it fits without scrolling even at
+                360x740 (522px available) while the footer keeps
+                its pt-6 gap; at taller heights the leftover space
+                centers via justify-safe-center, so the name gap
+                grows (see REPORT.md). The rows stay generous tap
+                targets (54px, full-width) and the structure,
+                glass, and gradient are unchanged. */}
             <nav
-              className="flex flex-1 flex-col justify-safe-center gap-2 overflow-y-auto px-5 py-6"
+              className="flex flex-1 flex-col justify-safe-center gap-2 overflow-y-auto px-5 py-4"
               aria-label="Mobile"
             >
               {items.map(({ id, label, icon }, i) => {
@@ -403,14 +414,14 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
                     href={`#${id}`}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`flex items-center gap-3 rounded-2xl border px-3 py-3 font-display backdrop-blur-md backdrop-saturate-150 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                    className={`flex items-center gap-3 rounded-2xl border px-3 py-2 font-display backdrop-blur-md backdrop-saturate-150 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                       active
                         ? 'border-accent/35 bg-accent/10 shadow-[inset_0_1px_0_0_rgb(var(--accent)_/_0.25)]'
                         : 'border-glass/10 bg-glass/[0.07] text-heading shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)] hover:border-accent/35 hover:bg-accent/10 hover:text-accent'
                     }`}
                   >
                     <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)] ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)] ${
                         active
                           ? 'border-accent/35 bg-accent/15 text-accent'
                           : 'border-glass/10 bg-glass/[0.06] text-muted'
@@ -443,8 +454,14 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
               })}
             </nav>
 
-            {/* Footer — name + curated socials (GitHub, X, email, Profile Card). */}
-            <div className="flex flex-col items-center gap-4 px-6 pb-10">
+            {/* Footer — name + curated socials (GitHub, X, email, Profile Card).
+                pt-6 above the name: round 2's name sat only ~10px below
+                the Contact row (the rows list already overflowed by
+                ~14px at 844px, so the nav's 24px bottom padding was
+                mostly below the fold). The extra 24px doubles the
+                breathing room — but only because the rows below are
+                compact enough that the list no longer overflows. */}
+            <div className="flex flex-col items-center gap-4 px-6 pb-10 pt-6">
               <p className="text-sm text-muted">{portfolio.name}</p>
               <div className="flex items-center gap-3">
                 {overlaySocials.map(({ key, label, Icon, getHref, external }) => {
