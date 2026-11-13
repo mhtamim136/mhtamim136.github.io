@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BookOpen, Clock, Code, FolderOpen, Home, Layers, Mail, User } from 'lucide-react';
+import { BookOpen, Clock, Code, FolderOpen, Home, Layers, Mail, Menu, User, X } from 'lucide-react';
+import { FaGithub } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
+import { MdEmail } from 'react-icons/md';
 import { ThemeToggle } from './ThemeToggle';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
+import { portfolio } from '../data/portfolio';
+import { externalLinkProps } from '../utils/links';
 
 const NAV_ICONS = {
   home: Home,
@@ -48,6 +54,33 @@ const navPill =
 
 const navItemIdle = 'text-muted-dim';
 
+/* Overlay footer socials — mirrors Footer's curated list (GitHub,
+   X, email only; no LinkedIn — Tamim has none). Missing keys are
+   skipped, never rendered as dead links. */
+const overlaySocials = [
+  {
+    key: 'github',
+    label: 'GitHub profile',
+    Icon: FaGithub,
+    getHref: (c) => c.github,
+    external: true,
+  },
+  {
+    key: 'x',
+    label: 'X (Twitter) profile',
+    Icon: FaXTwitter,
+    getHref: (c) => c.x,
+    external: true,
+  },
+  {
+    key: 'email',
+    label: 'Send an email',
+    Icon: MdEmail,
+    getHref: (c) => (c.email ? `mailto:${c.email}` : undefined),
+    external: false,
+  },
+];
+
 /**
  * Instant tooltips, icon-only pill (no text labels — they would widen
  * the pill). The tooltip lives on the <header>, outside the scrolling
@@ -56,21 +89,28 @@ const navItemIdle = 'text-muted-dim';
  * which takes ~1s. Positioned under the hovered icon, clamped inside
  * the viewport. A tap clears it, so it never lingers on touch screens.
  *
- * Mobile (~390px): the icons are 44×44 tap targets (p-3 around
- * the 20px icon), so the gaps shrink to fit: gap-0 between items,
- * px-1 on the pill, px-2 on the header. With eight items the pill
- * no longer fits — 8×44 + divider 17 + toggle 44 + pill padding 8
- * = 421px > 382px available (390 − header px-2) — so it scrolls
- * horizontally (overflow-x-auto). The nav uses justify-safe-center
- * (see index.css — Tailwind 3.4 has no such utility): when the pill
- * overflows, the items align to the start instead of centering, so
- * the Home icon can never be clipped past the scroll origin the way
- * plain justify-center would clip it. The 44px tap targets stay, so
- * the scroll is the tradeoff for the eighth item; overflow-x-auto
- * remains only as a safety net for narrower screens otherwise.
+ * Mobile (below sm, 640px): the pill holds only two controls — a
+ * menu button and the theme toggle. Tapping the menu button opens a
+ * full-screen overlay with the 8 sections as large numbered text
+ * rows, so nothing is ever squeezed or cut off the way 8×44px of
+ * icons + toggle were at 390px (421px needed vs 382px available —
+ * the old pill scrolled horizontally to cope). The overlay is
+ * portalled to document.body (same pattern as PhotoLightbox), not
+ * rendered inside the header: the header carries a transform
+ * (hide-on-scroll), and any transform makes fixed descendants
+ * position against it instead of the viewport. Desktop (sm and up)
+ * is exactly as before — the 8 icon links, the travelling pill
+ * (anim #5) and the tooltips are untouched. overflow-x-auto stays
+ * on the pill only as a safety net for narrower screens.
  */
 export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef(null);
+  const overlayRef = useRef(null);
+  /* Tracks whether the menu was open, so focus returns to the menu
+     button only after a real close — never on first mount. */
+  const wasOpenRef = useRef(false);
   /* Reduced motion: the travelling pill is disabled — the static
      class pill (navItemActive) renders instead, exactly as before
      (anim #5). MotionConfig would disable the layout animation
@@ -78,13 +118,54 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
   const reduceMotion = useReducedMotion() ?? false;
   /* Smart navigation — hide on scroll down, show on any scroll
      up, always visible at the top. Transform only; see
-     useHideOnScroll for the hysteresis design. */
-  const hidden = useHideOnScroll();
+     useHideOnScroll for the hysteresis design. While the mobile
+     menu is open the bar must stay put: the overlay carries its
+     own pill, and hiding the header under it would strand focus
+     on a control the user can no longer see. */
+  const scrollHidden = useHideOnScroll();
+  const hidden = scrollHidden && !menuOpen;
 
   /* A tooltip left open must not linger while the bar is away. */
   useEffect(() => {
     if (hidden) setTip(null);
   }, [hidden]);
+
+  /* Mobile menu: Escape closes it, the page behind never scrolls,
+     and the menu closes itself if the viewport grows to desktop —
+     the overlay is sm:hidden, so without this the scroll lock and
+     the focus would stay trapped inside a hidden menu. */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    const media = window.matchMedia('(min-width: 640px)');
+    const onViewportChange = (e) => {
+      if (e.matches) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    media.addEventListener('change', onViewportChange);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      media.removeEventListener('change', onViewportChange);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [menuOpen]);
+
+  /* Focus: into the overlay on open, back to the menu button on
+     close. The overlay is tabIndex={-1} so focusing it never
+     adds a tab stop. */
+  useEffect(() => {
+    if (menuOpen) {
+      overlayRef.current?.focus();
+      wasOpenRef.current = true;
+    } else if (wasOpenRef.current) {
+      menuButtonRef.current?.focus();
+      wasOpenRef.current = false;
+    }
+  }, [menuOpen]);
 
   const showTip = (e, label) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -92,6 +173,12 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
     setTip({ label, x });
   };
   const hideTip = () => setTip(null);
+
+  const openMenu = () => {
+    hideTip();
+    setMenuOpen(true);
+  };
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <header
@@ -111,45 +198,65 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
         className="pointer-events-auto nav-glass flex max-w-6xl items-center justify-safe-center gap-0 overflow-x-auto rounded-[1.125rem] px-1 py-2 sm:gap-2 sm:px-3 sm:py-2.5"
         aria-label="Primary"
       >
-        {items.map(({ id, label, icon }) => {
-          const active = activeId === id;
-          const Icon = NAV_ICONS[icon] ?? Home;
-          return (
-            <a
-              key={id}
-              href={`#${id}`}
-              aria-current={active ? 'page' : undefined}
-              onMouseEnter={(e) => showTip(e, label)}
-              onMouseLeave={hideTip}
-              onFocus={(e) => showTip(e, label)}
-              onBlur={hideTip}
-              onClick={hideTip}
-              className={`${navItemBase} ${active ? (reduceMotion ? navItemActive : 'text-accent') : navItemIdle} ${navItemHover}`}
-            >
-              {/* Travelling active pill (anim #5): a layoutId span
-                  behind the active link — it slides between icons
-                  (spring 300/30) instead of fading in place. It
-                  renders only for the active link and only when
-                  motion is allowed; under reduced motion the link
-                  keeps the static navItemActive pill as before.
-                  `absolute inset-0` anchors to the link (relative
-                  via navItemBase); the icon paints above it (also
-                  relative, later in DOM). The travel is a transform,
-                  so the nav's overflow-x-auto clip still applies
-                  and the pill can never paint outside the pill. */}
-              {active && !reduceMotion && (
-                <motion.span
-                  layoutId="nav-pill"
-                  className={`absolute inset-0 rounded-xl ${navPill}`}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  aria-hidden
-                />
-              )}
-              <Icon {...iconProps} aria-hidden />
-              <span className="sr-only">{label}</span>
-            </a>
-          );
-        })}
+        {/* Mobile menu button — below sm the pill holds only this
+            and the theme toggle; the 8 links live in the overlay. */}
+        <button
+          ref={menuButtonRef}
+          type="button"
+          onClick={openMenu}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav-menu"
+          className={`${navItemBase} ${navItemIdle} ${navItemHover} sm:hidden`}
+        >
+          <Menu {...iconProps} aria-hidden />
+          <span className="sr-only">Menu</span>
+        </button>
+
+        {/* Desktop links — display:contents at sm+ keeps them flex
+            children of the pill exactly as before; hidden below sm
+            so they never take tab stops on mobile. */}
+        <div className="hidden sm:contents">
+          {items.map(({ id, label, icon }) => {
+            const active = activeId === id;
+            const Icon = NAV_ICONS[icon] ?? Home;
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                aria-current={active ? 'page' : undefined}
+                onMouseEnter={(e) => showTip(e, label)}
+                onMouseLeave={hideTip}
+                onFocus={(e) => showTip(e, label)}
+                onBlur={hideTip}
+                onClick={hideTip}
+                className={`${navItemBase} ${active ? (reduceMotion ? navItemActive : 'text-accent') : navItemIdle} ${navItemHover}`}
+              >
+                {/* Travelling active pill (anim #5): a layoutId span
+                    behind the active link — it slides between icons
+                    (spring 300/30) instead of fading in place. It
+                    renders only for the active link and only when
+                    motion is allowed; under reduced motion the link
+                    keeps the static navItemActive pill as before.
+                    `absolute inset-0` anchors to the link (relative
+                    via navItemBase); the icon paints above it (also
+                    relative, later in DOM). The travel is a transform,
+                    so the nav's overflow-x-auto clip still applies
+                    and the pill can never paint outside the pill. */}
+                {active && !reduceMotion && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className={`absolute inset-0 rounded-xl ${navPill}`}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    aria-hidden
+                  />
+                )}
+                <Icon {...iconProps} aria-hidden />
+                <span className="sr-only">{label}</span>
+              </a>
+            );
+          })}
+        </div>
 
         {/* Divider */}
         <div className="mx-1 h-6 w-px shrink-0 bg-glass/[0.1]" aria-hidden />
@@ -177,6 +284,114 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
           {tip.label}
         </span>
       )}
+
+      {/* Mobile full-screen menu — portalled to document.body (see
+          the note above: the header's transform would trap a fixed
+          child). Opens with a short fade; under reduced motion it
+          appears instantly — initial={false} + a 0-duration
+          transition, gated here explicitly rather than through
+          MotionConfig alone. */}
+      {menuOpen &&
+        createPortal(
+          <motion.div
+            ref={overlayRef}
+            id="mobile-nav-menu"
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
+            className="fixed inset-0 z-[60] flex flex-col bg-surface/80 backdrop-blur-xl sm:hidden"
+          >
+            {/* Top pill — same glass, same position as the header
+                pill: X on the left, theme toggle on the right. */}
+            <div className="flex justify-center px-2 pt-3">
+              <div className="nav-glass flex items-center gap-0 rounded-[1.125rem] px-1 py-2">
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  aria-label="Close menu"
+                  className={`${navItemBase} ${navItemIdle} ${navItemHover}`}
+                >
+                  <X {...iconProps} aria-hidden />
+                  <span className="sr-only">Close</span>
+                </button>
+                <div className="mx-1 h-6 w-px shrink-0 bg-glass/[0.1]" aria-hidden />
+                <div className="shrink-0">
+                  <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
+                </div>
+              </div>
+            </div>
+
+            {/* Numbered rows — reuse the items prop, never a hardcoded
+                list. A tap navigates (same hash links as the desktop
+                pill) and closes the menu. Each row is a frosted-glass
+                chip (SocialButton's surface: bg-glass + border +
+                blur), so the overlay, the pill and the rows all carry
+                the site's glass treatment in both themes. The active
+                row keeps the accent glass and its label takes the
+                site's cyan → emerald text gradient; the travelling
+                pill (anim #5) stays a desktop-only treatment.
+                justify-safe-center keeps the first row reachable if
+                the list ever scrolls on a short screen. */}
+            <nav
+              className="flex flex-1 flex-col justify-safe-center gap-1 overflow-y-auto px-8 py-6"
+              aria-label="Mobile"
+            >
+              {items.map(({ id, label }, i) => {
+                const active = activeId === id;
+                return (
+                  <a
+                    key={id}
+                    href={`#${id}`}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={closeMenu}
+                    className={`flex items-baseline gap-4 rounded-xl border px-4 py-2.5 font-display text-3xl font-semibold tracking-tight shadow-glass backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                      active
+                        ? 'border-accent/35 bg-accent/10'
+                        : 'border-glass/10 bg-glass/[0.04] text-heading hover:border-accent/35 hover:bg-accent/10 hover:text-accent'
+                    }`}
+                  >
+                    <span
+                      className={`text-lg font-medium tabular-nums ${
+                        active ? 'text-accent' : 'text-muted-dim'
+                      }`}
+                      aria-hidden
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    {active ? <span className="text-gradient">{label}</span> : label}
+                  </a>
+                );
+              })}
+            </nav>
+
+            {/* Footer — name + curated socials (GitHub, X, email only). */}
+            <div className="flex flex-col items-center gap-4 px-6 pb-10">
+              <p className="text-sm text-muted">{portfolio.name}</p>
+              <div className="flex items-center gap-3">
+                {overlaySocials.map(({ key, label, Icon, getHref, external }) => {
+                  const href = getHref(portfolio.contacts);
+                  if (!href) return null;
+                  const linkProps = external ? externalLinkProps(href) : { href };
+                  return (
+                    <a
+                      key={key}
+                      {...linkProps}
+                      aria-label={label}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    >
+                      <Icon className="h-[18px] w-[18px]" aria-hidden />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>,
+          document.body
+        )}
     </header>
   );
 }
