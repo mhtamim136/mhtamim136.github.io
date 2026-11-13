@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BookOpen, Clock, Code, FolderOpen, Home, Layers, Mail, Menu, User, X } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronRight,
+  Clock,
+  Code,
+  FolderOpen,
+  Home,
+  IdCard,
+  Layers,
+  Mail,
+  Menu,
+  User,
+  X,
+} from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdEmail } from 'react-icons/md';
@@ -54,9 +67,15 @@ const navPill =
 
 const navItemIdle = 'text-muted-dim';
 
+/* Profile Card — Tamim's standalone profile-card page, verified
+   live (https://mhtamim136.github.io/profile-card/). It is not in
+   portfolio.contacts, so the URL is a constant, not a contact key. */
+const PROFILE_CARD_URL = 'https://mhtamim136.github.io/profile-card/';
+
 /* Overlay footer socials — mirrors Footer's curated list (GitHub,
-   X, email only; no LinkedIn — Tamim has none). Missing keys are
-   skipped, never rendered as dead links. */
+   X, email) plus the Profile Card button; no LinkedIn — Tamim
+   has none. Missing keys are skipped, never rendered as dead
+   links. */
 const overlaySocials = [
   {
     key: 'github',
@@ -78,6 +97,13 @@ const overlaySocials = [
     Icon: MdEmail,
     getHref: (c) => (c.email ? `mailto:${c.email}` : undefined),
     external: false,
+  },
+  {
+    key: 'profile-card',
+    label: 'Profile Card',
+    Icon: IdCard,
+    getHref: () => PROFILE_CARD_URL,
+    external: true,
   },
 ];
 
@@ -290,7 +316,19 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
           child). Opens with a short fade; under reduced motion it
           appears instantly — initial={false} + a 0-duration
           transition, gated here explicitly rather than through
-          MotionConfig alone. */}
+          MotionConfig alone.
+
+          Liquid Glass (round 2): the round-1 bg-surface/80 was
+          80% opaque, so the page behind never showed — on a real
+          phone it read as a flat sheet, not glass. The overlay is
+          now a light tint only (bg-surface/30) over a heavy frost
+          (blur 24px + saturate 150% + brightness 1.05), so the
+          hero/projects bleed through blurred and colour-shifted,
+          the way iOS 26 Control Center lets the wallpaper show
+          through. A soft top sheen (the --nav-highlight white)
+          and the inset rim on the rows sell the wet-glass edge.
+          Text stays legible because the labels sit on their own
+          glass chips, not on the bare backdrop. */}
       {menuOpen &&
         createPortal(
           <motion.div
@@ -303,8 +341,19 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-0 z-[60] flex flex-col bg-surface/80 backdrop-blur-xl sm:hidden"
+            className="fixed inset-0 z-[60] flex flex-col bg-surface/30 backdrop-blur-xl backdrop-saturate-150 backdrop-brightness-105 sm:hidden"
           >
+            {/* Liquid-glass sheen — soft top light (the same white
+                the --nav-highlight rim uses) fading out by a third
+                of the screen. It paints above the blurred backdrop
+                and below the menu content, so the glass reads wet
+                at the top edge. pointer-events-none: it never
+                blocks a tap. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0)_32%)]"
+            />
+
             {/* Top pill — same glass, same position as the header
                 pill: X on the left, theme toggle on the right. */}
             <div className="flex justify-center px-2 pt-3">
@@ -325,50 +374,76 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
               </div>
             </div>
 
-            {/* Numbered rows — reuse the items prop, never a hardcoded
+            {/* Modern rows — reuse the items prop, never a hardcoded
                 list. A tap navigates (same hash links as the desktop
-                pill) and closes the menu. Each row is a frosted-glass
-                chip (SocialButton's surface: bg-glass + border +
-                blur), so the overlay, the pill and the rows all carry
-                the site's glass treatment in both themes. The active
-                row keeps the accent glass and its label takes the
-                site's cyan → emerald text gradient; the travelling
-                pill (anim #5) stays a desktop-only treatment.
-                justify-safe-center keeps the first row reachable if
-                the list ever scrolls on a short screen. */}
+                pill) and closes the menu. Each row is a liquid-glass
+                chip: translucent glass tint + its own blur/saturate
+                + an inset top rim, so the rows read as glass slabs
+                floating over the frosted page — not flat fills. The
+                icon sits in a small glass tile, the number stays
+                for the numbered-list feel, and a chevron marks the
+                row as a link; the active row keeps the accent glass
+                and its label takes the site's cyan → emerald text
+                gradient, and the icon tile turns accent too. The
+                travelling pill (anim #5) stays a desktop-only
+                treatment. active:scale gives a pressed feel on
+                tap; justify-safe-center keeps the first row
+                reachable if the list ever scrolls on a short
+                screen. */}
             <nav
-              className="flex flex-1 flex-col justify-safe-center gap-1 overflow-y-auto px-8 py-6"
+              className="flex flex-1 flex-col justify-safe-center gap-2 overflow-y-auto px-5 py-6"
               aria-label="Mobile"
             >
-              {items.map(({ id, label }, i) => {
+              {items.map(({ id, label, icon }, i) => {
                 const active = activeId === id;
+                const Icon = NAV_ICONS[icon] ?? Home;
                 return (
                   <a
                     key={id}
                     href={`#${id}`}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`flex items-baseline gap-4 rounded-xl border px-4 py-2.5 font-display text-3xl font-semibold tracking-tight shadow-glass backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                    className={`flex items-center gap-3 rounded-2xl border px-3 py-3 font-display backdrop-blur-md backdrop-saturate-150 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                       active
-                        ? 'border-accent/35 bg-accent/10'
-                        : 'border-glass/10 bg-glass/[0.04] text-heading hover:border-accent/35 hover:bg-accent/10 hover:text-accent'
+                        ? 'border-accent/35 bg-accent/10 shadow-[inset_0_1px_0_0_rgb(var(--accent)_/_0.25)]'
+                        : 'border-glass/10 bg-glass/[0.07] text-heading shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)] hover:border-accent/35 hover:bg-accent/10 hover:text-accent'
                     }`}
                   >
                     <span
-                      className={`text-lg font-medium tabular-nums ${
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.10)] ${
+                        active
+                          ? 'border-accent/35 bg-accent/15 text-accent'
+                          : 'border-glass/10 bg-glass/[0.06] text-muted'
+                      }`}
+                      aria-hidden
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
+                    </span>
+                    <span
+                      className={`text-sm font-medium tabular-nums ${
                         active ? 'text-accent' : 'text-muted-dim'
                       }`}
                       aria-hidden
                     >
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    {active ? <span className="text-gradient">{label}</span> : label}
+                    <span
+                      className={`flex-1 text-left text-2xl font-semibold tracking-tight ${
+                        active ? 'text-gradient' : ''
+                      }`}
+                    >
+                      {label}
+                    </span>
+                    <ChevronRight
+                      className={`h-5 w-5 shrink-0 ${active ? 'text-accent' : 'text-muted-dim'}`}
+                      aria-hidden
+                    />
                   </a>
                 );
               })}
             </nav>
 
-            {/* Footer — name + curated socials (GitHub, X, email only). */}
+            {/* Footer — name + curated socials (GitHub, X, email, Profile Card). */}
             <div className="flex flex-col items-center gap-4 px-6 pb-10">
               <p className="text-sm text-muted">{portfolio.name}</p>
               <div className="flex items-center gap-3">
