@@ -126,7 +126,10 @@ export const portfolio = {
      them). `links` is the paper's button list, in display order:
      paper 1 carries BOTH the official AIUB student-research page
      and ResearchGate (Tamim's explicit choice, AIUB first), paper 3
-     ResearchGate only, paper 2 none. */
+     AIUB + ResearchGate, paper 2 none. `award` is shown only where
+     it is set: paper 3 won the Best Poster Award (2nd Place,
+     Track 4) at ICCTASS 2025 — the chip links to the official
+     ICCTASS conference page, not to the paper page. */
   research: [
     {
       title:
@@ -162,6 +165,10 @@ export const portfolio = {
       venue: 'ICCTASS 2025, AIUB, Dhaka',
       date: 'Dec 2025',
       status: null,
+      award: {
+        label: 'Best Poster Award · 2nd Place',
+        url: 'http://www.aiub.edu/icctass-2025-international-conference-on-challenges-and-trends-in-arts-and-social-sciences-',
+      },
       links: [
         {
           label: 'AIUB',

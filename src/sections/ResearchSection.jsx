@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Trophy } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
@@ -17,10 +17,13 @@ import './HeroCtaFill.css';
  * "Publication forthcoming" — the CV marks it forthcoming, so
  * there is no link to show yet); papers 1 & 3 carry no status
  * pill by Tamim's call, since their ResearchGate links are his
- * own uploads rather than official publisher links. One link
+ * own uploads rather than official publisher links. An award chip
+ * appears only where one is set (paper 3's Best Poster Award,
+ * 2nd Place — it links to the official ICCTASS conference page,
+ * not to the paper page). One link
  * button renders per entry in the paper's `links` array, in
  * order: paper 1 carries BOTH the AIUB official student-research
- * page (first) and ResearchGate, paper 3 ResearchGate only.
+ * page (first) and ResearchGate, paper 3 AIUB + ResearchGate.
  */
 export function ResearchSection() {
   const { research } = portfolio;
@@ -56,6 +59,16 @@ export function ResearchSection() {
                     <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
                       {paper.role}
                     </span>
+                    {paper.award && (
+                      <a
+                        {...externalLinkProps(paper.award.url)}
+                        title="Best Poster Award — 2nd Place, Track 4 (Media and Mass Communication), ICCTASS 2025"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent transition-colors hover:bg-accent/15"
+                      >
+                        <Trophy className="h-3 w-3" aria-hidden />
+                        {paper.award.label}
+                      </a>
+                    )}
                     {paper.status && (
                       <span className="rounded-full border border-glass/10 bg-glass/[0.04] px-2.5 py-0.5 text-xs font-medium text-muted">
                         {paper.status}
