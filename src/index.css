@@ -182,17 +182,22 @@
   --nav-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04);
   --nav-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
-  /* Desktop Liquid Glass tint (round 5) — light. 0.32 white lets
-     the frosted page (grid, chips, headings) show through clearly;
-     the 32px blur (in .nav-glass-desktop) smears scrolling text
-     into an unreadable smudge, which is what protects legibility
-     at this thin tint — the Tier 3 lesson, fixed with blur
-     instead of opacity. Dark icons stay legible on the light
-     frost; the 0.16 dark border gives the pill a crisp edge. */
-  --nav-bg-desktop: rgba(255, 255, 255, 0.32);
-  --nav-border-desktop: rgba(0, 0, 0, 0.16);
-  --nav-rim-top: rgb(255 255 255 / 0.5);
-  --nav-rim-bottom: rgb(0 0 0 / 0.08);
+  /* Desktop Liquid Glass tint (round 6, variant A — cool slate tint).
+     WINNER (variant B rejected, see REPORT.md). Round 5's 0.32 white
+     was objectively stronger (light pill-crop diff 41/255 vs round
+     4's 10) but still read as nearly unchanged on Tamim's real
+     screen: a white pill on the near-white #E9EDF2 page has almost
+     no luminance contrast (~7 levels). The fix is CONTRAST, not
+     more frost: a cool blue-grey tint (slate-300) makes the capsule
+     visibly distinct from the page, while the 40px blur (light-only
+     override below) still smears scrolling text into unreadable
+     frost. Dark icons stay legible on the cool frost; the 0.30
+     dark-slate border + stronger rims give the pill a crisp edge.
+     Dark theme values are NOT touched. */
+  --nav-bg-desktop: rgba(203, 213, 225, 0.38);
+  --nav-border-desktop: rgba(15, 23, 42, 0.3);
+  --nav-rim-top: rgb(255 255 255 / 0.75);
+  --nav-rim-bottom: rgb(15 23 42 / 0.2);
 }
 
 /* ─── Base layer ────────────────────────────────────────────────── */
@@ -455,6 +460,23 @@
         transparent 65%
       );
       pointer-events: none;
+    }
+    /* Light mode only (round 6, variant A): stronger blur (32px →
+       40px) so the page behind smears further into frost, and a
+       stronger sheen (0.45 → 0.10) for a glossier top. Higher
+       specificity than the rules above, light only — the dark
+       pill keeps blur 32px and sheen 0.32 → 0.07 exactly. */
+    [data-theme='light'] .nav-glass-desktop {
+      -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.06);
+      backdrop-filter: blur(40px) saturate(180%) brightness(1.06);
+    }
+    [data-theme='light'] .nav-glass-desktop::before {
+      background: linear-gradient(
+        to bottom,
+        rgb(255 255 255 / 0.45),
+        rgb(255 255 255 / 0.1) 35%,
+        transparent 65%
+      );
     }
     /* Desktop hover, a touch stronger than round 4 (0.08 → 0.12)
        to match the richer glass — still below the active fill
