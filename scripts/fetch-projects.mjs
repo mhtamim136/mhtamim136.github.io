@@ -74,8 +74,14 @@ if (process.env.GITHUB_TOKEN) {
   headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 }
 
+/* Every GitHub fetch aborts at 15s (W5): node fetch has no default
+   timeout, so a hung connection used to stall `prebuild` until the
+   platform killed it. The GraphQL pins query below uses the same
+   signal. */
+const FETCH_TIMEOUT_MS = 15000;
+
 async function fetchJson(url) {
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`GitHub API ${res.status} for ${url}`);
   }
@@ -83,7 +89,7 @@ async function fetchJson(url) {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`GitHub fetch ${res.status} for ${url}`);
   }
@@ -111,6 +117,7 @@ async function fetchPinnedRepoNames() {
         ...headers,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       body: JSON.stringify({
         query: `query { user(login: "${GITHUB_USERNAME}") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name } } } } }`,
       }),
@@ -185,18 +192,35 @@ async function main() {
   let rawRepos = [];
   let page = 1;
   let hasMore = true;
-  while (hasMore) {
+  /* Page cap (W5): GitHub returns at most 100 repos per page, and
+     this account has ~17 — 10 pages is already far beyond any
+     plausible count. Without a cap a buggy `hasMore` (e.g. a
+     non-array batch) could loop forever. */
+  const MAX_PAGES = 10;
+  while (hasMore && page <= MAX_PAGES) {
     const batch = await fetchJson(
       `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&page=${page}&sort=pushed&direction=desc`
     );
+    if (!Array.isArray(batch)) break;
     rawRepos = rawRepos.concat(batch);
     hasMore = batch.length === 100;
     page += 1;
   }
 
+  /* NaN-safe pushed_at (ms since epoch; 0 = unknown/oldest). */
+  const pushedTime = (r) => {
+    const t = new Date(r.pushed_at).getTime();
+    return Number.isFinite(t) ? t : 0;
+  };
+
   const repos = rawRepos
-    .filter((r) => !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase()))
-    .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+    /* W32: validate each entry before touching its fields — one
+       malformed repo (null, or a missing/non-string name) is
+       skipped, not a throw that aborts the whole snapshot run. */
+    .filter(
+      (r) => r && typeof r.name === 'string' && !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase())
+    )
+    .sort((a, b) => pushedTime(b) - pushedTime(a));
 
   /* Pinned repos (GraphQL; null when the pins could not be read).
      A token-less or failed pins query must NEVER clobber a good
@@ -301,7 +325,7 @@ async function main() {
       url: r.html_url,
       homepage: r.homepage || null,
       pushedAt: r.pushed_at,
-      topics: r.topics || [],
+      topics: Array.isArray(r.topics) ? r.topics : [],
     };
     if (detailsByName[r.name]) entry.details = detailsByName[r.name];
     return entry;

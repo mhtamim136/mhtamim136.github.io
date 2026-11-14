@@ -83,6 +83,30 @@ test('countReposForSkill: C++ and C count separately', () => {
   assert.equal(countReposForSkill('C', repos), 1);
 });
 
+test('countReposForSkill: hyphenated topics count (C3 regression)', () => {
+  /* GitHub topics use hyphens ('sql-server', 'tailwind-css') while
+     the skill display names canonicalize without them ('sqlserver',
+     'tailwindcss') — a repo tagged with the hyphenated topic must
+     still count for the skill. */
+  const repos = [
+    { name: 'a', languages: [], topics: ['sql-server'] },
+    { name: 'b', languages: [], topics: ['tailwind-css'] },
+    { name: 'c', languages: ['SQL Server'] },
+    { name: 'd', languages: ['Tailwind CSS'] },
+  ];
+  assert.equal(countReposForSkill('SQL Server', repos), 2);
+  assert.equal(countReposForSkill('Tailwind CSS', repos), 2);
+  assert.equal(normalizeKey('sql-server'), 'sqlserver');
+  assert.equal(normalizeKey('tailwind-css'), 'tailwindcss');
+});
+
+test('getRepoKeys: null / non-object repo matches nothing (W3)', () => {
+  assert.equal(getRepoKeys(null).size, 0);
+  assert.equal(getRepoKeys(undefined).size, 0);
+  assert.equal(getRepoKeys('not-an-object').size, 0);
+  assert.equal(countReposForSkill('Python', [null, { name: 'a', languages: ['Python'] }]), 1);
+});
+
 test('countReposForSkill: langMap extras count; empty skill / repos count 0', () => {
   const repos = [{ name: 'oct-c8', language: 'Jupyter Notebook' }];
   const langMap = { 'oct-c8': ['Python', 'R'] };

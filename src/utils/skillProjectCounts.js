@@ -38,6 +38,18 @@ export const SKILL_KEY_ALIASES = {
   MySQL: 'mysql',
   'SQL Server': 'sqlserver',
   'Oracle DB': 'oracle',
+  /* Hyphenated / dotted GitHub topic forms (C3): topics are
+     lowercase with hyphens, so 'sql-server' / 'tailwind-css' must
+     map to the same keys as the display names. 'c++' / 'c#' /
+     'node.js' / 'express.js' cannot occur as topics (GitHub
+     forbids + and . in topic names) but are listed so a caller
+     passing a raw topic-like string still canonicalizes. */
+  'sql-server': 'sqlserver',
+  'tailwind-css': 'tailwindcss',
+  'c++': 'cpp',
+  'c#': 'csharp',
+  'node.js': 'nodejs',
+  'express.js': 'express',
 };
 
 /** Canonical key for a skill display name, a repo language, or a repo topic. */
@@ -57,6 +69,9 @@ export function normalizeKey(value) {
  */
 export function getRepoKeys(repo, extraLanguages) {
   const keys = new Set();
+  /* W3: a null / non-object repo entry must not throw during
+     render — it simply matches no skill. */
+  if (!repo || typeof repo !== 'object') return keys;
   const langs = Array.isArray(extraLanguages)
     ? extraLanguages
     : Array.isArray(repo.languages)

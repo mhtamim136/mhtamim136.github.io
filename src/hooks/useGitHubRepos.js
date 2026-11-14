@@ -128,11 +128,20 @@ export function useGitHubRepos() {
 
         let timerId;
         try {
+          /* W33: the function fetch gets its OWN controller, so the
+             timeout can abort the hung request without also killing
+             the snapshot fallback below (both used to share the
+             effect's `controller` — aborting it would make the
+             fallback fetch reject immediately too). */
+          const functionController = new AbortController();
           const timeout = new Promise((_, reject) => {
-            timerId = setTimeout(() => reject(new Error('Function timeout')), API_TIMEOUT_MS);
+            timerId = setTimeout(() => {
+              functionController.abort();
+              reject(new Error('Function timeout'));
+            }, API_TIMEOUT_MS);
           });
           const res = await Promise.race([
-            fetch('/api/projects', { signal: controller.signal }),
+            fetch('/api/projects', { signal: functionController.signal }),
             timeout,
           ]);
           clearTimeout(timerId);

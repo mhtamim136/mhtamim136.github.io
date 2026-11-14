@@ -106,7 +106,14 @@ export default function App() {
         {/* Scroll progress bar */}
         <ScrollProgress />
 
-        <Navbar items={portfolio.nav} activeId={activeId} isDark={isDark} onThemeToggle={toggle} />
+        <Navbar
+          items={portfolio.nav}
+          name={portfolio.name}
+          contacts={portfolio.contacts}
+          activeId={activeId}
+          isDark={isDark}
+          onThemeToggle={toggle}
+        />
 
         {/* tabIndex -1: the skip-link target. The ring is suppressed
           here on purpose — a ring around the whole page content

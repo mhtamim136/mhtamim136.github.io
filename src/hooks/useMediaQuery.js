@@ -12,8 +12,6 @@ import { useEffect, useState } from 'react';
  * effect without a reload.
  *
  * NOT used where the check is deliberately one-time:
- * BackgroundBlobs (mount-only gate — a live update could freeze
- * a blob mid-transform under reduced motion, see its comment),
  * PhotoLightbox's fine-pointer read (frozen at open), and the
  * per-call reads in useTheme / smoothScrollTo (not render state
  * at all — a hook cannot live in a plain function).

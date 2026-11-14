@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { memo, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -66,7 +66,7 @@ const socials = [
   },
 ];
 
-export function Footer() {
+function FooterInner() {
   const { contacts } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
   /* Word-reveal trigger (anim #3): mount BlurWords only once the
@@ -168,3 +168,8 @@ export function Footer() {
     </footer>
   );
 }
+
+/* W26: memo() — props-free (module-level `portfolio` + its own
+   hooks), so a re-render of App never re-renders the footer.
+   Same pattern as ProjectsSection. */
+export const Footer = memo(FooterInner);

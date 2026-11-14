@@ -31,7 +31,9 @@
  * client sees to `public, max-age=0, must-revalidate` — so do not
  * be surprised when curl shows max-age=0: the hour-long edge cache
  * is real, it is just not visible in the response header. (This
- * confused two audits before it was written down here.)
+ * confused two audits before it was written down here.) A DEGRADED
+ * response (any repo fell back to primary-language / no-images,
+ * see hadFallback below) is cached for 60s only (W6).
  *
  * Errors: any GitHub failure → 502 {error:'github_unavailable'}.
  * The token and GitHub's response bodies are never exposed.
@@ -165,6 +167,13 @@ export default async function handler(req, res) {
       curated = [];
     }
 
+    /* NaN-safe pushed_at (ms since epoch; 0 = unknown/oldest) —
+       used by the W32-validated sort below. */
+    function pushedTime(r) {
+      const t = new Date(r.pushed_at).getTime();
+      return Number.isFinite(t) ? t : 0;
+    }
+
     /* Repo list (paginated, newest push first) + pins in parallel. */
     const reposPromise = (async () => {
       let rawRepos = [];
@@ -178,9 +187,22 @@ export default async function handler(req, res) {
         hasMore = batch.length === 100;
         page += 1;
       }
-      return rawRepos
-        .filter((r) => !r.fork && !EXCLUDED_REPOS.has(r.name.toLowerCase()))
-        .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+      return (
+        rawRepos
+          /* W32: validate each entry before touching its fields —
+             one malformed repo (null, or a missing/non-string name)
+             is skipped, not a throw that 502s the whole function.
+             The date sort is NaN-guarded: an unparseable pushed_at
+             sorts as oldest instead of poisoning the comparison. */
+          .filter(
+            (r) =>
+              r &&
+              typeof r.name === 'string' &&
+              !r.fork &&
+              !EXCLUDED_REPOS.has(r.name.toLowerCase())
+          )
+          .sort((a, b) => pushedTime(b) - pushedTime(a))
+      );
     })();
 
     const [repos, pinnedNames] = await Promise.all([reposPromise, fetchPinnedRepoNames()]);
@@ -188,7 +210,10 @@ export default async function handler(req, res) {
 
     /* Languages + trees per repo, in parallel. One repo failing
        must not fail the whole response — it falls back to its
-       primary language and no images (same as the build script). */
+       primary language and no images (same as the build script).
+       Any fallback sets hadFallback (W6): the response is
+       degraded, so it is edge-cached for 60s, not an hour. */
+    let hadFallback = false;
     const enriched = await Promise.all(
       repos.map(async (r) => {
         let languages;
@@ -199,6 +224,7 @@ export default async function handler(req, res) {
           languages = processLanguages(raw, r.language);
         } catch {
           languages = r.language ? [r.language] : [];
+          hadFallback = true;
         }
 
         let tree = [];
@@ -206,6 +232,7 @@ export default async function handler(req, res) {
           tree = await fetchTreeForRepo(fetchJson, r.name, r.default_branch);
         } catch {
           /* keep tree as [] — this repo gets no slideshow images */
+          hadFallback = true;
         }
         const images = imagesFromTree(tree, r.name, r.default_branch);
 
@@ -222,7 +249,7 @@ export default async function handler(req, res) {
           url: r.html_url,
           homepage: r.homepage || null,
           pushedAt: r.pushed_at,
-          topics: r.topics || [],
+          topics: Array.isArray(r.topics) ? r.topics : [],
         };
         return { entry, tree };
       })
@@ -245,7 +272,15 @@ export default async function handler(req, res) {
       if (detailsByName[e.entry.name]) e.entry.details = detailsByName[e.entry.name];
     }
 
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    /* W6: a degraded response (any repo fell back) is edge-cached
+       for 60s only — the next visitor retries GitHub fresh instead
+       of being served missing languages/images for an hour. */
+    res.setHeader(
+      'Cache-Control',
+      hadFallback
+        ? 'public, s-maxage=60, stale-while-revalidate=86400'
+        : 'public, s-maxage=3600, stale-while-revalidate=86400'
+    );
     return res.status(200).json({
       generatedAt: new Date().toISOString(),
       source: 'github-api',

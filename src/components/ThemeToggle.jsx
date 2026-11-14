@@ -8,6 +8,14 @@ const iconVariants = {
 
 const transition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] };
 
+/* W30: shared 44px icon-button base — ThemeToggle and the Navbar
+   overlay socials had the same shape written twice. Only the
+   identical base + focus ring is shared: the hover treatment
+   differs per use (toggle: subtle glass; socials: stronger accent
+   fill), so each call site adds its own hover classes. */
+export const iconButtonClass =
+  'flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
+
 /**
  * Animated sun ↔ moon toggle.
  * Uses AnimatePresence for a smooth rotate-crossfade between icons.
@@ -23,7 +31,7 @@ export function ThemeToggle({ isDark, onToggle }) {
     <motion.button
       type="button"
       onClick={onToggle}
-      className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-colors duration-300 hover:border-accent/25 hover:bg-glass/[0.07] hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+      className={`${iconButtonClass} transition-colors duration-300 hover:border-accent/25 hover:bg-glass/[0.07] hover:text-accent`}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       whileHover={reduceMotion ? undefined : { scale: 1.07, y: -2 }}
       whileTap={reduceMotion ? undefined : { scale: 0.93 }}

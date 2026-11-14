@@ -142,13 +142,6 @@ export function useScrollRestore(sectionIds = []) {
        a position worth restoring from the saved offset. A fresh
        navigation (link, typed URL) starts at the top — or at its
        hash target if it has one. */
-    let navType;
-    try {
-      navType = performance.getEntriesByType('navigation')[0]?.type ?? '';
-    } catch {
-      navType = '';
-    }
-
     let savedY = null;
     try {
       const raw = sessionStorage.getItem(SAVE_KEY);
@@ -157,6 +150,20 @@ export function useScrollRestore(sectionIds = []) {
     } catch {
       savedY = null;
     }
+
+    let navType;
+    try {
+      navType = performance.getEntriesByType('navigation')[0]?.type ?? '';
+    } catch {
+      navType = '';
+    }
+    /* W10: an unknown / missing nav type used to mean "fresh
+       navigation", silently dropping a saved offset. When a saved
+       offset exists it is the ground truth of where the user was,
+       so an unknown type defaults to 'reload'. With no saved
+       offset the default changes nothing (restoreSaved is false
+       either way). */
+    if (!navType && savedY !== null) navType = 'reload';
 
     const hash = window.location.hash;
     const isReload = navType === 'reload' || navType === 'back_forward';
@@ -298,5 +305,9 @@ export function useScrollRestore(sectionIds = []) {
       window.removeEventListener('keydown', onKeyDown);
       if (saveRaf) cancelAnimationFrame(saveRaf);
     };
-  }, []);
+    /* W10: the effect reads `sectionIds` (the sections-ready gate
+       above) — it must re-run if they ever change. App passes a
+       useMemo'd array, so in practice this never re-fires; the dep
+       is the correctness guarantee, not a behaviour change. */
+  }, [sectionIds]);
 }

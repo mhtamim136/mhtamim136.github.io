@@ -18,9 +18,8 @@ import {
 import { FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdEmail } from 'react-icons/md';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggle, iconButtonClass } from './ThemeToggle';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
-import { portfolio } from '../data/portfolio';
 import { externalLinkProps } from '../utils/links';
 
 const NAV_ICONS = {
@@ -62,16 +61,25 @@ const navItemHover = 'nav-item-hover';
     pill is far more translucent now, so the active pill needs a
     stronger fill to stay readable over bright frost. Desktop-only
     constant (used in the desktop links map, reduced-motion
-    branch); the mobile overlay rows use their own classes. */
-const navItemActive =
-  'bg-glass/[0.16] text-accent ring-1 ring-glass/[0.16] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.16)]';
+    branch); the mobile overlay rows use their own classes.
+    W15: one shared base — navItemActive and navPill were the same
+    string written twice (minus `text-accent`), so a round-7 change
+    to one could silently diverge the other. */
+const navPillBase =
+  'bg-glass/[0.16] ring-1 ring-glass/[0.16] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.16)]';
+
+const navItemActive = `${navPillBase} text-accent`;
 
 /** The travelling pill (anim #5): the active background + ring,
     carried by the motion.span behind the active link. The link
     itself keeps only the text colour (`text-accent`). Same round-5
     strengthening as navItemActive — desktop-only. */
-const navPill =
-  'bg-glass/[0.16] ring-1 ring-glass/[0.16] shadow-[inset_0_1px_0_0_rgb(var(--glass)_/_0.16)]';
+const navPill = navPillBase;
+
+/* W30: the divider between the links and the theme toggle, written
+   twice (header pill + overlay top pill) — one const, so the two
+   pills can never drift apart. */
+const navDividerClass = 'mx-1 h-6 w-px shrink-0 bg-glass/[0.1]';
 
 const navItemIdle = 'text-muted-dim';
 
@@ -137,7 +145,10 @@ const overlaySocials = [
  * (anim #5) and the tooltips are untouched. overflow-x-auto stays
  * on the pill only as a safety net for narrower screens.
  */
-export function Navbar({ items, activeId, isDark, onThemeToggle }) {
+/* W16: name + contacts arrive as props from App (like `items`),
+   so this component has one source of truth — the direct
+   portfolio import is gone. */
+export function Navbar({ items, name, contacts, activeId, isDark, onThemeToggle }) {
   const [tip, setTip] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
@@ -300,7 +311,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
         </div>
 
         {/* Divider */}
-        <div className="mx-1 h-6 w-px shrink-0 bg-glass/[0.1]" aria-hidden />
+        <div className={navDividerClass} aria-hidden />
 
         {/* Theme toggle */}
         <div
@@ -382,7 +393,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
                   <X {...iconProps} aria-hidden />
                   <span className="sr-only">Close</span>
                 </button>
-                <div className="mx-1 h-6 w-px shrink-0 bg-glass/[0.1]" aria-hidden />
+                <div className={navDividerClass} aria-hidden />
                 <div className="shrink-0">
                   <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
                 </div>
@@ -477,10 +488,10 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
                 breathing room — but only because the rows below are
                 compact enough that the list no longer overflows. */}
             <div className="flex flex-col items-center gap-4 px-6 pb-10 pt-6">
-              <p className="text-sm text-muted">{portfolio.name}</p>
+              <p className="text-sm text-muted">{name}</p>
               <div className="flex items-center gap-3">
                 {overlaySocials.map(({ key, label, Icon, getHref, external }) => {
-                  const href = getHref(portfolio.contacts);
+                  const href = getHref(contacts);
                   if (!href) return null;
                   const linkProps = external ? externalLinkProps(href) : { href };
                   return (
@@ -488,7 +499,7 @@ export function Navbar({ items, activeId, isDark, onThemeToggle }) {
                       key={key}
                       {...linkProps}
                       aria-label={label}
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-glass/10 bg-glass/[0.04] text-muted transition-all duration-300 hover:border-accent/35 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                      className={`${iconButtonClass} transition-all duration-300 hover:border-accent/35 hover:bg-accent/10 hover:text-accent`}
                     >
                       <Icon className="h-[18px] w-[18px]" aria-hidden />
                     </a>

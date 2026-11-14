@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
@@ -5,7 +6,7 @@ import { Card } from '../components/Card';
 import { ServiceIcon } from '../components/icons/NavIcons';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
-export function ServicesSection() {
+function ServicesSectionInner() {
   const { services } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
   /* Fine pointer only (S4) — same gate as the project cards: a touch
@@ -49,3 +50,8 @@ export function ServicesSection() {
     </SectionWrapper>
   );
 }
+
+/* W26: memo() — props-free (module-level `portfolio` + its own
+   hooks), so a re-render of App never re-renders this section.
+   Same pattern as ProjectsSection. */
+export const ServicesSection = memo(ServicesSectionInner);

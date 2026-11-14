@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GITHUB_PAGES_HOST } from '../utils/githubShared';
+import { validateContact } from '../utils/contactValidation';
 
 const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
 
@@ -12,10 +13,12 @@ const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
  *   (existing behaviour — /api/contact is never attempted there,
  *   because no function exists on a static host).
  * - Everywhere else (Vercel, localhost): POST JSON to the
- *   serverless function `/api/contact` (Resend) first. On ANY
- *   failure — function error, Resend error (including its 100/day
- *   free limit), network error — fall back to Web3Forms, so a
- *   message is never silently lost.
+ *   serverless function `/api/contact` (Resend) first. On a
+ *   function error, Resend error (including its 100/day free
+ *   limit), or network error — fall back to Web3Forms, so a
+ *   message is never silently lost. EXCEPTION (C2): a 429
+ *   rate-limit answer is NEVER fallen back — the fallback has no
+ *   rate limit, so falling back would bypass the limit entirely.
  * Web3Forms (VITE_WEB3FORMS_KEY) stays as the fallback everywhere.
  */
 export function useContactForm() {
@@ -25,6 +28,15 @@ export function useContactForm() {
   const [serverMsg, setServerMsg] = useState('');
 
   const accessKey = import.meta.env.VITE_WEB3FORMS_KEY;
+
+  /* W8: in-flight flag, checked-and-set SYNCHRONOUSLY. The
+     `status === 'sending'` check below reads the state captured
+     when this callback was created, so two submits in the same
+     frame (double-Enter / double-click before the re-render)
+     both see 'idle' and both POST. A ref updates immediately,
+     so the second submit sees the flag. Cleared on every terminal
+     path below, and in `reset`. */
+  const inFlightRef = useRef(false);
 
   /* ── Field change handler ── */
   const handleChange = useCallback((e) => {
@@ -39,33 +51,12 @@ export function useContactForm() {
     });
   }, []);
 
-  /* ── Validation ── */
+  /* ── Validation ──
+     Shared with api/contact.js via src/utils/contactValidation.js
+     (W9) — one validator, one set of limits, so the two layers
+     can never drift again. */
   const validate = useCallback(() => {
-    const errs = {};
-    const trimmed = {
-      name: fields.name.trim(),
-      email: fields.email.trim(),
-      message: fields.message.trim(),
-    };
-
-    if (!trimmed.name) {
-      errs.name = 'Name is required';
-    } else if (trimmed.name.length < 2) {
-      errs.name = 'Name must be at least 2 characters';
-    }
-
-    if (!trimmed.email) {
-      errs.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed.email)) {
-      errs.email = 'Enter a valid email address';
-    }
-
-    if (!trimmed.message) {
-      errs.message = 'Message is required';
-    } else if (trimmed.message.length < 10) {
-      errs.message = 'Message must be at least 10 characters';
-    }
-
+    const errs = validateContact(fields);
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }, [fields]);
@@ -76,9 +67,13 @@ export function useContactForm() {
       e.preventDefault();
       /* Already sending (e.g. a second Enter while the first
          request is in flight) — the submit button is disabled,
-         but implicit form submission can still fire. */
+         but implicit form submission can still fire. The ref
+         check is the synchronous one (W8); the state check is
+         belt-and-braces for a stale closure. */
       if (status === 'sending') return;
+      if (inFlightRef.current) return;
       if (!validate()) return;
+      inFlightRef.current = true;
 
       /* Capture the form data synchronously — the fallback below
          runs after an await, when the form may have changed. */
@@ -93,6 +88,7 @@ export function useContactForm() {
       if (isGitHubPages && !accessKey) {
         setStatus('error');
         setServerMsg('Contact form is not configured. Please set VITE_WEB3FORMS_KEY.');
+        inFlightRef.current = false;
         return;
       }
 
@@ -134,6 +130,7 @@ export function useContactForm() {
       /* GitHub Pages: Web3Forms directly, no function attempt. */
       if (isGitHubPages) {
         await submitViaWeb3Forms();
+        inFlightRef.current = false;
         return;
       }
 
@@ -159,20 +156,34 @@ export function useContactForm() {
           setStatus('success');
           setServerMsg('Message sent successfully!');
           setFields({ name: '', email: '', message: '' });
+          inFlightRef.current = false;
           return;
         }
-        /* Any non-OK answer — fall through to Web3Forms. */
+        /* C2: 429 = rate-limited — do NOT fall back to Web3Forms.
+           The fallback has no rate limit, so falling back would
+           deliver the message anyway and the limit would throttle
+           nothing. Any other non-OK answer (502/503 from a Resend
+           failure, 400, 500) falls through to Web3Forms below. */
+        if (res.status === 429) {
+          setStatus('error');
+          setServerMsg('Too many attempts. Please try again shortly.');
+          inFlightRef.current = false;
+          return;
+        }
+        /* Any other non-OK answer — fall through to Web3Forms. */
       } catch {
         /* Network error — fall through to Web3Forms. */
       }
 
       await submitViaWeb3Forms();
+      inFlightRef.current = false;
     },
     [validate, accessKey, fields, status]
   );
 
   /* ── Reset to allow sending another message ── */
   const reset = useCallback(() => {
+    inFlightRef.current = false;
     setStatus('idle');
     setServerMsg('');
     setErrors({});

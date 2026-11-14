@@ -151,6 +151,13 @@ export default function heroImagePlugin() {
 
       // Build mode: generate optimized images
       const source = await findSourceImage(projectRoot);
+      const outDir = path.join(projectRoot, 'public', '_hero');
+      /* W35: clean previous build artifacts BEFORE the early return
+         below — an empty /Image/ used to skip this cleanup, so
+         stale variants shipped in the next build. */
+      if (existsSync(outDir)) {
+        await rm(outDir, { recursive: true });
+      }
       if (!source) {
         console.log('[hero-image] No image found in /Image/ — skipping');
         return;
@@ -158,11 +165,6 @@ export default function heroImagePlugin() {
 
       console.log(`[hero-image] Optimising ${source.name}...`);
 
-      const outDir = path.join(projectRoot, 'public', '_hero');
-      // Clean previous build artifacts
-      if (existsSync(outDir)) {
-        await rm(outDir, { recursive: true });
-      }
       manifest = await generateVariants(source.fullPath, outDir, '/_hero/');
 
       // Log sizes

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FaGithub, FaInstagram, FaFacebook, FaDiscord } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -42,6 +42,14 @@ const listItem = {
     transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
   },
 };
+
+/* W24: one shared panel class for the form panel + email card +
+   socials card — the same long string was written 3× (the form
+   panel adds `sm:p-8`; the cards stay p-6 at every width). Same
+   hover language as Card, deliberately WITHOUT the tilt: a form
+   should stay still under the hand while typing. */
+const panelClass =
+  'rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover';
 
 /* ── Floating label field ───────────────────────────────────────
    One component for the input and the textarea (Tier 4, S2 — they
@@ -190,7 +198,9 @@ function CopyEmailButton({ email }) {
 }
 
 /* ── Main section ─────────────────────────────────────────────── */
-export function ContactSection() {
+/* W26: memoized like ProjectsSection — App re-renders on every
+   scroll-spy change, and this section takes no changing props. */
+function ContactSectionInner() {
   const { contacts, resumeLink } = portfolio;
   const { fields, errors, status, serverMsg, handleChange, handleSubmit, reset } = useContactForm();
   /* Reduced motion: the submit button's hover/tap gestures are
@@ -215,7 +225,7 @@ export function ContactSection() {
           {/* Same hover language as Card (border steps up, soft
               shadow) but deliberately WITHOUT the tilt — a form
               should stay still under the hand while typing. */}
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover sm:p-8">
+          <div className={`${panelClass} sm:p-8`}>
             {/* Success state */}
             {status === 'success' && (
               <motion.div
@@ -381,7 +391,7 @@ export function ContactSection() {
           className="flex flex-col gap-6 lg:col-span-2"
         >
           {/* Email card */}
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
+          <div className={panelClass}>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">Email</p>
             <div className="mt-3 flex items-center gap-2">
               <a
@@ -422,7 +432,7 @@ export function ContactSection() {
           </div>
 
           {/* Socials card */}
-          <div className="rounded-2xl border border-card bg-card p-6 shadow-glass backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-[var(--card-border-hover)] hover:shadow-glass-hover">
+          <div className={panelClass}>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-dim">Social</p>
             <motion.ul
               className="mt-4 flex flex-col gap-2.5"
@@ -449,3 +459,5 @@ export function ContactSection() {
     </SectionWrapper>
   );
 }
+
+export const ContactSection = memo(ContactSectionInner);

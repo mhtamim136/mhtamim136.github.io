@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
@@ -16,7 +16,7 @@ const labels = {
   concepts: 'Concepts',
 };
 
-export function SkillsSection({ repos, activeFilter, onFilterChange }) {
+function SkillsSectionInner({ repos, activeFilter, onFilterChange }) {
   const { skills, highlightedSkills } = portfolio;
   const highlightSet = new Set(highlightedSkills);
   const reduceMotion = useReducedMotion() ?? false;
@@ -126,3 +126,10 @@ export function SkillsSection({ repos, activeFilter, onFilterChange }) {
     </SectionWrapper>
   );
 }
+
+/* W26: memo() — safe here because App passes stable props:
+   `repos` is hook state (same reference between renders unless
+   the data changes), `activeFilter` is state, and
+   `onFilterChange` is a state setter. Same pattern as
+   ProjectsSection. */
+export const SkillsSection = memo(SkillsSectionInner);

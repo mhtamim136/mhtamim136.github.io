@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /**
  * Decorative background blobs — slow-floating organic gradient shapes.
@@ -12,19 +13,24 @@ import { useEffect, useState } from 'react';
  * resumes ~250ms after the last scroll event. The blobs move so
  * slowly (22-30s cycles) that a pause mid-scroll is invisible —
  * the user is watching content move, not the background. Reduced
- * motion: the listener is never attached — the global kill-switch
- * already freezes the animation, and a paused play-state under it
- * could freeze a blob mid-transform (the third blob's
- * -translate-y-1/2 class only applies when the animation is not
- * running, so pausing under RM would shift it).
+ * motion (W17): the gate is the LIVE useMediaQuery hook, the same
+ * one Spotlight/useLenis use — the old mount-only matchMedia check
+ * never noticed an OS setting toggled mid-session. While reduced
+ * motion is on the listener is detached and the global kill-switch
+ * freezes the animation; toggling it back off re-attaches the
+ * listener and clears any stale paused state.
  */
 export function BackgroundBlobs() {
   const [paused, setPaused] = useState(false);
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (prefersReducedMotion) {
       return undefined;
     }
+    /* Fresh start when the gate flips back on: a pause left over
+       from before reduced motion was enabled must not stick. */
+    setPaused(false);
     let timer = 0;
     let isPaused = false;
     let raf = 0;
@@ -49,7 +55,7 @@ export function BackgroundBlobs() {
       window.clearTimeout(timer);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   const playState = paused ? 'paused' : 'running';
   return (

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ExternalLink, Trophy } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
@@ -25,7 +26,7 @@ import './HeroCtaFill.css';
  * order: paper 1 carries BOTH the AIUB official student-research
  * page (first) and ResearchGate, paper 3 AIUB + ResearchGate.
  */
-export function ResearchSection() {
+function ResearchSectionInner() {
   const { research } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
 
@@ -59,7 +60,7 @@ export function ResearchSection() {
                     <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
                       {paper.role}
                     </span>
-                    {paper.award && (
+                    {paper.award?.url && (
                       <a
                         {...externalLinkProps(paper.award.url)}
                         title="Best Poster Award — 2nd Place, Track 4 (Media and Mass Communication), ICCTASS 2025"
@@ -82,9 +83,9 @@ export function ResearchSection() {
                   <p className="mt-1.5 text-sm text-muted">
                     {paper.venue} · {paper.date}
                   </p>
-                  {paper.links.length > 0 && (
+                  {(paper.links ?? []).length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {paper.links.map((paperLink) => (
+                      {(paper.links ?? []).map((paperLink) => (
                         <Button
                           key={paperLink.label}
                           {...externalLinkProps(paperLink.url)}
@@ -106,3 +107,8 @@ export function ResearchSection() {
     </SectionWrapper>
   );
 }
+
+/* W26: memo() — props-free (module-level `portfolio`), so a
+   re-render of App never re-renders this section. Same pattern
+   as ProjectsSection. */
+export const ResearchSection = memo(ResearchSectionInner);

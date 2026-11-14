@@ -120,9 +120,17 @@ export function useLenis() {
       /* Skip link: native handling (see header) — instant jump +
          focus into <main>, no Lenis, no history entry. */
       if (hash === '#main') return;
-      if (!document.querySelector(hash)) return;
+      /* W34: document.querySelector(hash) throws SyntaxError for a
+         hash containing selector-special characters ('.', ':', …).
+         All live hrefs are the 8 section ids or #main, but a stray
+         link must not throw inside the delegated handler —
+         getElementById never throws. Pass the resolved element to
+         Lenis (equivalent to the selector form) so no selector is
+         parsed anywhere on this path. */
+      const target = document.getElementById(hash.slice(1));
+      if (!target) return;
       e.preventDefault();
-      lenis.scrollTo(hash);
+      lenis.scrollTo(target);
       kick();
       window.history.pushState(null, '', hash);
     };

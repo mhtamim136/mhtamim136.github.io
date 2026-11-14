@@ -18,10 +18,10 @@
  */
 
 import { Resend } from 'resend';
+import { validateContact } from '../src/utils/contactValidation.js';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_NAME = 100;
-const MAX_MESSAGE = 5000;
+/* Validation limits live in src/utils/contactValidation.js (W9) —
+   shared with the client hook so the two layers can never drift. */
 
 /* Per-IP request timestamps (ms). Pruned on each request. */
 const rateLimit = new Map();
@@ -112,8 +112,10 @@ export default async function handler(req, res) {
   }
 
   /* Honeypot: a filled `website` field means a bot — pretend
-     success and send nothing. */
-  if (typeof body.website === 'string' && body.website.trim() !== '') {
+     success and send nothing. Any defined non-null value counts
+     (W7): the old `typeof === 'string'` check let a bot posting
+     `website: true` or `website: 1` straight through. */
+  if (body.website !== undefined && body.website !== null && String(body.website).trim() !== '') {
     return res.status(200).json({ ok: true });
   }
 
@@ -121,13 +123,9 @@ export default async function handler(req, res) {
   const email = typeof body.email === 'string' ? body.email.trim() : '';
   const message = typeof body.message === 'string' ? body.message.trim() : '';
 
-  if (
-    name.length < 1 ||
-    name.length > MAX_NAME ||
-    !EMAIL_RE.test(email) ||
-    message.length < 1 ||
-    message.length > MAX_MESSAGE
-  ) {
+  /* Same validator + limits as the client hook (W9) — see
+     src/utils/contactValidation.js. */
+  if (Object.keys(validateContact({ name, email, message })).length > 0) {
     return res.status(400).json({ error: 'invalid_input' });
   }
 

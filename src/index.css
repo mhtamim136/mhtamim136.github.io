@@ -489,6 +489,19 @@
       }
     }
   }
+
+  /* W13: no-backdrop-filter fallback for the DESKTOP pill. The
+     .nav-glass fallback above (0.92 opaque) is overridden at
+     ≥640px by .nav-glass-desktop's own background (same
+     specificity, later in the file) — so in a browser without
+     backdrop-filter the pill was a 7%-opacity tint with no blur.
+     This rule sits AFTER the desktop block, so it wins there;
+     it only applies when backdrop-filter is unsupported. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .nav-glass-desktop {
+      background: rgb(var(--surface) / 0.92);
+    }
+  }
 }
 
 /* ─── Blob float animation ──────────────────────────────────────── */

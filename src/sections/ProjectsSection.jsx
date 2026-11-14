@@ -95,12 +95,28 @@ const pillClass =
 /* Memoized (P7): a parent re-render (scroll-spy, theme) passes the
    same repoName / fallbackLanguage / langMap, so the pills must not
    re-render for it. */
-const LanguagePills = memo(function LanguagePills({ repoName, fallbackLanguage, langMap }) {
+const LanguagePills = memo(function LanguagePills({
+  repoName,
+  fallbackLanguage,
+  langMap,
+  langs: langsOverride,
+}) {
   const reduceMotion = useReducedMotion() ?? false;
-  const langs = langMap[repoName];
+  /* W25: `langs` override — the Featured card passes its resolved
+     `tech` array (curated tech first, else languages) so the
+     slice + overflow rule lives in exactly one place. When the
+     override is present it is used as-is, even when empty. */
+  const langs = langsOverride ?? (langMap ? langMap[repoName] : undefined);
 
   /* Resolved languages (or fallback) */
-  const display = langs && langs.length > 0 ? langs : fallbackLanguage ? [fallbackLanguage] : [];
+  const display =
+    langsOverride !== undefined
+      ? langsOverride
+      : langs && langs.length > 0
+        ? langs
+        : fallbackLanguage
+          ? [fallbackLanguage]
+          : [];
 
   if (display.length === 0) return null;
 
@@ -365,14 +381,18 @@ const RepoActions = memo(function RepoActions({ homepage, url }) {
           Live demo
         </Button>
       )}
-      <Button
-        {...externalLinkProps(url)}
-        variant="secondary"
-        className="hero-cta-fill hero-cta-fill--ghost"
-      >
-        <Github className="h-3.5 w-3.5" aria-hidden />
-        GitHub
-      </Button>
+      {/* W1: no `url` → no button. Without this, externalLinkProps
+          renders an <a> with no href: unfocusable, dead element. */}
+      {url && (
+        <Button
+          {...externalLinkProps(url)}
+          variant="secondary"
+          className="hero-cta-fill hero-cta-fill--ghost"
+        >
+          <Github className="h-3.5 w-3.5" aria-hidden />
+          GitHub
+        </Button>
+      )}
     </div>
   );
 });
@@ -406,6 +426,9 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
       : details.detailsSource === 'github' || details.detailsSource === 'curated-description'
         ? null
         : 'Problem';
+  /* W1: guard once per card — a repo missing `topics` used to throw
+     during render and unmount the whole section (no error boundary). */
+  const topics = Array.isArray(repo.topics) ? repo.topics : [];
   /* Tech pills: curated/portfolio.json tech first (more specific,
      e.g. "Windows Forms"), else the repo's GitHub languages. */
   const tech =
@@ -435,21 +458,12 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
           <ProjectSlideshow images={repo.images} repoName={repo.name} />
         )}
 
-        {/* Title + tech pills */}
+        {/* Title + tech pills — W25: the shared LanguagePills
+            with the resolved `tech` array, not a second copy of
+            the slice + overflow rule. */}
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
           <h3 className="text-lg font-semibold text-heading sm:text-xl">{formatName(repo.name)}</h3>
-          {tech.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {tech.slice(0, MAX_PILLS).map((t) => (
-                <span key={t} className={pillClass}>
-                  {t}
-                </span>
-              ))}
-              {tech.length > MAX_PILLS && (
-                <span className={`${pillClass} opacity-70`}>+{tech.length - MAX_PILLS}</span>
-              )}
-            </div>
-          )}
+          <LanguagePills langs={tech} />
         </div>
 
         {/* Problem / Overview / description */}
@@ -506,9 +520,9 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
         )}
 
         {/* Topics as tags */}
-        {repo.topics.length > 0 && (
+        {topics.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {repo.topics.slice(0, 6).map((t) => (
+            {topics.slice(0, 6).map((t) => (
               <Tag key={t}>{t}</Tag>
             ))}
           </div>
@@ -541,6 +555,8 @@ const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) 
      a touch tap must not leave the card lifted. */
   const finePointer = useMediaQuery('(pointer: fine)');
   const updated = formatUpdated(repo.pushedAt);
+  /* W1: guard once per card — see FeaturedProjectCard above. */
+  const topics = Array.isArray(repo.topics) ? repo.topics : [];
   return (
     <motion.div
       custom={index}
@@ -580,9 +596,9 @@ const GridProjectCard = memo(function GridProjectCard({ repo, langMap, index }) 
         )}
 
         {/* Topics as tags */}
-        {repo.topics.length > 0 && (
+        {topics.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {repo.topics.slice(0, 6).map((t) => (
+            {topics.slice(0, 6).map((t) => (
               <Tag key={t}>{t}</Tag>
             ))}
           </div>
@@ -986,7 +1002,14 @@ function ProjectsSectionInner({ repos, featured, loading, error, activeFilter, o
               aria-label="Filter projects by language"
               className="flex flex-nowrap gap-2 overflow-x-auto py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_88%,transparent_100%)] sm:flex-wrap sm:overflow-visible sm:py-0 sm:[mask-image:none]"
             >
-              {(languages.length > 2 || activeSkillChip) && (
+              {/* W4: show the row whenever there is anything to
+                  show or clear — the old `languages.length > 2`
+                  gate hid the whole row (including "All") when the
+                  data had exactly one language, leaving an active
+                  filter with no visible chip and no way to clear
+                  it here. `languages` is ['All', ...allLangs], so
+                  length > 1 means at least one real language. */}
+              {(languages.length > 1 || activeFilter !== null) && (
                 <>
                   {languages.map((lang) => {
                     const key = lang === 'All' ? null : normalizeKey(lang);

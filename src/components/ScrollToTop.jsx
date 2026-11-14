@@ -46,7 +46,7 @@ export function ScrollToTop() {
           }
           transition={{ duration: 0.25 }}
           onClick={scrollUp}
-          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-xl border border-accent/25  bg-surface-elevated/90 text-accent shadow-glass backdrop-blur-md transition hover:border-accent/45 hover:shadow-glass-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:bottom-8 sm:right-8"
+          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-xl border border-accent/25  bg-surface-elevated/90 text-accent shadow-glass backdrop-blur-md transition-colors hover:border-accent/45 hover:shadow-glass-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:bottom-8 sm:right-8"
           aria-label="Back to top"
         >
           <NavIcon name="arrow-up" />

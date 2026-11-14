@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 
-export function AboutSection() {
+function AboutSectionInner() {
   const { about, institution, currentlyLearning } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
 
@@ -40,3 +41,8 @@ export function AboutSection() {
     </SectionWrapper>
   );
 }
+
+/* W26: memo() — props-free (module-level `portfolio`), so a
+   re-render of App never re-renders this section. Same pattern
+   as ProjectsSection. */
+export const AboutSection = memo(AboutSectionInner);

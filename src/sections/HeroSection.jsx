@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { memo, useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { Container } from '../components/Container';
@@ -64,7 +64,7 @@ const item = {
   }),
 };
 
-export function HeroSection() {
+function HeroSectionInner() {
   const { name, username, title, bio, highlightedSkills, resumeLink, githubProfile } = portfolio;
   const profileImage = useProfileImage();
   const hasImage = Boolean(heroManifest || profileImage);
@@ -393,3 +393,8 @@ export function HeroSection() {
     </section>
   );
 }
+
+/* W26: memo() — props-free (module-level `portfolio` + its own
+   hooks), so a re-render of App never re-renders the hero.
+   Same pattern as ProjectsSection. */
+export const HeroSection = memo(HeroSectionInner);
