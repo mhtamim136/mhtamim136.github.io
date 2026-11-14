@@ -4,6 +4,7 @@ import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { Tag } from '../components/Tag';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { skillCounts, normalizeKey } from '../utils/skillProjectCounts';
 import { smoothScrollTo } from '../utils/smoothScroll';
 import { NAV_OFFSET_PX } from '../utils/navOffset';
@@ -20,6 +21,9 @@ function SkillsSectionInner({ repos, activeFilter, onFilterChange }) {
   const { skills, highlightedSkills } = portfolio;
   const highlightSet = new Set(highlightedSkills);
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only — same gate as Services/Projects: a touch
+     tap must not leave the card lifted. */
+  const finePointer = useMediaQuery('(pointer: fine)');
 
   /* Live counts per skill, derived from the same repo data the
      Projects grid reads — a future project auto-raises its
@@ -77,6 +81,7 @@ function SkillsSectionInner({ repos, activeFilter, onFilterChange }) {
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: '-30px' }}
             transition={{ delay: idx * 0.05, duration: 0.35 }}
+            whileHover={reduceMotion || !finePointer ? undefined : { y: -4 }}
           >
             <Card className="h-full p-5 sm:p-6">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-accent/65">

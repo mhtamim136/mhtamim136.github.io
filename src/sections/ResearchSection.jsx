@@ -6,6 +6,7 @@ import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { externalLinkProps } from '../utils/links';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import './HeroCtaFill.css';
 
 /**
@@ -29,6 +30,9 @@ import './HeroCtaFill.css';
 function ResearchSectionInner() {
   const { research } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only — same gate as Services/Projects: a touch
+     tap must not leave the row lifted. */
+  const finePointer = useMediaQuery('(pointer: fine)');
 
   return (
     <SectionWrapper
@@ -44,6 +48,7 @@ function ResearchSectionInner() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: '-40px' }}
             transition={{ delay: idx * 0.08, duration: 0.35 }}
+            whileHover={reduceMotion || !finePointer ? undefined : { y: -4 }}
           >
             <Card className="p-5 sm:p-6">
               <div className="flex gap-4 sm:gap-5">

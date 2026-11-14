@@ -49,12 +49,14 @@ export function Avatar({ src, manifest, alt, className = '' }) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >
-        {/* Outer glow ring — gentle float; the photo itself never moves */}
-        <motion.div
-          className={`absolute -inset-1 rounded-full bg-gradient-to-br from-accent via-[var(--gradient-via)] to-[var(--gradient-to)] opacity-60 blur-md ${hoverGlow}`}
+        {/* Outer glow ring — gentle float; the photo itself never moves.
+            B2: the float used to run on Framer Motion (JS, every
+            frame); now a CSS keyframe — identical motion (0 → -6px →
+            0 over 6s, ease-in-out), driven by the compositor.
+            Gated off entirely under reduced motion. */}
+        <div
+          className={`absolute -inset-1 rounded-full bg-gradient-to-br from-accent via-[var(--gradient-via)] to-[var(--gradient-to)] opacity-60 blur-md ${hoverGlow} ${reduceMotion ? '' : 'avatar-glow-float'}`}
           aria-hidden
-          animate={reduceMotion ? { y: 0 } : { y: [0, -6, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Gradient border ring */}
         <div

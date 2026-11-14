@@ -123,13 +123,14 @@ function HeroSectionInner() {
     >
       <div className="flex flex-col items-center gap-1 text-muted-dim">
         <span className="text-[10px] font-medium uppercase tracking-[0.2em]">Scroll</span>
-        <motion.span
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-          className="flex"
-        >
+        {/* B2: the bob used to run on Framer Motion (JS, every frame);
+            now a CSS keyframe — identical motion (0 → 6px → 0 over
+            1.6s, ease-in-out), driven by the compositor. The cue is
+            not rendered at all under reduced motion, so no gate is
+            needed here. */}
+        <span className="hero-chevron-bob flex">
           <NavIcon name="chevron-down" className="h-4 w-4" />
-        </motion.span>
+        </span>
       </div>
     </motion.div>
   );

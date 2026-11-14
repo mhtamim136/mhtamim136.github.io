@@ -454,6 +454,12 @@ const FeaturedProjectCard = memo(function FeaturedProjectCard({ repo, index }) {
         whileHover={reduceMotion || !finePointer ? undefined : { y: -6, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
+        {/* Featured eyebrow (D4): the only Featured-vs-More marker
+            used to be a 2px top border in light mode only — invisible
+            in dark mode. Same small-caps meta-label style as the
+            card's own Problem/Overview label below. */}
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-dim">Featured</p>
+
         {Array.isArray(repo.images) && repo.images.length > 0 && (
           <ProjectSlideshow images={repo.images} repoName={repo.name} />
         )}

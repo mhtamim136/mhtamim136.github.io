@@ -3,10 +3,14 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { portfolio } from '../data/portfolio';
 import { SectionWrapper } from '../components/SectionWrapper';
 import { Card } from '../components/Card';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 function ExperienceSectionInner() {
   const { experience } = portfolio;
   const reduceMotion = useReducedMotion() ?? false;
+  /* Fine pointer only — same gate as Services/Projects: a touch
+     tap must not leave the row lifted. */
+  const finePointer = useMediaQuery('(pointer: fine)');
 
   return (
     <SectionWrapper
@@ -36,6 +40,7 @@ function ExperienceSectionInner() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ delay: idx * 0.08, duration: 0.35 }}
+              whileHover={reduceMotion || !finePointer ? undefined : { y: -4 }}
               className="group relative pl-10 sm:pl-12"
             >
               {/* Timeline dot pops in (anim #4) on the same stagger
