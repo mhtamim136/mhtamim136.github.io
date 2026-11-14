@@ -518,6 +518,54 @@
   }
 }
 
+/* Scroll-pause for the background blobs (C1 F2): the container gets
+   .blobs-paused while a scroll is in flight; the blobs keep their
+   inline `animation` styles, this only flips `animation-play-state`.
+   NOTE: `!important` is required here — each blob div carries an
+   inline `animation` shorthand, whose implied play-state of
+   `running` beats a plain stylesheet rule. Without it the class
+   is added but the blobs never actually pause (found live
+   14 Nov 2026; the plain rule only ever passed a line-by-line
+   check, never a live one). */
+.blobs-paused > div {
+  animation-play-state: paused !important;
+}
+
+/* ─── Perpetual hero animations as CSS keyframes (B2) ─────────────
+   The Avatar glow float and the scroll-cue chevron used to run on
+   Framer Motion (JS-driven, every frame on the main thread — part
+   of the C1 measurement cycle). They now run as pure CSS keyframes:
+   the motion is identical — same keyframe values, durations and
+   easing (Framer [0,-6,0]/[0,6,0] with easeInOut maps exactly to
+   0%/50%/100% with ease-in-out) — but the compositor drives it,
+   so no JS work is scheduled per frame. The components gate the
+   animation class off under reduced motion; the global
+   prefers-reduced-motion rule below is a second backstop. */
+@keyframes avatar-glow-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.avatar-glow-float {
+  animation: avatar-glow-float 6s ease-in-out infinite;
+}
+@keyframes hero-chevron-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+.hero-chevron-bob {
+  animation: hero-chevron-bob 1.6s ease-in-out infinite;
+}
+
 /* Section scroll offset for fixed nav */
 section[id] {
   scroll-margin-top: 5.5rem;
@@ -569,9 +617,11 @@ section[id] {
    when computing luminance; the corrected composited numbers
    are in the /65 rule comment below.) */
 
-/* Dim accent text: /65 and /70 → solid #155E75 (cyan-800) in light
-   mode only. Sites: hero meta row, Skills labels, Experience
-   dates, footer availability line (/65), RoleLine caret (/70).
+/* Dim accent text: /50, /65 and /70 → solid #155E75 (cyan-800) in
+   light mode only. Sites: hero meta row, Skills labels, Experience
+   dates, footer availability line (/65), RoleLine caret (/70),
+   Research numerals (/50 — lighter still than /65, so it fails
+   contrast in light mode by the same composited math).
    The decorative dots (/40) are left alone.
    NOTE: Tailwind's text-accent/65 does NOT use --tw-text-opacity —
    it bakes the alpha into the color (rgb(var(--accent) / .65)) —
@@ -590,6 +640,9 @@ section[id] {
   color: #155e75;
 }
 [data-theme='light'] .text-accent\/70 {
+  color: #155e75;
+}
+[data-theme='light'] .text-accent\/50 {
   color: #155e75;
 }
 

@@ -43,27 +43,45 @@ export function useActiveSection(sectionIds, options = {}) {
      there was none. The stale hash then feeds the next reload's
      fragment jump with the wrong section. */
   const [hasComputed, setHasComputed] = useState(false);
+  /* F3 (C1): cache of document-relative section tops + scrollHeight,
+     filled by measureTops in the effect below. */
+  const topsRef = useRef(null);
 
   useEffect(() => {
     let raf = 0;
+    /* F3 (C1): the cache is invalid whenever the effect re-runs
+       (sectionIds/offset changed), so the first compute of the new
+       effect measures fresh. */
+    topsRef.current = null;
 
-    const compute = () => {
-      let current = sectionIds[0] ?? '';
-
+    /* F3 (C1): measure section tops once, document-relative
+       (rect.top + scrollY) so they stay valid across scrolls, and
+       cache scrollHeight with them. compute() then does a pure
+       array scan — zero layout reads per scroll frame. */
+    const measureTops = () => {
+      const tops = [];
       for (const id of sectionIds) {
         const el = document.getElementById(id);
         if (!el) continue;
-        const top = el.getBoundingClientRect().top;
-        if (top <= offset + SPY_TOLERANCE_PX) current = id;
+        tops.push({ id, top: el.getBoundingClientRect().top + window.scrollY });
+      }
+      topsRef.current = { tops, scrollHeight: document.documentElement.scrollHeight };
+    };
+
+    const compute = () => {
+      if (!topsRef.current) measureTops();
+      const { tops, scrollHeight } = topsRef.current;
+      let current = sectionIds[0] ?? '';
+
+      for (const { id, top } of tops) {
+        if (top - window.scrollY <= offset + SPY_TOLERANCE_PX) current = id;
       }
 
       const lastId = sectionIds[sectionIds.length - 1];
       const lastEl = lastId ? document.getElementById(lastId) : null;
       if (lastEl) {
-        const doc = document.documentElement;
-        const scrollable = doc.scrollHeight > window.innerHeight + 8;
-        const nearBottom =
-          scrollable && window.scrollY + window.innerHeight >= doc.scrollHeight - 4;
+        const scrollable = scrollHeight > window.innerHeight + 8;
+        const nearBottom = scrollable && window.scrollY + window.innerHeight >= scrollHeight - 4;
 
         if (nearBottom) {
           current = lastId;
@@ -91,19 +109,53 @@ export function useActiveSection(sectionIds, options = {}) {
 
     schedule();
     window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule);
+    /* F3 (C1): a resize can move every section top, so re-measure
+       before the next compute. */
+    const onResize = () => {
+      measureTops();
+      schedule();
+    };
+    window.addEventListener('resize', onResize);
 
     const mo =
       main &&
-      new MutationObserver(() => {
-        schedule();
+      new MutationObserver((mutations) => {
+        /* F1 (C1): only a section mounting/unmounting can move a
+           section's top. Text swaps (role rotation), slideshow cell
+           swaps and any other deep mutation cannot — recomputing for
+           them only buys a forced layout. Scroll/resize still
+           recompute on every event, so the spy can never go stale
+           while the user is scrolling. */
+        const sectionChanged = mutations.some((m) =>
+          [...m.addedNodes, ...m.removedNodes].some(
+            (n) => n.nodeType === 1 && sectionIds.includes(n.id)
+          )
+        );
+        if (sectionChanged) {
+          measureTops();
+          schedule();
+        }
       });
     if (main) mo.observe(main, { childList: true, subtree: true });
+
+    /* F3 (C1): bound the cache staleness — if the document height
+       changed (images/repos loading in above), re-measure. A top
+       can only move without the height changing in a pathological
+       grow-above/shrink-below pair, and even then the error lasts
+       at most 1 s and self-corrects on the next scroll/resize. */
+    const heightCheck = window.setInterval(() => {
+      const h = document.documentElement.scrollHeight;
+      if (topsRef.current && h !== topsRef.current.scrollHeight) {
+        measureTops();
+        schedule();
+      }
+    }, 1000);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
+      window.removeEventListener('resize', onResize);
+      window.clearInterval(heightCheck);
       mo?.disconnect();
     };
   }, [sectionIds, offset]);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /**
@@ -12,7 +12,9 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
  * scroll is in flight the drift pauses (animation-play-state), and
  * resumes ~250ms after the last scroll event. The blobs move so
  * slowly (22-30s cycles) that a pause mid-scroll is invisible —
- * the user is watching content move, not the background. Reduced
+ * the user is watching content move, not the background. C1 F2:
+ * the pause is a DOM class toggle on the container, not React
+ * state — same pause/resume moments, no re-render. Reduced
  * motion (W17): the gate is the LIVE useMediaQuery hook, the same
  * one Spotlight/useLenis use — the old mount-only matchMedia check
  * never noticed an OS setting toggled mid-session. While reduced
@@ -21,7 +23,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
  * listener and clears any stale paused state.
  */
 export function BackgroundBlobs() {
-  const [paused, setPaused] = useState(false);
+  const containerRef = useRef(null);
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function BackgroundBlobs() {
     }
     /* Fresh start when the gate flips back on: a pause left over
        from before reduced motion was enabled must not stick. */
-    setPaused(false);
+    containerRef.current?.classList.remove('blobs-paused');
     let timer = 0;
     let isPaused = false;
     let raf = 0;
@@ -40,12 +42,12 @@ export function BackgroundBlobs() {
         raf = 0;
         if (!isPaused) {
           isPaused = true;
-          setPaused(true);
+          containerRef.current?.classList.add('blobs-paused');
         }
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
           isPaused = false;
-          setPaused(false);
+          containerRef.current?.classList.remove('blobs-paused');
         }, 250);
       });
     };
@@ -54,12 +56,16 @@ export function BackgroundBlobs() {
       window.removeEventListener('scroll', onScroll);
       window.clearTimeout(timer);
       if (raf) cancelAnimationFrame(raf);
+      containerRef.current?.classList.remove('blobs-paused');
     };
   }, [prefersReducedMotion]);
 
-  const playState = paused ? 'paused' : 'running';
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+    <div
+      ref={containerRef}
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      aria-hidden
+    >
       {/* Top-right blob — opacity comes from --blob-1 so the light
           theme (bright page) gets a touch more presence. */}
       <div
@@ -68,7 +74,6 @@ export function BackgroundBlobs() {
           background: 'radial-gradient(circle, rgb(var(--accent)) 0%, transparent 70%)',
           opacity: 'var(--blob-1)',
           animation: 'blob-float 22s ease-in-out infinite',
-          animationPlayState: playState,
         }}
       />
       {/* Bottom-left blob */}
@@ -78,7 +83,6 @@ export function BackgroundBlobs() {
           background: 'radial-gradient(circle, var(--gradient-via) 0%, transparent 70%)',
           opacity: 'var(--blob-2)',
           animation: 'blob-float 26s ease-in-out infinite reverse',
-          animationPlayState: playState,
         }}
       />
       {/* Centre-right blob (only visible on larger screens) */}
@@ -88,7 +92,6 @@ export function BackgroundBlobs() {
           background: 'radial-gradient(circle, var(--gradient-to) 0%, transparent 70%)',
           opacity: 'var(--blob-3)',
           animation: 'blob-float 30s ease-in-out infinite 5s',
-          animationPlayState: playState,
         }}
       />
     </div>
