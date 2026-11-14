@@ -234,7 +234,15 @@ function ProjectSlideshowInner({ images, repoName }) {
      IntersectionObserver (very old browsers) assume in view, as
      before, so auto-advance still runs. The mount gate is the
      LATCHED hasBeenInView below — inView going false again must
-     never unmount the images (see M1). */
+     never unmount the images (see M1).
+     Threshold 0.5 (D3 policy, 2026-11-14): auto-advance runs only
+     while at least half the slideshow box is actually visible —
+     the cards the user can see. At 0.15 a card 15% peeking in from
+     the fold counted as "in view", so all four featured cards
+     advanced in parallel and burned data (16 images in a 30s idle
+     watch). Now: on desktop the two visible cards advance, on
+     mobile the one visible card — a card below the fold stays
+     paused until the user scrolls it into view. */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
@@ -248,7 +256,7 @@ function ProjectSlideshowInner({ images, repoName }) {
         setInView(entry.isIntersecting);
         if (entry.isIntersecting) setHasBeenInView(true);
       },
-      { threshold: 0.15 }
+      { threshold: 0.5 }
     );
     obs.observe(el);
     return () => obs.disconnect();
