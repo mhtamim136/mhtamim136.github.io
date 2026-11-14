@@ -3,6 +3,7 @@ import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdEmail } from 'react-icons/md';
+import { IdCard } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { Container } from './Container';
 import { Button } from './Button';
@@ -18,7 +19,8 @@ import '../sections/HeroCtaFill.css';
  * Closing statement "Let's build something together" + the deliberate
  * repeat of "Open to internships & collaboration" (same wording as
  * the hero) + one Magnetic "Get In Touch" → #contact + a curated
- * bottom bar (GitHub, X, email only; the full list lives in Contact).
+ * bottom bar (GitHub, X, email, Profile Card; the full list lives
+ * in Contact).
  * Full duplicate/build rationale: README "Footer CTA rationale".
  * Entrance is a single fade + 8px rise, gated with useReducedMotion
  * so under reduced motion the footer renders in its final state
@@ -39,6 +41,12 @@ const statementWords = [
   { text: 'something' },
   { text: 'together', className: 'text-gradient' },
 ];
+
+/* Profile Card — Tamim's standalone profile-card page, verified
+   live (https://mhtamim136.github.io/profile-card/). It is not in
+   portfolio.contacts, so the URL is a constant, not a contact key.
+   Same button as the mobile overlay menu's Profile Card. */
+const PROFILE_CARD_URL = 'https://mhtamim136.github.io/profile-card/';
 
 /* Curated professional identities only. Missing keys are skipped,
    never rendered as dead links. */
@@ -63,6 +71,13 @@ const socials = [
     Icon: MdEmail,
     getHref: (c) => (c.email ? `mailto:${c.email}` : undefined),
     external: false,
+  },
+  {
+    key: 'profile-card',
+    label: 'Profile Card',
+    Icon: IdCard,
+    getHref: () => PROFILE_CARD_URL,
+    external: true,
   },
 ];
 
